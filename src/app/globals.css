@@ -1,0 +1,121 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  /* Colors - Apple-style palette */
+  --color-background: #ffffff;
+  --color-foreground: #1d1d1f;
+  --color-muted: #6e6e73;
+  --color-muted-foreground: #86868b;
+  --color-border: #d2d2d7;
+  --color-card: #fbfbfd;
+  --color-card-foreground: #1d1d1f;
+  --color-primary: #0071e3;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5f5f7;
+  --color-secondary-foreground: #1d1d1f;
+  --color-accent: #0077ed;
+  --color-destructive: #ff3b30;
+  --color-success: #34c759;
+  --color-warning: #ff9500;
+
+  /* Typography */
+  --font-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  /* Spacing */
+  --spacing-page: 1.5rem;
+
+  /* Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+
+  /* Transitions - Apple-style easing */
+  --ease-apple: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+
+  /* Content width */
+  --content-max-width: 768px;
+  --content-wide-max-width: 1200px;
+}
+
+/* Dark mode variables */
+.dark {
+  --color-background: #000000;
+  --color-foreground: #f5f5f7;
+  --color-muted: #86868b;
+  --color-muted-foreground: #6e6e73;
+  --color-border: #424245;
+  --color-card: #1c1c1e;
+  --color-card-foreground: #f5f5f7;
+  --color-primary: #2997ff;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #1c1c1e;
+  --color-secondary-foreground: #f5f5f7;
+  --color-accent: #2997ff;
+  --color-destructive: #ff453a;
+  --color-success: #30d158;
+  --color-warning: #ff9f0a;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography enhancements for CJK */
+:lang(zh) {
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+}
+
+/* Prose overrides for Apple-style typography */
+.prose {
+  --tw-prose-body: var(--color-foreground);
+  --tw-prose-headings: var(--color-foreground);
+  --tw-prose-links: var(--color-primary);
+  --tw-prose-code: var(--color-foreground);
+  --tw-prose-pre-bg: var(--color-secondary);
+  --tw-prose-pre-code: var(--color-foreground);
+  --tw-prose-quotes: var(--color-muted);
+  --tw-prose-quote-borders: var(--color-border);
+  --tw-prose-counters: var(--color-muted);
+  --tw-prose-bullets: var(--color-muted);
+  --tw-prose-hr: var(--color-border);
+  --tw-prose-th-borders: var(--color-border);
+  --tw-prose-td-borders: var(--color-border);
+}
+
+/* Selection style */
+::selection {
+  background-color: var(--color-primary);
+  color: white;
+}
