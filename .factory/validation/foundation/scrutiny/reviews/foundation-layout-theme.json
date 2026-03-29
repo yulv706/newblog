@@ -1,0 +1,28 @@
+{
+  "featureId": "foundation-layout-theme",
+  "reviewedAt": "2026-03-29T16:10:41Z",
+  "commitId": "903d433",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The feature delivers the main layout/theme scaffolding (header/footer/mobile nav/theme toggle/semantic structure), but a blocking requirement is missed: page transition animation does not implement reduced-motion handling.",
+    "issues": [
+      {
+        "file": "src/components/layout/page-transition.tsx",
+        "line": 9,
+        "severity": "blocking",
+        "description": "Route transition always animates (`initial`/`animate` with duration 0.3) and has no `prefers-reduced-motion` gate. Because `src/app/template.tsx` wraps all page content in `PageTransition` (line 4), users with reduced-motion preference still get non-essential page transition animation, violating expected behavior \"Reduced-motion respected\" (VAL-FOUND-020)."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The frontend-worker skill mandates TDD with failing tests first, but the transcript for this session shows implementation files were created before `src/__tests__/layout.test.ts` and no failing-test phase was captured for new layout tests.",
+      "evidence": "Transcript skeleton order includes `Create .../src/components/layout/header.tsx` and other layout component files before `Create .../src/__tests__/layout.test.ts`; `Execute npx vitest run --reporter=verbose` appears before and after implementation rather than a failing run immediately after adding new tests."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Review failed due to missing reduced-motion handling in the page transition implementation. Core layout functionality is present, but this gap leaves a required accessibility behavior unmet."
+}
