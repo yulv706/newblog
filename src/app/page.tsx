@@ -1,3 +1,5 @@
+import { AnimationDemo } from "@/components/ui/animation-demo";
+
 export default function Home() {
   return (
     <div className="py-12">
@@ -7,11 +9,8 @@ export default function Home() {
         欢迎来到我的个人技术博客。这里分享 Web 开发和软件工程的文章。
       </p>
 
-      {/* Sample content to demonstrate typography */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-semibold tracking-tight">Latest Posts</h2>
-        <p className="mt-2 text-muted">Posts will appear here soon.</p>
-      </section>
+      {/* Animation demo components */}
+      <AnimationDemo />
 
       {/* Sample code block to verify monospace font */}
       <section className="mt-12">
