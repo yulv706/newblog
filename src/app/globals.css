@@ -20,12 +20,12 @@
   --color-warning: #ff9500;
 
   /* Typography */
-  --font-sans: "Inter", "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont,
-    "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Noto Sans SC",
+  --font-sans: "Inter", "Noto Sans SC", "SF Pro Display", "SF Pro Text", -apple-system,
+    BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
     "Source Han Sans SC", "Microsoft YaHei", "WenQuanYi Micro Hei", "Droid Sans Fallback",
     "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas,
-    "Liberation Mono", monospace;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Fira Mono", Menlo,
+    Consolas, "Liberation Mono", monospace;
 
   /* Spacing */
   --spacing-page: 1.5rem;
@@ -86,10 +86,19 @@ html {
   max-width: 100%;
 }
 
+:root {
+  --app-font-sans-fallback: "SF Pro Display", "SF Pro Text", -apple-system,
+    BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC",
+    "Microsoft YaHei", "WenQuanYi Micro Hei", "Droid Sans Fallback", "Helvetica Neue",
+    Arial, sans-serif;
+  --app-font-mono-fallback: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-inter), var(--font-cjk), var(--app-font-sans-fallback);
   max-width: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -105,12 +114,12 @@ button,
 input,
 select,
 textarea {
-  font-family: var(--font-sans);
+  font-family: var(--font-inter), var(--font-cjk), var(--app-font-sans-fallback);
 }
 
 /* Prose overrides for Apple-style typography */
 .prose {
-  font-family: var(--font-sans);
+  font-family: var(--font-inter), var(--font-cjk), var(--app-font-sans-fallback);
   line-height: 1.8;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -130,7 +139,7 @@ textarea {
 }
 
 .prose :where(pre, code, kbd, samp):not(:where([class~="not-prose"] *)) {
-  font-family: var(--font-mono);
+  font-family: var(--font-jetbrains-mono), var(--app-font-mono-fallback);
 }
 
 /* Selection style */

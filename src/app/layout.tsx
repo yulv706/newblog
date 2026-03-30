@@ -1,8 +1,30 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+const notoSansSc = localFont({
+  src: "./fonts/NotoSansCJKsc-Regular.otf",
+  display: "block",
+  preload: true,
+  fallback: ["sans-serif"],
+  variable: "--font-cjk",
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jetbrains-mono",
+});
 
 export const metadata: Metadata = {
   title: "Personal Blog",
@@ -33,7 +55,9 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="flex min-h-screen flex-col overflow-x-hidden bg-background font-sans text-foreground antialiased">
+      <body
+        className={`${inter.variable} ${notoSansSc.variable} ${jetBrainsMono.variable} flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground antialiased`}
+      >
         <ThemeProvider>
           <Header />
           <main className="mx-auto w-full max-w-[var(--content-max-width)] flex-1 px-[var(--spacing-page)]">
