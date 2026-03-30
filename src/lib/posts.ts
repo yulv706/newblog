@@ -567,7 +567,9 @@ export async function getPublishedPosts(database: PostDatabase = db) {
       title: posts.title,
       slug: posts.slug,
       excerpt: posts.excerpt,
+      coverImage: posts.coverImage,
       createdAt: posts.createdAt,
+      updatedAt: posts.updatedAt,
       publishedAt: posts.publishedAt,
       categoryName: categories.name,
     })

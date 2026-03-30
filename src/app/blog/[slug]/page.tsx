@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CodeBlockEnhancer } from "@/components/blog/code-block-enhancer";
@@ -8,6 +9,14 @@ import { TableOfContents } from "@/components/blog/table-of-contents";
 import { getApprovedCommentsForPost } from "@/lib/comments";
 import { extractTableOfContents, renderPostMarkdownToHtml } from "@/lib/markdown";
 import { getAdjacentPublishedPosts, getPublishedPostDetailBySlug } from "@/lib/posts";
+import {
+  SITE_NAME,
+  buildBlogPostingJsonLd,
+  buildMetaDescription,
+  getAbsoluteUrl,
+  resolveOgImageUrl,
+  serializeJsonLd,
+} from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -17,6 +26,45 @@ type BlogPostPageProps = {
     slug: string;
   }>;
 };
+
+export async function generateMetadata({
+  params,
+}: BlogPostPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPublishedPostDetailBySlug(slug);
+
+  if (!post) {
+    return {
+      title: "Post Not Found",
+      description: "The requested post could not be found.",
+    };
+  }
+
+  const description = buildMetaDescription(
+    post.excerpt,
+    `Read ${post.title} on ${SITE_NAME}.`
+  );
+  const canonicalUrl = getAbsoluteUrl(`/blog/${post.slug}`);
+
+  return {
+    title: post.title,
+    description,
+    openGraph: {
+      type: "article",
+      title: post.title,
+      description,
+      url: canonicalUrl,
+      images: [
+        {
+          url: resolveOgImageUrl(post.coverImage),
+        },
+      ],
+      publishedTime: post.publishedAt ?? post.createdAt,
+      modifiedTime: post.updatedAt,
+      authors: [SITE_NAME],
+    },
+  };
+}
 
 function formatDate(dateString: string | null) {
   if (!dateString) {
@@ -44,11 +92,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     getAdjacentPublishedPosts(post.id),
     getApprovedCommentsForPost(post.id),
   ]);
+  const blogPostingJsonLd = buildBlogPostingJsonLd(post, {
+    authorName: SITE_NAME,
+  });
 
   return (
     <div className="py-10 sm:py-14">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
         <article className="min-w-0 space-y-8">
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: serializeJsonLd(blogPostingJsonLd),
+            }}
+          />
           <header className="space-y-4">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{post.title}</h1>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted">

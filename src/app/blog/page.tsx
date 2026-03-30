@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { HomePostCard } from "@/components/blog/home-post-card";
 import { FadeIn, StaggeredItem, StaggeredList } from "@/components/ui/animations";
@@ -5,6 +6,12 @@ import { getBlogListingData } from "@/lib/posts";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Blog",
+  description:
+    "Browse all published posts and filter articles by category or tag to find topics that match your interests.",
+};
 
 type BlogPageProps = {
   searchParams?: Promise<{

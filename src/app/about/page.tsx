@@ -1,8 +1,28 @@
+import type { Metadata } from "next";
 import { renderMarkdownToHtml } from "@/lib/markdown";
+import { getDefaultOgImageUrl } from "@/lib/seo";
 import { getAboutContentForPublic } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const aboutDescription =
+  "Learn more about the author behind Tech Blog, including engineering background, interests, and writing focus.";
+
+export const metadata: Metadata = {
+  title: "About",
+  description: aboutDescription,
+  openGraph: {
+    title: "About — Tech Blog",
+    description: aboutDescription,
+    url: "/about",
+    images: [
+      {
+        url: getDefaultOgImageUrl(),
+      },
+    ],
+  },
+};
 
 export default async function AboutPage() {
   const content = await getAboutContentForPublic();

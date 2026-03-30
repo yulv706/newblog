@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getRecentPostsForSearch, searchPublishedPosts } from "@/lib/posts";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Search",
+  description:
+    "Search published posts by title or content with support for both English and Chinese keywords.",
+};
 
 type SearchPageProps = {
   searchParams?: Promise<{

@@ -1,10 +1,30 @@
+import type { Metadata } from "next";
 import { HomeCategoryNav } from "@/components/blog/home-category-nav";
 import { HomePostCard } from "@/components/blog/home-post-card";
 import { FadeIn, StaggeredItem, StaggeredList } from "@/components/ui/animations";
 import { getHomepageData } from "@/lib/posts";
+import { getDefaultOgImageUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const homeDescription =
+  "Explore featured and latest engineering posts covering Next.js, TypeScript, backend architecture, and practical production lessons.";
+
+export const metadata: Metadata = {
+  title: "Home",
+  description: homeDescription,
+  openGraph: {
+    title: "Tech Blog — Home",
+    description: homeDescription,
+    url: "/",
+    images: [
+      {
+        url: getDefaultOgImageUrl(),
+      },
+    ],
+  },
+};
 
 export default async function HomePage() {
   const { featuredPost, latestPosts, categories } = await getHomepageData();
