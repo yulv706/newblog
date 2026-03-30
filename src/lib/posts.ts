@@ -43,6 +43,37 @@ export type HomepageData = {
   }>;
 };
 
+export type BlogListingQuery = {
+  page?: number;
+  perPage?: number;
+  category?: string;
+  tag?: string;
+};
+
+export type BlogListingFilterOption = {
+  name: string;
+  slug: string;
+  count: number;
+};
+
+export type BlogListingPagination = {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  perPage: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
+};
+
+export type BlogListingData = {
+  posts: HomepagePostCard[];
+  categories: BlogListingFilterOption[];
+  tags: BlogListingFilterOption[];
+  activeCategory: BlogListingFilterOption | null;
+  activeTag: BlogListingFilterOption | null;
+  pagination: BlogListingPagination;
+};
+
 export type PostFormInput = {
   title: string;
   slug: string;
@@ -476,10 +507,15 @@ export async function getPublishedPostBySlug(
   };
 }
 
-function getHomepageTagMap(
+type PostTagInfo = {
+  name: string;
+  slug: string;
+};
+
+function getPostTagMap(
   postIds: number[],
   database: PostDatabase
-): Map<number, string[]> {
+): Map<number, PostTagInfo[]> {
   if (postIds.length === 0) {
     return new Map();
   }
@@ -488,6 +524,7 @@ function getHomepageTagMap(
     .select({
       postId: postTags.postId,
       name: tags.name,
+      slug: tags.slug,
     })
     .from(postTags)
     .innerJoin(tags, eq(postTags.tagId, tags.id))
@@ -495,10 +532,10 @@ function getHomepageTagMap(
     .orderBy(asc(tags.name))
     .all();
 
-  const map = new Map<number, string[]>();
+  const map = new Map<number, PostTagInfo[]>();
   for (const row of rows) {
     const existing = map.get(row.postId) ?? [];
-    existing.push(row.name);
+    existing.push({ name: row.name, slug: row.slug });
     map.set(row.postId, existing);
   }
 
@@ -527,14 +564,14 @@ export async function getHomepageData(
     .orderBy(desc(posts.publishedAt), desc(posts.createdAt))
     .all();
 
-  const tagMap = getHomepageTagMap(
+  const tagMap = getPostTagMap(
     rows.map((post) => post.id),
     database
   );
 
   const homepagePosts: HomepagePostCard[] = rows.map((post) => ({
     ...post,
-    tags: tagMap.get(post.id) ?? [],
+    tags: (tagMap.get(post.id) ?? []).map((tag) => tag.name),
   }));
 
   const featuredPost = homepagePosts[0] ?? null;
@@ -559,6 +596,140 @@ export async function getHomepageData(
     featuredPost,
     latestPosts,
     categories: categoriesForHome,
+  };
+}
+
+export async function getBlogListingData(
+  query: BlogListingQuery = {},
+  database: PostDatabase = db
+): Promise<BlogListingData> {
+  const perPage =
+    typeof query.perPage === "number" && Number.isFinite(query.perPage) && query.perPage > 0
+      ? Math.floor(query.perPage)
+      : 10;
+  const requestedPage =
+    typeof query.page === "number" && Number.isFinite(query.page) && query.page > 0
+      ? Math.floor(query.page)
+      : 1;
+
+  const categoryFilter = query.category?.trim() || null;
+  const tagFilter = query.tag?.trim() || null;
+
+  const rows = database
+    .select({
+      id: posts.id,
+      title: posts.title,
+      slug: posts.slug,
+      excerpt: posts.excerpt,
+      coverImage: posts.coverImage,
+      createdAt: posts.createdAt,
+      publishedAt: posts.publishedAt,
+      categoryName: categories.name,
+      categorySlug: categories.slug,
+    })
+    .from(posts)
+    .leftJoin(categories, eq(posts.categoryId, categories.id))
+    .where(eq(posts.status, "published"))
+    .orderBy(desc(posts.publishedAt), desc(posts.createdAt))
+    .all();
+
+  const tagMap = getPostTagMap(
+    rows.map((post) => post.id),
+    database
+  );
+
+  const listingRows = rows.map((post) => ({
+    ...post,
+    tags: tagMap.get(post.id) ?? [],
+  }));
+
+  const categoriesBySlug = new Map<string, BlogListingFilterOption>();
+  for (const post of listingRows) {
+    if (!post.categoryName || !post.categorySlug) {
+      continue;
+    }
+
+    const existing = categoriesBySlug.get(post.categorySlug);
+    if (existing) {
+      existing.count += 1;
+      continue;
+    }
+
+    categoriesBySlug.set(post.categorySlug, {
+      name: post.categoryName,
+      slug: post.categorySlug,
+      count: 1,
+    });
+  }
+
+  const tagsBySlug = new Map<string, BlogListingFilterOption>();
+  for (const post of listingRows) {
+    for (const tag of post.tags) {
+      const existing = tagsBySlug.get(tag.slug);
+      if (existing) {
+        existing.count += 1;
+        continue;
+      }
+
+      tagsBySlug.set(tag.slug, {
+        name: tag.name,
+        slug: tag.slug,
+        count: 1,
+      });
+    }
+  }
+
+  const categoryOptions = Array.from(categoriesBySlug.values()).sort((left, right) =>
+    left.name.localeCompare(right.name)
+  );
+  const tagOptions = Array.from(tagsBySlug.values()).sort((left, right) =>
+    left.name.localeCompare(right.name)
+  );
+
+  const filteredRows = listingRows.filter((post) => {
+    if (categoryFilter && post.categorySlug !== categoryFilter) {
+      return false;
+    }
+
+    if (tagFilter && !post.tags.some((tag) => tag.slug === tagFilter)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const totalItems = filteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const startIndex = (currentPage - 1) * perPage;
+  const pagedRows = filteredRows.slice(startIndex, startIndex + perPage);
+
+  return {
+    posts: pagedRows.map((post) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      coverImage: post.coverImage,
+      createdAt: post.createdAt,
+      publishedAt: post.publishedAt,
+      categoryName: post.categoryName,
+      categorySlug: post.categorySlug,
+      tags: post.tags.map((tag) => tag.name),
+    })),
+    categories: categoryOptions,
+    tags: tagOptions,
+    activeCategory:
+      categoryFilter ? categoryOptions.find((category) => category.slug === categoryFilter) ?? null : null,
+    activeTag: tagFilter ? tagOptions.find((tag) => tag.slug === tagFilter) ?? null : null,
+    pagination: {
+      currentPage,
+      totalPages,
+      totalItems,
+      perPage,
+      hasPrevPage: totalItems > 0 && currentPage > 1,
+      hasNextPage: totalItems > 0 && currentPage < totalPages,
+    },
   };
 }
 
