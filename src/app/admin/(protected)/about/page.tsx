@@ -1,8 +1,17 @@
-export default function AdminAboutPage() {
+import { saveAboutContentAction } from "@/actions/about";
+import { AboutEditorForm } from "@/components/admin/about-editor-form";
+import { getAboutContent } from "@/lib/site-settings";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function AdminAboutPage() {
+  const aboutContent = (await getAboutContent()) ?? "";
+
   return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-semibold tracking-tight">About</h1>
-      <p className="text-sm text-muted">Edit your About page content here.</p>
-    </div>
+    <AboutEditorForm
+      initialContent={aboutContent}
+      action={saveAboutContentAction}
+    />
   );
 }
