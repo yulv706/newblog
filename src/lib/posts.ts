@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { categories, postTags, posts, tags } from "@/lib/db/schema";
+import { categories, comments, postTags, posts, tags } from "@/lib/db/schema";
 import { createSlug } from "@/lib/slug";
 
 type PostDatabase = Pick<
@@ -125,6 +125,7 @@ export type PublishedPostDetail = {
     name: string;
     slug: string;
   }>;
+  commentCount: number;
 };
 
 export type AdjacentPublishedPosts = {
@@ -141,6 +142,22 @@ export type AdjacentPublishedPosts = {
 const MAX_SEARCH_QUERY_LENGTH = 120;
 const DEFAULT_SEARCH_RESULT_LIMIT = 20;
 const SEARCH_SNIPPET_LENGTH = 180;
+
+function toCount(value: unknown) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "bigint") {
+    return Number(value);
+  }
+
+  if (typeof value === "string") {
+    return Number.parseInt(value, 10) || 0;
+  }
+
+  return 0;
+}
 
 function normalizeSearchQuery(query: string) {
   return query.trim().replace(/\s+/g, " ").slice(0, MAX_SEARCH_QUERY_LENGTH);
@@ -709,6 +726,14 @@ export async function getPublishedPostDetailBySlug(
     .orderBy(asc(tags.name))
     .all();
 
+  const approvedCommentCount = toCount(
+    database
+      .select({ count: count() })
+      .from(comments)
+      .where(and(eq(comments.postId, post.id), eq(comments.approved, true)))
+      .get()?.count
+  );
+
   return {
     id: post.id,
     title: post.title,
@@ -730,6 +755,7 @@ export async function getPublishedPostDetailBySlug(
       name: tag.name,
       slug: tag.slug,
     })),
+    commentCount: approvedCommentCount,
   };
 }
 

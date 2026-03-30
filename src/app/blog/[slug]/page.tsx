@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CodeBlockEnhancer } from "@/components/blog/code-block-enhancer";
+import { CommentForm } from "@/components/blog/comment-form";
+import { CommentList } from "@/components/blog/comment-list";
 import { PostPaginationNav } from "@/components/blog/post-pagination-nav";
 import { TableOfContents } from "@/components/blog/table-of-contents";
+import { getApprovedCommentsForPost } from "@/lib/comments";
 import { extractTableOfContents, renderPostMarkdownToHtml } from "@/lib/markdown";
 import { getAdjacentPublishedPosts, getPublishedPostDetailBySlug } from "@/lib/posts";
 
@@ -35,10 +38,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
-  const [html, tocHeadings, adjacentPosts] = await Promise.all([
+  const [html, tocHeadings, adjacentPosts, approvedComments] = await Promise.all([
     renderPostMarkdownToHtml(post.content),
     Promise.resolve(extractTableOfContents(post.content)),
     getAdjacentPublishedPosts(post.id),
+    getApprovedCommentsForPost(post.id),
   ]);
 
   return (
@@ -76,6 +80,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   </div>
                 </>
               ) : null}
+              <span>•</span>
+              <span>
+                {post.commentCount} {post.commentCount === 1 ? "comment" : "comments"}
+              </span>
             </div>
           </header>
 
@@ -100,6 +108,22 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           />
 
           <CodeBlockEnhancer containerId="blog-post-content" />
+
+          <section className="space-y-4">
+            <div className="space-y-1">
+              <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+                Comments
+              </h2>
+              <p className="text-sm text-muted">
+                {post.commentCount > 0
+                  ? `${post.commentCount} approved ${post.commentCount === 1 ? "comment" : "comments"}`
+                  : "Comments are moderated before they appear publicly."}
+              </p>
+            </div>
+
+            <CommentForm postId={post.id} postSlug={post.slug} />
+            <CommentList comments={approvedComments} />
+          </section>
 
           <PostPaginationNav previous={adjacentPosts.previous} next={adjacentPosts.next} />
         </article>
