@@ -1,0 +1,109 @@
+{
+  "groupId": "foundation-animations",
+  "tool": "agent-browser",
+  "testedAt": "2026-03-30T02:13:43Z",
+  "isolation": {
+    "missionDir": "/home/kongyu/.factory/missions/1eaa9d83-1e54-4588-bb57-26ce9ede79db",
+    "appUrl": "http://localhost:3100",
+    "session": "foundation-animations",
+    "scope": "browser-local interactions only"
+  },
+  "assertions": [
+    {
+      "id": "VAL-FOUND-018",
+      "status": "pass",
+      "reason": "Route navigation from / to /blog used a smooth animated transition; runtime samples captured intermediate opacity and translateY values before settling at final state.",
+      "evidence": [
+        "foundation/foundation-animations/VAL-FOUND-018-before-home-v2.png",
+        "foundation/foundation-animations/VAL-FOUND-018-during-transition-v2.png",
+        "foundation/foundation-animations/VAL-FOUND-018-after-blog-v2.png",
+        "Transition sample: /blog frame sequence included opacity 0 -> 0.39 -> 0.79 -> 0.99 -> 1 and transform y 8px -> 6.49px -> 2.44px -> 0.22px -> 0px",
+        "console errors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-020",
+      "status": "pass",
+      "reason": "With prefers-reduced-motion enabled, route transitions no longer used fade/translate animation and card hover lift was disabled (no transform/shadow change).",
+      "evidence": [
+        "foundation/foundation-animations/VAL-FOUND-020-reduced-home.png",
+        "foundation/foundation-animations/VAL-FOUND-020-reduced-blog.png",
+        "foundation/foundation-animations/VAL-FOUND-020-reduced-card-before-hover.png",
+        "foundation/foundation-animations/VAL-FOUND-020-reduced-card-hover.png",
+        "Media query check: window.matchMedia('(prefers-reduced-motion: reduce)').matches = true",
+        "Reduced route sample unique states: / opacity=1 transform=none, /blog opacity=1 transform=none",
+        "Reduced card style check (before+hover): transform=none, boxShadow=none, cursor=auto",
+        "console errors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-025",
+      "status": "pass",
+      "reason": "Below-fold fade-in block started hidden, became visible when scrolled into viewport, and did not replay when revisiting the same section.",
+      "evidence": [
+        "foundation/foundation-animations/VAL-FOUND-025-before-scroll.png",
+        "foundation/foundation-animations/VAL-FOUND-025-during-reveal.png",
+        "foundation/foundation-animations/VAL-FOUND-025-after-reveal.png",
+        "foundation/foundation-animations/VAL-FOUND-025-second-visit.png",
+        "Before scroll (Another Fade-In Block): opacity=0, transform=matrix(..., 20px), top=1148.86",
+        "After reveal: opacity=1, transform=none, top=428.86",
+        "Second visit after scrolling away/back: opacity=1, transform=none (no replay)",
+        "console errors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-030",
+      "status": "pass",
+      "reason": "Post card list revealed with staggered timing; sampled card opacities crossed visibility thresholds sequentially rather than simultaneously.",
+      "evidence": [
+        "foundation/foundation-animations/VAL-FOUND-030-before-list-scroll.png",
+        "foundation/foundation-animations/VAL-FOUND-030-during-stagger.png",
+        "foundation/foundation-animations/VAL-FOUND-030-after-stagger.png",
+        "Initial card wrappers before list enters viewport: all opacity=0, transform=translateY(20px)",
+        "Stagger sample first visibility (>0.05 opacity): [297ms, 380ms, 480ms, 580ms]",
+        "Inter-item delays: [83ms, 100ms, 100ms]",
+        "console errors: none"
+      ]
+    },
+    {
+      "id": "VAL-BLOG-060",
+      "status": "pass",
+      "reason": "Card hover animation applies lift and stronger shadow smoothly on hover and returns to original resting state on mouse leave.",
+      "evidence": [
+        "foundation/foundation-animations/VAL-BLOG-060-card-normal.png",
+        "foundation/foundation-animations/VAL-BLOG-060-card-hover.png",
+        "foundation/foundation-animations/VAL-BLOG-060-card-after-leave.png",
+        "Normal style: transform=none, shadow=0 1px 3px/0 1px 2px, top=214.94",
+        "Hover style: transform=translateY(-4px), shadow=0 10px 15px/0 4px 6px, top=210.94",
+        "After leave: transform=none, shadow reset, top=214.94",
+        "console errors: none"
+      ]
+    }
+  ],
+  "frictions": [
+    {
+      "description": "agent-browser required LD_LIBRARY_PATH prefix in this environment for stable command execution.",
+      "resolved": true,
+      "resolution": "Prefixed all agent-browser commands with LD_LIBRARY_PATH=\"/home/kongyu/miniconda3/lib:$LD_LIBRARY_PATH\".",
+      "affectedAssertions": [
+        "VAL-FOUND-018",
+        "VAL-FOUND-020",
+        "VAL-FOUND-025",
+        "VAL-FOUND-030",
+        "VAL-BLOG-060"
+      ]
+    },
+    {
+      "description": "Single-frame screenshots could miss the exact midpoint of fast route transitions.",
+      "resolved": true,
+      "resolution": "Added in-page frame sampling of computed opacity/transform during navigation to capture intermediate transition states.",
+      "affectedAssertions": [
+        "VAL-FOUND-018"
+      ]
+    }
+  ],
+  "blockers": [],
+  "toolsUsed": [
+    "agent-browser"
+  ]
+}

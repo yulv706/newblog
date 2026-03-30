@@ -1,0 +1,49 @@
+{
+  "groupId": "foundation-mobile-nav",
+  "tool": "agent-browser",
+  "testedAt": "2026-03-30T02:06:44.867865+00:00",
+  "toolsUsed": [
+    "agent-browser",
+    "curl"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-FOUND-006",
+      "status": "pass",
+      "reason": "At 375x667, header showed a hamburger menu, desktop nav links were not visible, horizontal scroll could not be performed (scrollX stayed 0), and footer rendered after main content. Console errors: none. Network: HEAD / -> 200.",
+      "evidence": [
+        "foundation/foundation-mobile-nav/VAL-FOUND-006-mobile-layout.png"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-007",
+      "status": "pass",
+      "reason": "On mobile viewport, tapping hamburger opened drawer with Home/Blog/About links; tapping close icon closed menu and returned to Open menu state. Console errors: none.",
+      "evidence": [
+        "foundation/foundation-mobile-nav/VAL-FOUND-007-menu-closed-initial.png",
+        "foundation/foundation-mobile-nav/VAL-FOUND-007-menu-open.png",
+        "foundation/foundation-mobile-nav/VAL-FOUND-007-menu-closed-after-toggle.png"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-008",
+      "status": "pass",
+      "reason": "From open mobile menu, tapping Blog navigated to /blog and menu auto-closed (Open menu button visible on destination page). Console errors: none. Network: HEAD /blog -> 200.",
+      "evidence": [
+        "foundation/foundation-mobile-nav/VAL-FOUND-008-menu-open-before-link.png",
+        "foundation/foundation-mobile-nav/VAL-FOUND-008-blog-page-after-link-menu-closed.png"
+      ]
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Close action on ref @e4 was blocked by an overlapping element during one attempt.",
+      "resolved": true,
+      "resolution": "Used the alternate visible close control ref @e5, then menu closed successfully.",
+      "affectedAssertions": [
+        "VAL-FOUND-007"
+      ]
+    }
+  ],
+  "blockers": []
+}

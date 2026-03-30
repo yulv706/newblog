@@ -1,0 +1,116 @@
+{
+  "groupId": "foundation-layout-core",
+  "tool": "agent-browser",
+  "testedAt": "2026-03-30T02:06:53Z",
+  "isolation": {
+    "missionDir": "/home/kongyu/.factory/missions/1eaa9d83-1e54-4588-bb57-26ce9ede79db",
+    "appUrl": "http://localhost:3100",
+    "session": "foundation-layout-core",
+    "scope": "browser-local interactions only"
+  },
+  "assertions": [
+    {
+      "id": "VAL-FOUND-001",
+      "status": "pass",
+      "reason": "Homepage loaded successfully with visible header, main, and footer regions; HTTP 200 confirmed and no blank flash observed during repeated loads.",
+      "evidence": [
+        "foundation/foundation-layout-core/VAL-FOUND-001-homepage-1280x800.png",
+        "curl status: GET / -> 200",
+        "DOM check: header/nav/main/footer present",
+        "console errors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-002",
+      "status": "pass",
+      "reason": "Desktop header showed Home/Blog/About links; each link was clickable and navigated to the correct route. Client-side navigation was confirmed by in-page marker persistence across Home -> Blog.",
+      "evidence": [
+        "foundation/foundation-layout-core/VAL-FOUND-002-header-desktop-links.png",
+        "foundation/foundation-layout-core/VAL-FOUND-002-blog-route-header.png",
+        "foundation/foundation-layout-core/VAL-FOUND-002-about-route-header.png",
+        "Observed routes: / -> /blog -> /about -> /",
+        "Client-nav marker persisted after link click (window.__flowMarker = client-nav-check)",
+        "console errors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-004",
+      "status": "pass",
+      "reason": "Footer rendered with expected copyright text and did not overlap main content; footer/main separation confirmed on homepage, blog, and about pages.",
+      "evidence": [
+        "foundation/foundation-layout-core/VAL-FOUND-004-footer-homepage.png",
+        "Layout checks: overlap=false on /, /blog, /about",
+        "Footer text observed: © 2026 Tech Blog. All rights reserved.",
+        "console errors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-026",
+      "status": "pass",
+      "reason": "At 1920x1080 viewport, main content remained centered and constrained (768px width) with large side margins, satisfying max-width constraint behavior.",
+      "evidence": [
+        "foundation/foundation-layout-core/VAL-FOUND-026-blog-1920x1080.png",
+        "Computed style on main: maxWidth=768px, width=768px",
+        "Measured margins at 1920px viewport: left=576px, right=576px",
+        "console errors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-027",
+      "status": "fail",
+      "reason": "Horizontal overflow exists at 375px viewport (document scrollWidth 631 > clientWidth 375), violating the no-horizontal-overflow requirement across standard viewports.",
+      "evidence": [
+        "foundation/foundation-layout-core/VAL-FOUND-027-home-375x667.png",
+        "foundation/foundation-layout-core/VAL-FOUND-027-home-768x800.png",
+        "foundation/foundation-layout-core/VAL-FOUND-027-home-1024x800.png",
+        "foundation/foundation-layout-core/VAL-FOUND-027-home-1280x800.png",
+        "Metrics: 375px overflow=true (631/375); 768px overflow=false; 1024px overflow=false; 1280px overflow=false",
+        "Overflow offender identified: hidden mobile drawer element at right edge contributes +256px",
+        "console errors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-028",
+      "status": "pass",
+      "reason": "Semantic structure is present with required elements on homepage.",
+      "evidence": [
+        "foundation/foundation-layout-core/VAL-FOUND-028-semantic-structure-home.png",
+        "DOM counts: header=1, nav=2, main=1, footer=1",
+        "console errors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-031",
+      "status": "pass",
+      "reason": "Active page indicator changed correctly across pages: current route link uses active text style while non-active links use muted style.",
+      "evidence": [
+        "foundation/foundation-layout-core/VAL-FOUND-031-home-active-link.png",
+        "foundation/foundation-layout-core/VAL-FOUND-031-blog-active-link.png",
+        "foundation/foundation-layout-core/VAL-FOUND-031-about-active-link.png",
+        "Observed class/state shifts: active link uses text-foreground; inactive links use text-muted",
+        "console errors: none"
+      ]
+    }
+  ],
+  "frictions": [
+    {
+      "description": "agent-browser required LD_LIBRARY_PATH export for stable execution in this environment; without it, browser commands were unreliable.",
+      "resolved": true,
+      "resolution": "Prefixed each agent-browser command with export LD_LIBRARY_PATH=\"/home/kongyu/miniconda3/lib:$LD_LIBRARY_PATH\".",
+      "affectedAssertions": [
+        "VAL-FOUND-001",
+        "VAL-FOUND-002",
+        "VAL-FOUND-004",
+        "VAL-FOUND-026",
+        "VAL-FOUND-027",
+        "VAL-FOUND-028",
+        "VAL-FOUND-031"
+      ]
+    }
+  ],
+  "blockers": [],
+  "toolsUsed": [
+    "agent-browser",
+    "curl"
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "groupId": "foundation-dark-mode",
+  "tool": "agent-browser",
+  "testedAt": "2026-03-30T02:05:57Z",
+  "toolsUsed": [
+    "agent-browser",
+    "curl"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-FOUND-010",
+      "status": "pass",
+      "reason": "Theme toggle is visible in header as an interactive button with accessible label \"Switch to dark mode\".",
+      "evidence": [
+        "foundation/foundation-dark-mode/VAL-FOUND-010-toggle-visible-annotated.png",
+        "snapshot: button ref @e6 label='Switch to dark mode'",
+        "consoleErrors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-011",
+      "status": "pass",
+      "reason": "Clicking the toggle switches light -> dark; html class becomes dark and page colors invert with readable contrast.",
+      "evidence": [
+        "foundation/foundation-dark-mode/VAL-FOUND-010-toggle-visible-annotated.png",
+        "foundation/foundation-dark-mode/VAL-FOUND-011-after-dark-annotated.png",
+        "state: {\"htmlClass\":\"dark\",\"bodyBg\":\"rgb(0, 0, 0)\",\"bodyColor\":\"rgb(245, 245, 247)\",\"storedTheme\":\"dark\"}",
+        "consoleErrors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-012",
+      "status": "pass",
+      "reason": "Clicking the toggle again returns dark -> light and restores original light theme colors.",
+      "evidence": [
+        "foundation/foundation-dark-mode/VAL-FOUND-010-toggle-visible-annotated.png",
+        "foundation/foundation-dark-mode/VAL-FOUND-011-after-dark-annotated.png",
+        "foundation/foundation-dark-mode/VAL-FOUND-012-back-to-light-annotated.png",
+        "state: {\"htmlClass\":\"light\",\"bodyBg\":\"rgb(255, 255, 255)\",\"bodyColor\":\"rgb(29, 29, 31)\",\"storedTheme\":\"light\"}",
+        "consoleErrors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-013",
+      "status": "pass",
+      "reason": "With browser media preference set to dark and localStorage theme cleared, first load renders in dark mode with no stored theme value.",
+      "evidence": [
+        "foundation/foundation-dark-mode/VAL-FOUND-013-system-dark-first-visit.png",
+        "state: {\"htmlClass\":\"dark\",\"bodyBg\":\"rgb(0, 0, 0)\",\"bodyColor\":\"rgb(245, 245, 247)\",\"storedTheme\":null,\"mediaDark\":true}",
+        "consoleErrors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-014",
+      "status": "pass",
+      "reason": "After toggling dark mode on homepage, navigation to /about preserves dark theme state with no visible flash back to light mode.",
+      "evidence": [
+        "foundation/foundation-dark-mode/VAL-FOUND-014-home-light-before-toggle.png",
+        "foundation/foundation-dark-mode/VAL-FOUND-014-home-dark-after-toggle.png",
+        "foundation/foundation-dark-mode/VAL-FOUND-014-about-dark-after-navigation.png",
+        "state: {\"url\":\"/about\",\"htmlClass\":\"dark\",\"bodyBg\":\"rgb(0, 0, 0)\",\"storedTheme\":\"dark\"}",
+        "network: curl GET /about -> 200",
+        "consoleErrors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-015",
+      "status": "pass",
+      "reason": "After dark mode is enabled, page reload keeps dark mode and persisted theme value remains dark.",
+      "evidence": [
+        "foundation/foundation-dark-mode/VAL-FOUND-015-dark-before-reload.png",
+        "foundation/foundation-dark-mode/VAL-FOUND-015-dark-after-reload.png",
+        "state: {\"url\":\"/about\",\"htmlClass\":\"dark\",\"bodyBg\":\"rgb(0, 0, 0)\",\"storedTheme\":\"dark\"}",
+        "consoleErrors: none"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-029",
+      "status": "pass",
+      "reason": "Theme toggle is reachable by Tab, shows focus-visible ring classes, and is activatable with both Enter and Space keys.",
+      "evidence": [
+        "foundation/foundation-dark-mode/VAL-FOUND-029-toggle-focused-by-tab.png",
+        "foundation/foundation-dark-mode/VAL-FOUND-029-after-enter-dark.png",
+        "foundation/foundation-dark-mode/VAL-FOUND-029-after-space-light.png",
+        "focus state: {\"tag\":\"BUTTON\",\"ariaLabel\":\"Switch to dark mode\",\"class\":\"... focus-visible:ring-2 ...\",\"htmlClass\":\"light\"}",
+        "enter result: {\"htmlClass\":\"dark\",\"ariaLabel\":\"Switch to light mode\",\"storedTheme\":\"dark\"}",
+        "space result: {\"htmlClass\":\"light\",\"ariaLabel\":\"Switch to dark mode\",\"storedTheme\":\"light\"}",
+        "consoleErrors: none"
+      ]
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Shell prints repeated '/home/kongyu/miniconda3/lib/libtinfo.so.6: no version information available' warnings when launching agent-browser commands.",
+      "resolved": true,
+      "resolution": "Continued execution; warnings did not impact interaction, screenshots, or assertion validation.",
+      "affectedAssertions": [
+        "VAL-FOUND-010",
+        "VAL-FOUND-011",
+        "VAL-FOUND-012",
+        "VAL-FOUND-013",
+        "VAL-FOUND-014",
+        "VAL-FOUND-015",
+        "VAL-FOUND-029"
+      ]
+    }
+  ],
+  "blockers": []
+}

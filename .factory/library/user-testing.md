@@ -26,7 +26,7 @@ Testing surface discovery, required tools, and resource cost classification.
 
 | Tool | Purpose | Setup Notes |
 |------|---------|-------------|
-| `agent-browser` | Browser UI testing | Requires `LD_LIBRARY_PATH="/home/kongyu/miniconda3/lib:$LD_LIBRARY_PATH"` |
+| `agent-browser` | Browser UI testing | Requires `LD_LIBRARY_PATH="/home/kongyu/miniconda3/lib:$LD_LIBRARY_PATH"`; benign `libtinfo.so.6` version warning may appear |
 | `curl` | API/feed/SEO endpoint testing | Available, no setup needed |
 | Docker CLI | Deployment testing | Docker 29.2.0 installed |
 
@@ -50,3 +50,12 @@ Workers should create seed data as part of their implementation:
 - At least 2 categories and 5+ tags
 - Sample comments (both approved and pending)
 - Admin user is seeded via init.sh or first-run setup
+
+## Flow Validator Guidance: agent-browser
+
+- Use base URL `http://localhost:3100`.
+- Each flow validator must use its own browser session/profile and must not reuse other validators' session state.
+- Allowed state changes are limited to browser-local state only (theme toggle, viewport size, reduced-motion preference, navigation history).
+- Do not mutate shared server-side data (no admin login, no post/comment/category CRUD) for this foundation milestone validation.
+- Keep checks focused on foundation assertions assigned to your group; save all artifacts under your assigned evidence directory.
+- If a prerequisite page fails to load, mark impacted assertions as `blocked` with the exact failing prerequisite.

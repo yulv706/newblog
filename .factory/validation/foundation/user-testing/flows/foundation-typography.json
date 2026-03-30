@@ -1,0 +1,62 @@
+{
+  "groupId": "foundation-typography",
+  "tool": "agent-browser",
+  "testedAt": "2026-03-30T02:08:27Z",
+  "toolsUsed": ["agent-browser"],
+  "assertions": [
+    {
+      "id": "VAL-FOUND-021",
+      "status": "fail",
+      "reason": "Chinese text is present in DOM but visually renders as tofu/square fallback glyphs in screenshot, violating the no-tofu requirement.",
+      "evidence": [
+        "foundation/foundation-typography/VAL-FOUND-021-chinese-text.png",
+        "foundation/foundation-typography/VAL-FOUND-021-computed-style.json",
+        "foundation/foundation-typography/console-errors-after-home.txt",
+        "foundation/foundation-typography/network-requests.txt"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-022",
+      "status": "pass",
+      "reason": "English paragraph renders with consistent typography; computed styles confirm intended sans font stack, normal weight, letter spacing, and line height.",
+      "evidence": [
+        "foundation/foundation-typography/VAL-FOUND-022-english-text.png",
+        "foundation/foundation-typography/VAL-FOUND-022-computed-style.json",
+        "foundation/foundation-typography/console-errors-after-home.txt",
+        "foundation/foundation-typography/network-requests.txt"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-023",
+      "status": "fail",
+      "reason": "Mixed Chinese/English paragraph appears with tofu/square fallback glyphs for Chinese characters in screenshot, so bilingual typography is not graceful.",
+      "evidence": [
+        "foundation/foundation-typography/VAL-FOUND-023-mixed-typography.png",
+        "foundation/foundation-typography/VAL-FOUND-023-computed-style.json",
+        "foundation/foundation-typography/console-errors-after-about.txt",
+        "foundation/foundation-typography/network-requests.txt"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-024",
+      "status": "pass",
+      "reason": "Code block is visibly distinct from body text and computed style confirms monospace font family (JetBrains Mono/SF Mono/Fira Code/.../monospace).",
+      "evidence": [
+        "foundation/foundation-typography/VAL-FOUND-024-code-block.png",
+        "foundation/foundation-typography/VAL-FOUND-024-code-block-fullpage.png",
+        "foundation/foundation-typography/VAL-FOUND-024-computed-style.json",
+        "foundation/foundation-typography/console-errors-after-home.txt",
+        "foundation/foundation-typography/network-requests.txt"
+      ]
+    }
+  ],
+  "frictions": [
+    {
+      "description": "No inline code sample was present on tested foundation pages; validation used the available code block sample and computed font checks.",
+      "resolved": true,
+      "resolution": "Validated monospace behavior on the available code block and captured full-page evidence.",
+      "affectedAssertions": ["VAL-FOUND-024"]
+    }
+  ],
+  "blockers": []
+}
