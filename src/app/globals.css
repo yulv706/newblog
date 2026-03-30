@@ -147,3 +147,147 @@ textarea {
   background-color: var(--color-primary);
   color: white;
 }
+
+.markdown-prose {
+  line-height: 1.8;
+}
+
+.markdown-prose :where(h2, h3, h4):not(:where([class~="not-prose"] *)) {
+  scroll-margin-top: 6.5rem;
+}
+
+.markdown-prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+  border-left-width: 3px;
+  border-left-color: color-mix(in oklab, var(--color-primary) 45%, transparent);
+  background: color-mix(in oklab, var(--color-primary) 7%, transparent);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-style: normal;
+}
+
+.markdown-prose :where(img):not(:where([class~="not-prose"] *)) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+}
+
+.markdown-prose :where(table):not(:where([class~="not-prose"] *)) {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown-prose :where(table > thead, table > tbody):not(:where([class~="not-prose"] *)) {
+  display: table;
+  min-width: 540px;
+  width: 100%;
+}
+
+.markdown-prose :where(ul.contains-task-list):not(:where([class~="not-prose"] *)) {
+  list-style: none;
+  padding-left: 0;
+}
+
+.markdown-prose :where(li.task-list-item):not(:where([class~="not-prose"] *)) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.markdown-prose :where(li.task-list-item > input[type="checkbox"]):not(
+    :where([class~="not-prose"] *)
+  ) {
+  margin-top: 0.3rem;
+  accent-color: var(--color-primary);
+}
+
+.markdown-prose :where(h2, h3, h4):not(:where([class~="not-prose"] *)) .heading-anchor {
+  margin-left: 0.4rem;
+  color: var(--color-muted);
+  opacity: 0;
+  text-decoration: none;
+  transition: opacity var(--duration-fast) var(--ease-apple);
+}
+
+.markdown-prose :where(h2, h3, h4):hover .heading-anchor,
+.markdown-prose :where(h2, h3, h4) .heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+.post-code-wrapper {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--color-border) 75%, transparent);
+  background: color-mix(in oklab, var(--color-secondary) 92%, transparent);
+}
+
+.post-code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-border) 70%, transparent);
+  padding: 0.5rem 0.8rem;
+}
+
+.post-code-language {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.post-code-copy-button {
+  border: 1px solid color-mix(in oklab, var(--color-border) 70%, transparent);
+  border-radius: 0.4rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-foreground);
+  background: color-mix(in oklab, var(--color-background) 80%, transparent);
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    border-color var(--duration-fast) var(--ease-apple);
+}
+
+.post-code-copy-button:hover {
+  border-color: color-mix(in oklab, var(--color-primary) 45%, transparent);
+  background: color-mix(in oklab, var(--color-primary) 12%, transparent);
+}
+
+.post-code-pre {
+  margin: 0 !important;
+  border: 0;
+  background: transparent !important;
+  overflow-x: auto;
+  padding: 0.9rem 0;
+}
+
+.post-code-pre code {
+  display: block;
+  width: fit-content;
+  min-width: 100%;
+  counter-reset: post-code-line;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.post-code-pre [data-line] {
+  display: block;
+  padding: 0 1rem 0 3.1rem;
+  position: relative;
+}
+
+.post-code-pre[data-line-numbers="true"] [data-line]::before {
+  counter-increment: post-code-line;
+  content: counter(post-code-line);
+  position: absolute;
+  left: 0.8rem;
+  width: 1.6rem;
+  text-align: right;
+  color: color-mix(in oklab, var(--color-muted) 80%, transparent);
+}
+
+.post-code-pre [data-highlighted-line] {
+  background: color-mix(in oklab, var(--color-primary) 12%, transparent);
+}

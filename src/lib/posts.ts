@@ -92,6 +92,37 @@ export type PersistedPostResult = {
   slugAdjusted: boolean;
 };
 
+export type PublishedPostDetail = {
+  id: number;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string | null;
+  coverImage: string | null;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+  category: {
+    name: string;
+    slug: string;
+  } | null;
+  tags: Array<{
+    name: string;
+    slug: string;
+  }>;
+};
+
+export type AdjacentPublishedPosts = {
+  previous: {
+    title: string;
+    slug: string;
+  } | null;
+  next: {
+    title: string;
+    slug: string;
+  } | null;
+};
+
 function normalizeStatus(status: string): PostStatus {
   return status === "published" ? "published" : "draft";
 }
@@ -469,6 +500,30 @@ export async function getPublishedPostBySlug(
   slug: string,
   database: PostDatabase = db
 ) {
+  const postDetail = await getPublishedPostDetailBySlug(slug, database);
+  if (!postDetail) {
+    return null;
+  }
+
+  return {
+    id: postDetail.id,
+    title: postDetail.title,
+    slug: postDetail.slug,
+    content: postDetail.content,
+    excerpt: postDetail.excerpt,
+    coverImage: postDetail.coverImage,
+    createdAt: postDetail.createdAt,
+    updatedAt: postDetail.updatedAt,
+    publishedAt: postDetail.publishedAt,
+    categoryName: postDetail.category?.name ?? null,
+    tags: postDetail.tags.map((tag) => tag.name),
+  };
+}
+
+export async function getPublishedPostDetailBySlug(
+  slug: string,
+  database: PostDatabase = db
+): Promise<PublishedPostDetail | null> {
   const post = database
     .select({
       id: posts.id,
@@ -481,6 +536,7 @@ export async function getPublishedPostBySlug(
       updatedAt: posts.updatedAt,
       publishedAt: posts.publishedAt,
       categoryName: categories.name,
+      categorySlug: categories.slug,
     })
     .from(posts)
     .leftJoin(categories, eq(posts.categoryId, categories.id))
@@ -494,6 +550,7 @@ export async function getPublishedPostBySlug(
   const postTagRows = database
     .select({
       name: tags.name,
+      slug: tags.slug,
     })
     .from(postTags)
     .innerJoin(tags, eq(postTags.tagId, tags.id))
@@ -502,8 +559,72 @@ export async function getPublishedPostBySlug(
     .all();
 
   return {
-    ...post,
-    tags: postTagRows.map((tag) => tag.name),
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    content: post.content,
+    excerpt: post.excerpt,
+    coverImage: post.coverImage,
+    createdAt: post.createdAt,
+    updatedAt: post.updatedAt,
+    publishedAt: post.publishedAt,
+    category:
+      post.categoryName && post.categorySlug
+        ? {
+            name: post.categoryName,
+            slug: post.categorySlug,
+          }
+        : null,
+    tags: postTagRows.map((tag) => ({
+      name: tag.name,
+      slug: tag.slug,
+    })),
+  };
+}
+
+export async function getAdjacentPublishedPosts(
+  postId: number,
+  database: PostDatabase = db
+): Promise<AdjacentPublishedPosts> {
+  const orderedPublishedPosts = database
+    .select({
+      id: posts.id,
+      title: posts.title,
+      slug: posts.slug,
+    })
+    .from(posts)
+    .where(eq(posts.status, "published"))
+    .orderBy(asc(posts.publishedAt), asc(posts.createdAt))
+    .all();
+
+  const currentPostIndex = orderedPublishedPosts.findIndex((post) => post.id === postId);
+  if (currentPostIndex === -1) {
+    return {
+      previous: null,
+      next: null,
+    };
+  }
+
+  const previousPost =
+    currentPostIndex > 0 ? orderedPublishedPosts[currentPostIndex - 1] : null;
+  const nextPost =
+    currentPostIndex < orderedPublishedPosts.length - 1
+      ? orderedPublishedPosts[currentPostIndex + 1]
+      : null;
+
+  return {
+    previous: previousPost
+      ? {
+          title: previousPost.title,
+          slug: previousPost.slug,
+        }
+      : null,
+    next: nextPost
+      ? {
+          title: nextPost.title,
+          slug: nextPost.slug,
+        }
+      : null,
   };
 }
 
