@@ -1,25 +1,71 @@
-import { AnimationDemo } from "@/components/ui/animation-demo";
+import { HomeCategoryNav } from "@/components/blog/home-category-nav";
+import { HomePostCard } from "@/components/blog/home-post-card";
+import { FadeIn, StaggeredItem, StaggeredList } from "@/components/ui/animations";
+import { getHomepageData } from "@/lib/posts";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function HomePage() {
+  const { featuredPost, latestPosts, categories } = await getHomepageData();
+
   return (
-    <div className="py-12">
-      <h1 className="text-4xl font-bold tracking-tight">Personal Blog</h1>
-      <p className="mt-4 text-lg text-muted">Welcome to my personal tech blog.</p>
-      <p className="mt-2 text-muted">
-        欢迎来到我的个人技术博客。这里分享 Web 开发和软件工程的文章。
-      </p>
+    <div className="space-y-16 py-10 sm:py-14">
+      <section className="space-y-6">
+        <FadeIn className="space-y-6">
+          <div className="space-y-2">
+            <p className="text-sm font-medium uppercase tracking-[0.18em] text-primary/80">
+              Featured
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Insights on modern web engineering
+            </h1>
+            <p className="max-w-2xl text-base leading-relaxed text-muted">
+              Latest writing on Next.js, TypeScript, backend architecture, and
+              practical lessons from building production apps.
+            </p>
+          </div>
 
-      {/* Animation demo components */}
-      <AnimationDemo />
+          {featuredPost ? (
+            <HomePostCard post={featuredPost} featured />
+          ) : (
+            <div className="rounded-2xl border border-border/60 bg-card/80 p-6 text-muted">
+              No published posts yet.
+            </div>
+          )}
+        </FadeIn>
+      </section>
 
-      {/* Sample code block to verify monospace font */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-semibold tracking-tight">Code Example</h2>
-        <pre className="mt-4 overflow-x-auto rounded-lg bg-secondary p-4">
-          <code className="font-mono text-sm">
-            {`const greeting = "Hello, World!";\nconsole.log(greeting);`}
-          </code>
-        </pre>
+      <section className="grid gap-8 lg:grid-cols-[1fr_280px] lg:items-start">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Latest Posts
+            </h2>
+            <p className="text-sm text-muted">
+              Fresh articles with practical tips, deep dives, and implementation
+              details.
+            </p>
+          </div>
+
+          {latestPosts.length === 0 ? (
+            <p className="rounded-2xl border border-border/60 bg-card/80 p-6 text-sm text-muted">
+              More posts are coming soon.
+            </p>
+          ) : (
+            <StaggeredList className="grid gap-6 sm:grid-cols-2">
+              {latestPosts.map((post) => (
+                <StaggeredItem key={post.id}>
+                  <HomePostCard post={post} />
+                </StaggeredItem>
+              ))}
+            </StaggeredList>
+          )}
+        </div>
+
+        <FadeIn className="lg:sticky lg:top-24">
+          <HomeCategoryNav categories={categories} />
+        </FadeIn>
       </section>
     </div>
   );

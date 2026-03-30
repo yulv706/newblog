@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { categories, postTags, posts, tags } from "@/lib/db/schema";
 import { createSlug } from "@/lib/slug";
@@ -19,6 +19,28 @@ export type AdminPostListItem = {
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
+};
+
+export type HomepagePostCard = {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  coverImage: string | null;
+  createdAt: string;
+  publishedAt: string | null;
+  categoryName: string | null;
+  categorySlug: string | null;
+  tags: string[];
+};
+
+export type HomepageData = {
+  featuredPost: HomepagePostCard | null;
+  latestPosts: HomepagePostCard[];
+  categories: Array<{
+    name: string;
+    slug: string;
+  }>;
 };
 
 export type PostFormInput = {
@@ -451,6 +473,92 @@ export async function getPublishedPostBySlug(
   return {
     ...post,
     tags: postTagRows.map((tag) => tag.name),
+  };
+}
+
+function getHomepageTagMap(
+  postIds: number[],
+  database: PostDatabase
+): Map<number, string[]> {
+  if (postIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = database
+    .select({
+      postId: postTags.postId,
+      name: tags.name,
+    })
+    .from(postTags)
+    .innerJoin(tags, eq(postTags.tagId, tags.id))
+    .where(inArray(postTags.postId, postIds))
+    .orderBy(asc(tags.name))
+    .all();
+
+  const map = new Map<number, string[]>();
+  for (const row of rows) {
+    const existing = map.get(row.postId) ?? [];
+    existing.push(row.name);
+    map.set(row.postId, existing);
+  }
+
+  return map;
+}
+
+export async function getHomepageData(
+  database: PostDatabase = db,
+  latestLimit = 6
+): Promise<HomepageData> {
+  const rows = database
+    .select({
+      id: posts.id,
+      title: posts.title,
+      slug: posts.slug,
+      excerpt: posts.excerpt,
+      coverImage: posts.coverImage,
+      createdAt: posts.createdAt,
+      publishedAt: posts.publishedAt,
+      categoryName: categories.name,
+      categorySlug: categories.slug,
+    })
+    .from(posts)
+    .leftJoin(categories, eq(posts.categoryId, categories.id))
+    .where(eq(posts.status, "published"))
+    .orderBy(desc(posts.publishedAt), desc(posts.createdAt))
+    .all();
+
+  const tagMap = getHomepageTagMap(
+    rows.map((post) => post.id),
+    database
+  );
+
+  const homepagePosts: HomepagePostCard[] = rows.map((post) => ({
+    ...post,
+    tags: tagMap.get(post.id) ?? [],
+  }));
+
+  const featuredPost = homepagePosts[0] ?? null;
+  const latestPosts = homepagePosts.slice(1, Math.max(latestLimit + 1, 1));
+
+  const categoriesForHome = Array.from(
+    new Map(
+      homepagePosts
+        .filter(
+          (post): post is HomepagePostCard & {
+            categoryName: string;
+            categorySlug: string;
+          } => Boolean(post.categoryName && post.categorySlug)
+        )
+        .map((post) => [post.categorySlug, post.categoryName])
+    ).entries()
+  )
+    .map(([slug, name]) => ({ name, slug }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+
+  return {
+    featuredPost,
+    latestPosts,
+    categories: categoriesForHome,
   };
 }
 
