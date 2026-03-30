@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { categories, postTags, posts, tags } from "@/lib/db/schema";
 import { createSlug } from "@/lib/slug";
@@ -74,6 +74,21 @@ export type BlogListingData = {
   pagination: BlogListingPagination;
 };
 
+export type SearchPostItem = {
+  id: number;
+  title: string;
+  slug: string;
+  snippet: string;
+  publishedAt: string | null;
+  createdAt: string;
+};
+
+export type SearchPostsResult = {
+  query: string;
+  normalizedQuery: string;
+  results: SearchPostItem[];
+};
+
 export type PostFormInput = {
   title: string;
   slug: string;
@@ -122,6 +137,56 @@ export type AdjacentPublishedPosts = {
     slug: string;
   } | null;
 };
+
+const MAX_SEARCH_QUERY_LENGTH = 120;
+const DEFAULT_SEARCH_RESULT_LIMIT = 20;
+const SEARCH_SNIPPET_LENGTH = 180;
+
+function normalizeSearchQuery(query: string) {
+  return query.trim().replace(/\s+/g, " ").slice(0, MAX_SEARCH_QUERY_LENGTH);
+}
+
+function escapeLikePattern(value: string) {
+  return value.replace(/[\\%_]/g, "\\$&");
+}
+
+function markdownToPlainText(markdown: string) {
+  return markdown
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`/g, "")
+    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\r?\n+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildSearchSnippet(content: string, query: string) {
+  const plainText = markdownToPlainText(content);
+  if (!plainText) {
+    return "";
+  }
+
+  const lowerText = plainText.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  const matchedIndex = lowerText.indexOf(lowerQuery);
+  const fallbackSnippet =
+    plainText.length > SEARCH_SNIPPET_LENGTH
+      ? `${plainText.slice(0, SEARCH_SNIPPET_LENGTH).trimEnd()}…`
+      : plainText;
+
+  if (matchedIndex === -1) {
+    return fallbackSnippet;
+  }
+
+  const contextRadius = Math.floor((SEARCH_SNIPPET_LENGTH - query.length) / 2);
+  const start = Math.max(0, matchedIndex - contextRadius);
+  const end = Math.min(plainText.length, start + SEARCH_SNIPPET_LENGTH);
+  const focusedSnippet = plainText.slice(start, end).trim();
+
+  return `${start > 0 ? "…" : ""}${focusedSnippet}${end < plainText.length ? "…" : ""}`;
+}
 
 function normalizeStatus(status: string): PostStatus {
   return status === "published" ? "published" : "draft";
@@ -494,6 +559,92 @@ export async function getPublishedPosts(database: PostDatabase = db) {
     .where(eq(posts.status, "published"))
     .orderBy(desc(posts.publishedAt), desc(posts.createdAt))
     .all();
+}
+
+export async function searchPublishedPosts(
+  query: string,
+  database: PostDatabase = db,
+  limit = DEFAULT_SEARCH_RESULT_LIMIT
+): Promise<SearchPostsResult> {
+  const normalizedQuery = normalizeSearchQuery(query);
+  if (!normalizedQuery) {
+    return {
+      query,
+      normalizedQuery,
+      results: [],
+    };
+  }
+
+  const safeLimit = Math.max(1, Math.min(limit, 50));
+  const likePattern = `%${escapeLikePattern(normalizedQuery)}%`;
+
+  const rows = database
+    .select({
+      id: posts.id,
+      title: posts.title,
+      slug: posts.slug,
+      excerpt: posts.excerpt,
+      content: posts.content,
+      createdAt: posts.createdAt,
+      publishedAt: posts.publishedAt,
+    })
+    .from(posts)
+    .where(
+      and(
+        eq(posts.status, "published"),
+        sql`(${posts.title} LIKE ${likePattern} ESCAPE '\\' OR ${posts.content} LIKE ${likePattern} ESCAPE '\\')`
+      )
+    )
+    .orderBy(desc(posts.publishedAt), desc(posts.createdAt))
+    .limit(safeLimit)
+    .all();
+
+  return {
+    query,
+    normalizedQuery,
+    results: rows.map((post) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      snippet:
+        post.excerpt?.trim() ||
+        buildSearchSnippet(post.content, normalizedQuery),
+      publishedAt: post.publishedAt,
+      createdAt: post.createdAt,
+    })),
+  };
+}
+
+export async function getRecentPostsForSearch(
+  database: PostDatabase = db,
+  limit = 5
+) {
+  const safeLimit = Math.max(1, Math.min(limit, 20));
+
+  const rows = database
+    .select({
+      id: posts.id,
+      title: posts.title,
+      slug: posts.slug,
+      excerpt: posts.excerpt,
+      content: posts.content,
+      createdAt: posts.createdAt,
+      publishedAt: posts.publishedAt,
+    })
+    .from(posts)
+    .where(eq(posts.status, "published"))
+    .orderBy(desc(posts.publishedAt), desc(posts.createdAt))
+    .limit(safeLimit)
+    .all();
+
+  return rows.map((post) => ({
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    snippet: post.excerpt?.trim() || buildSearchSnippet(post.content, ""),
+    publishedAt: post.publishedAt,
+    createdAt: post.createdAt,
+  }));
 }
 
 export async function getPublishedPostBySlug(
