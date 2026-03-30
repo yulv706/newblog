@@ -26,7 +26,7 @@ Testing surface discovery, required tools, and resource cost classification.
 
 | Tool | Purpose | Setup Notes |
 |------|---------|-------------|
-| `agent-browser` | Browser UI testing | Requires `LD_LIBRARY_PATH="/home/kongyu/miniconda3/lib:$LD_LIBRARY_PATH"`; benign `libtinfo.so.6` version warning may appear |
+| `agent-browser` | Browser UI testing | Requires `LD_LIBRARY_PATH="/home/kongyu/miniconda3/lib:$LD_LIBRARY_PATH"`; benign `libtinfo.so.6` version warning may appear; for network evidence capture, run `agent-browser network route "**/*"` before reload |
 | `curl` | API/feed/SEO endpoint testing | Available, no setup needed |
 | Docker CLI | Deployment testing | Docker 29.2.0 installed |
 

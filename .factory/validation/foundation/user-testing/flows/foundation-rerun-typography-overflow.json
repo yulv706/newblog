@@ -1,0 +1,206 @@
+{
+  "groupId": "foundation-rerun-typography-overflow",
+  "testedAt": "2026-03-30T02:40:34.773711+00:00",
+  "isolation": {
+    "milestone": "foundation",
+    "missionDir": "/home/kongyu/.factory/missions/1eaa9d83-1e54-4588-bb57-26ce9ede79db",
+    "baseUrl": "http://localhost:3100",
+    "browserSession": "foundation-rerun-typography-overflow",
+    "constraints": [
+      "No admin login",
+      "No server-side data mutation",
+      "Browser-local checks only"
+    ]
+  },
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-FOUND-021",
+      "title": "Chinese Text Rendering",
+      "status": "fail",
+      "reason": "Chinese glyphs render as tofu boxes on the homepage mixed-language paragraph.",
+      "steps": [
+        {
+          "action": "Open homepage at 1280x800 and inspect Chinese text block",
+          "expected": "Chinese characters render correctly with no tofu",
+          "observed": "Chinese segment in the sentence appears as square tofu boxes"
+        },
+        {
+          "action": "Inspect computed typography on the same paragraph",
+          "expected": "CJK-capable font stack applied",
+          "observed": "Font stack includes CJK fallbacks, but rendered output still shows tofu"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "foundation/foundation-rerun-typography-overflow/VAL-FOUND-021-chinese-text-home-1280.png"
+        ],
+        "consoleErrors": "none",
+        "network": [
+          "GET http://localhost:3100/ (document)",
+          "GET /_next/static/css/app/layout.css (stylesheet)",
+          "GET /_next/static/chunks/app/page.js (script)"
+        ],
+        "computedStyles": {
+          "text": "欢迎来到我的个人技术博客。这里分享 Web 开发和软件工程的文章。",
+          "fontFamily": "Inter, \"SF Pro Display\", \"SF Pro Text\", -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Hiragino Sans GB\", \"Noto Sans CJK SC\", \"Noto Sans SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", \"WenQuanYi Micro Hei\", \"Droid Sans Fallback\", \"Helvetica Neue\", Arial, sans-serif",
+          "fontSize": "16px",
+          "lineHeight": "28.8px",
+          "letterSpacing": "0.32px"
+        }
+      },
+      "issues": "Fails assertion: visible tofu boxes indicate Chinese glyph rendering is broken."
+    },
+    {
+      "id": "VAL-FOUND-023",
+      "title": "Mixed Chinese and English Typography",
+      "status": "fail",
+      "reason": "Mixed Chinese/English sentence has tofu boxes for Chinese text, so bilingual rendering is not graceful.",
+      "steps": [
+        {
+          "action": "Inspect mixed Chinese/English sentence on homepage at 1280x800",
+          "expected": "Mixed text renders naturally with no overlap and correct glyphs",
+          "observed": "Line-height/spacing are stable, but Chinese glyphs render as tofu boxes"
+        },
+        {
+          "action": "Confirm bilingual content and computed line-height",
+          "expected": "Contains both scripts and maintains readable typography",
+          "observed": "Sentence contains both Chinese and English; lineHeight is 28.8px for 16px text"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "foundation/foundation-rerun-typography-overflow/VAL-FOUND-023-mixed-typography-home-1280.png"
+        ],
+        "consoleErrors": "none",
+        "network": [
+          "GET http://localhost:3100/ (document)",
+          "GET /_next/static/css/app/layout.css (stylesheet)",
+          "GET /_next/static/chunks/app/page.js (script)"
+        ],
+        "computedStyles": {
+          "text": "欢迎来到我的个人技术博客。这里分享 Web 开发和软件工程的文章。",
+          "containsChinese": true,
+          "containsEnglish": true,
+          "fontSize": "16px",
+          "lineHeight": "28.8px",
+          "fontWeight": "400"
+        }
+      },
+      "issues": "Fails assertion because mixed-script paragraph still shows tofu for Chinese characters."
+    },
+    {
+      "id": "VAL-FOUND-027",
+      "title": "No Horizontal Overflow",
+      "status": "pass",
+      "reason": "At all required viewports, scrollWidth equals clientWidth with no horizontal overflow.",
+      "steps": [
+        {
+          "action": "Set viewport to 375x667 and measure document/body widths",
+          "expected": "scrollWidth <= clientWidth",
+          "observed": "documentElement 375/375, body 375/375"
+        },
+        {
+          "action": "Set viewport to 768x800 and measure document/body widths",
+          "expected": "scrollWidth <= clientWidth",
+          "observed": "documentElement 768/768, body 768/768"
+        },
+        {
+          "action": "Set viewport to 1024x800 and measure document/body widths",
+          "expected": "scrollWidth <= clientWidth",
+          "observed": "documentElement 1024/1024, body 1024/1024"
+        },
+        {
+          "action": "Set viewport to 1280x800 and measure document/body widths",
+          "expected": "scrollWidth <= clientWidth",
+          "observed": "documentElement 1280/1280, body 1280/1280"
+        }
+      ],
+      "evidence": {
+        "screenshots": [
+          "foundation/foundation-rerun-typography-overflow/VAL-FOUND-027-overflow-375x667.png",
+          "foundation/foundation-rerun-typography-overflow/VAL-FOUND-027-overflow-768x800.png",
+          "foundation/foundation-rerun-typography-overflow/VAL-FOUND-027-overflow-1024x800.png",
+          "foundation/foundation-rerun-typography-overflow/VAL-FOUND-027-overflow-1280x800.png"
+        ],
+        "consoleErrors": "none",
+        "network": [
+          "GET http://localhost:3100/ (document)",
+          "GET /_next/static/css/app/layout.css (stylesheet)",
+          "GET /_next/static/chunks/app/page.js (script)"
+        ],
+        "measurements": [
+          {
+            "viewport": "375x667",
+            "documentElement": {
+              "clientWidth": 375,
+              "scrollWidth": 375
+            },
+            "body": {
+              "clientWidth": 375,
+              "scrollWidth": 375
+            },
+            "maxScrollWidth": 375,
+            "overflow": false
+          },
+          {
+            "viewport": "768x800",
+            "documentElement": {
+              "clientWidth": 768,
+              "scrollWidth": 768
+            },
+            "body": {
+              "clientWidth": 768,
+              "scrollWidth": 768
+            },
+            "maxScrollWidth": 768,
+            "overflow": false
+          },
+          {
+            "viewport": "1024x800",
+            "documentElement": {
+              "clientWidth": 1024,
+              "scrollWidth": 1024
+            },
+            "body": {
+              "clientWidth": 1024,
+              "scrollWidth": 1024
+            },
+            "maxScrollWidth": 1024,
+            "overflow": false
+          },
+          {
+            "viewport": "1280x800",
+            "documentElement": {
+              "clientWidth": 1280,
+              "scrollWidth": 1280
+            },
+            "body": {
+              "clientWidth": 1280,
+              "scrollWidth": 1280
+            },
+            "maxScrollWidth": 1280,
+            "overflow": false
+          }
+        ]
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "agent-browser network request list was empty until a wildcard network route was attached for request capture.",
+      "resolved": true,
+      "resolution": "Used `agent-browser network route \"**/*\"` before reloading the page.",
+      "affectedAssertions": [
+        "VAL-FOUND-021",
+        "VAL-FOUND-023",
+        "VAL-FOUND-027"
+      ]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 3 assertions: 1 passed (VAL-FOUND-027), 2 failed (VAL-FOUND-021, VAL-FOUND-023) due to tofu rendering of Chinese text."
+}

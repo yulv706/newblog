@@ -1,0 +1,75 @@
+{
+  "milestone": "foundation",
+  "round": 1,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 26,
+    "passed": 23,
+    "failed": 3,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-FOUND-018",
+    "VAL-FOUND-020",
+    "VAL-FOUND-025",
+    "VAL-FOUND-030",
+    "VAL-BLOG-060",
+    "VAL-FOUND-010",
+    "VAL-FOUND-011",
+    "VAL-FOUND-012",
+    "VAL-FOUND-013",
+    "VAL-FOUND-014",
+    "VAL-FOUND-015",
+    "VAL-FOUND-029",
+    "VAL-FOUND-001",
+    "VAL-FOUND-002",
+    "VAL-FOUND-004",
+    "VAL-FOUND-026",
+    "VAL-FOUND-028",
+    "VAL-FOUND-031",
+    "VAL-FOUND-006",
+    "VAL-FOUND-007",
+    "VAL-FOUND-008",
+    "VAL-FOUND-022",
+    "VAL-FOUND-024"
+  ],
+  "failedAssertions": [
+    {
+      "id": "VAL-FOUND-027",
+      "reason": "Horizontal overflow exists at 375px viewport (document scrollWidth 631 > clientWidth 375), violating the no-horizontal-overflow requirement across standard viewports."
+    },
+    {
+      "id": "VAL-FOUND-021",
+      "reason": "Chinese text is present in DOM but visually renders as tofu/square fallback glyphs in screenshot, violating the no-tofu requirement."
+    },
+    {
+      "id": "VAL-FOUND-023",
+      "reason": "Mixed Chinese/English paragraph appears with tofu/square fallback glyphs for Chinese characters in screenshot, so bilingual typography is not graceful."
+    }
+  ],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added Flow Validator Guidance: agent-browser section with isolation boundaries and constraints for concurrent browser validators.",
+      "source": "setup"
+    },
+    {
+      "target": "user-testing.md",
+      "description": "Documented that the observed libtinfo.so.6 version warning during agent-browser startup is benign in this environment.",
+      "source": "flow-report"
+    }
+  ],
+  "previousRound": null,
+  "flowReports": [
+    "/home/kongyu/workspace/tmp_3_29/.factory/validation/foundation/user-testing/flows/foundation-animations.json",
+    "/home/kongyu/workspace/tmp_3_29/.factory/validation/foundation/user-testing/flows/foundation-dark-mode.json",
+    "/home/kongyu/workspace/tmp_3_29/.factory/validation/foundation/user-testing/flows/foundation-layout-core.json",
+    "/home/kongyu/workspace/tmp_3_29/.factory/validation/foundation/user-testing/flows/foundation-mobile-nav.json",
+    "/home/kongyu/workspace/tmp_3_29/.factory/validation/foundation/user-testing/flows/foundation-typography.json"
+  ],
+  "toolsUsed": [
+    "agent-browser",
+    "curl"
+  ]
+}
