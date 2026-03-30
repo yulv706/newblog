@@ -4,6 +4,17 @@ set -e
 echo "=== Blog Init: Installing dependencies ==="
 npm install
 
+echo "=== Blog Init: Checking better-sqlite3 native module compatibility ==="
+if node -e "const Database=require('better-sqlite3'); const db=new Database(':memory:'); db.close();" >/dev/null 2>&1; then
+  echo "better-sqlite3 native module is compatible with current Node runtime"
+else
+  echo "better-sqlite3 native module mismatch detected, rebuilding..."
+  npm rebuild better-sqlite3 --update-binary
+fi
+
+# Hard fail early if the native module still cannot load after install/rebuild.
+node -e "const Database=require('better-sqlite3'); const db=new Database(':memory:'); db.close();" >/dev/null 2>&1
+
 echo "=== Blog Init: Creating data directory ==="
 mkdir -p data
 mkdir -p public/uploads/images

@@ -5,7 +5,7 @@ commands:
   start: PORT=3100 npm run start
   typecheck: npx tsc --noEmit
   lint: npm run lint
-  test: npx vitest run --reporter=verbose
+  test: (node -e "const Database=require('better-sqlite3'); const db=new Database(':memory:'); db.close();" >/dev/null 2>&1 || npm rebuild better-sqlite3 --update-binary) && npx vitest run --reporter=verbose
   db:generate: npx drizzle-kit generate
   db:migrate: npx drizzle-kit migrate
   db:seed: npx tsx src/lib/db/seed.ts
