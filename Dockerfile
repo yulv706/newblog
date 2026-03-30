@@ -21,11 +21,13 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 COPY package.json package-lock.json ./
-RUN npm install --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm install --no-save typescript && npm cache clean --force
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.ts ./next.config.ts
+RUN printf '%s\n' '/** @type {import(\"next\").NextConfig} */' 'const nextConfig = {};' '' 'export default nextConfig;' > next.config.mjs \
+  && rm next.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/src/lib/db/migrations ./src/lib/db/migrations
