@@ -1,7 +1,7 @@
 {
   "milestone": "foundation",
-  "round": 1,
-  "status": "fail",
+  "round": 2,
+  "status": "pass",
   "validatorsRun": {
     "test": {
       "passed": true,
@@ -20,41 +20,21 @@
     }
   },
   "reviewsSummary": {
-    "total": 3,
-    "passed": 2,
-    "failed": 1,
-    "failedFeatures": [
-      "foundation-layout-theme"
-    ]
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "failedFeatures": []
   },
-  "blockingIssues": [
-    {
-      "featureId": "foundation-layout-theme",
-      "severity": "blocking",
-      "description": "Route transitions in src/components/layout/page-transition.tsx always animate and do not gate on prefers-reduced-motion, so non-essential transitions still run for reduced-motion users (VAL-FOUND-020)."
-    }
-  ],
-  "appliedUpdates": [
-    {
-      "target": "library",
-      "description": "Added Node 18/Tailwind compatibility guidance to .factory/library/environment.md: keep Tailwind on 4.0.x in this environment because 4.1+ may require newer Node and can break install/build.",
-      "sourceFeature": "foundation-scaffold"
-    }
-  ],
+  "blockingIssues": [],
+  "appliedUpdates": [],
   "suggestedGuidanceUpdates": [
     {
-      "target": "fullstack-worker skill",
-      "suggestion": "Relax mandatory agent-browser and strict TDD-first requirements for infrastructure-heavy scaffold tasks that are better validated via CLI, curl, and static checks.",
-      "evidence": "foundation-scaffold review observed the current procedure was too rigid for setup work and the worker validated effectively with CLI/curl evidence.",
-      "isSystemic": true
-    },
-    {
       "target": "frontend-worker skill",
-      "suggestion": "Clarify TDD expectations for UI features so compliance is measurable (for example, require new/updated tests before final validation, but do not require every session to prove a recorded red-phase for each UI interaction).",
-      "evidence": "foundation-layout-theme review noted implementation files were created before layout tests and no explicit failing phase was captured.",
-      "isSystemic": false
+      "suggestion": "Add explicit guidance for handling `EADDRINUSE` on required mission ports by reusing an already healthy server instead of failing the workflow.",
+      "evidence": "foundation-fix-page-transition-reduced-motion review notes the worker had to deviate from skill steps due to port 3100 conflict while AGENTS.md already documents the reuse pattern.",
+      "isSystemic": true
     }
   ],
   "rejectedObservations": [],
-  "previousRound": null
+  "previousRound": ".factory/validation/foundation/scrutiny/synthesis.round1.json"
 }

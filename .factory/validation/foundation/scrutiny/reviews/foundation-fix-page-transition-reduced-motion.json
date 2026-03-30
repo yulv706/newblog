@@ -1,0 +1,21 @@
+{
+  "featureId": "foundation-fix-page-transition-reduced-motion",
+  "reviewedAt": "2026-03-30T01:57:44Z",
+  "commitId": "661cc7c",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix directly addresses the prior blocking accessibility gap (VAL-FOUND-020) by gating route transition motion with `useReducedMotion()` in `PageTransition`. Reduced-motion users now get immediate transitions (`initial: false`, `duration: 0`), while normal users retain the existing fade/translate behavior (`duration: 0.3`, Apple easing). No new blocking or non-blocking code issues were identified in the reviewed diffs.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The frontend-worker skill procedure says to start/stop a dev server for manual verification, but it does not explicitly include the mission's recurring `EADDRINUSE` fallback (reuse healthy server on mandated port).",
+      "evidence": "Handoff skillFeedback for session 34bc8ead-0bd5-4257-93f5-68cf478eb4d1 marks followedProcedure=false due to port-3100 conflict; AGENTS.md documents this known condition and reuse guidance."
+    }
+  ],
+  "addressesFailureFrom": "/home/kongyu/workspace/tmp_3_29/.factory/validation/foundation/scrutiny/reviews/foundation-layout-theme.json",
+  "summary": "Pass. The previous blocking issue from foundation-layout-theme (missing reduced-motion handling in route transitions) is fixed in commit 661cc7c, and the fix preserves non-reduced-motion behavior."
+}
