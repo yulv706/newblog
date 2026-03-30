@@ -13,7 +13,7 @@ commands:
 services:
   web:
     start: PORT=3100 npm run dev
-    stop: lsof -ti :3100 | xargs kill -9 2>/dev/null || true
+    stop: sh -c "pids=$(ss -ltnp 2>/dev/null | awk "/:3100 /{print \\$NF}" | sed -n "s/.*pid=\([0-9]\+\).*/\1/p" | sort -u); [ -n "$pids" ] && kill -9 $pids || true"
     healthcheck: curl -sf http://localhost:3100 || exit 1
     port: 3100
     depends_on: []

@@ -36,3 +36,8 @@ Environment variables, external dependencies, and setup notes.
 - `better-sqlite3` is a native addon — requires build tools (python3, make, gcc). Usually available on WSL2.
 - `shiki` downloads grammar/theme files on first use — initial build may take longer
 - In this Node 18 environment, Tailwind CSS should stay on `4.0.x` (for example `4.0.17`); `4.1+` may require a newer Node runtime and can break installs/builds.
+
+## Font Availability Note
+
+- Do not rely on host-installed CJK system fonts for validation environments.
+- For Chinese/mixed-language rendering requirements, prefer bundled or runtime-guaranteed CJK webfonts so agent-browser validation does not depend on machine font inventory.
