@@ -30,7 +30,7 @@ export default async function HomePage() {
   const { featuredPost, latestPosts, categories } = await getHomepageData();
 
   return (
-    <div className="space-y-16 py-10 sm:py-14">
+    <div className="mx-auto w-full max-w-[var(--content-wide-max-width)] space-y-16 py-10 sm:py-14">
       <section className="space-y-6">
         <FadeIn className="space-y-6">
           <div className="space-y-2">

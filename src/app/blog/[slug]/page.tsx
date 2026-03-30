@@ -97,7 +97,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   });
 
   return (
-    <div className="py-10 sm:py-14">
+    <div className="mx-auto w-full max-w-[var(--content-post-max-width)] py-10 sm:py-14">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
         <article className="min-w-0 space-y-8">
           <script
@@ -160,7 +160,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
           <section
             id="blog-post-content"
-            className="prose markdown-prose max-w-none prose-neutral dark:prose-invert"
+            className="prose markdown-prose max-w-none prose-neutral dark:prose-invert lg:max-w-[72ch]"
             dangerouslySetInnerHTML={{ __html: html }}
           />
 

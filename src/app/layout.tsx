@@ -89,7 +89,7 @@ export default function RootLayout({
         </Script>
         <ThemeProvider>
           <Header />
-          <main className="mx-auto w-full max-w-[var(--content-max-width)] flex-1 px-[var(--spacing-page)]">
+          <main className="w-full flex-1 px-[var(--spacing-page)]">
             {children}
           </main>
           <Footer />

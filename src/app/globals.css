@@ -53,6 +53,7 @@
   /* Content width */
   --content-max-width: 768px;
   --content-wide-max-width: 1200px;
+  --content-post-max-width: 1280px;
 }
 
 /* Dark mode variables */

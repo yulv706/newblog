@@ -29,7 +29,7 @@ export default async function AboutPage() {
   const html = await renderMarkdownToHtml(content);
 
   return (
-    <article className="py-12">
+    <article className="mx-auto w-full max-w-[var(--content-wide-max-width)] py-12">
       <section
         className="prose max-w-none prose-neutral dark:prose-invert"
         dangerouslySetInnerHTML={{ __html: html }}

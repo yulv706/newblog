@@ -94,7 +94,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   const currentPage = pagination.currentPage;
 
   return (
-    <div className="space-y-10 py-10 sm:py-14">
+    <div className="mx-auto w-full max-w-[var(--content-wide-max-width)] space-y-10 py-10 sm:py-14">
       <FadeIn className="space-y-3">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Blog</h1>
         <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
