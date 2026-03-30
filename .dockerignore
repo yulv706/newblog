@@ -1,0 +1,14 @@
+.git
+.next
+node_modules
+npm-debug.log*
+.env*.local
+
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+public/uploads/images/*
+!public/uploads/images/.gitkeep
+
+.factory/research/
