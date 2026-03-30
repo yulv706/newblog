@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { updatePostAction } from "@/actions/posts";
 import { PostEditorForm } from "@/components/admin/post-editor-form";
+import { getTagOptions } from "@/lib/admin/category-tags";
 import { getPostCategories, getPostForEdit } from "@/lib/posts";
 
 type EditAdminPostPageProps = {
@@ -17,8 +18,9 @@ export default async function EditAdminPostPage({ params }: EditAdminPostPagePro
     notFound();
   }
 
-  const [categories, post] = await Promise.all([
+  const [categories, tagOptions, post] = await Promise.all([
     getPostCategories(),
+    getTagOptions(),
     getPostForEdit(postId),
   ]);
 
@@ -30,6 +32,7 @@ export default async function EditAdminPostPage({ params }: EditAdminPostPagePro
     <PostEditorForm
       mode="edit"
       categories={categories}
+      availableTags={tagOptions.map((tag) => tag.name)}
       action={updatePostAction}
       postId={post.id}
       initialValues={{

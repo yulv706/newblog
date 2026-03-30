@@ -36,6 +36,7 @@ type PostEditorInitialValues = {
 type PostEditorFormProps = {
   mode: "create" | "edit";
   categories: CategoryOption[];
+  availableTags: string[];
   initialValues: PostEditorInitialValues;
   action: (
     state: PostFormActionState,
@@ -48,9 +49,28 @@ const INITIAL_ACTION_STATE: PostFormActionState = {
   error: null,
 };
 
+function parseTagsInput(value: string) {
+  const deduped = new Map<string, string>();
+
+  for (const token of value.split(",")) {
+    const normalized = token.trim();
+    if (!normalized) {
+      continue;
+    }
+
+    const lower = normalized.toLowerCase();
+    if (!deduped.has(lower)) {
+      deduped.set(lower, normalized);
+    }
+  }
+
+  return Array.from(deduped.values());
+}
+
 export function PostEditorForm({
   mode,
   categories,
+  availableTags,
   initialValues,
   action,
   postId,
@@ -62,7 +82,10 @@ export function PostEditorForm({
   const [content, setContent] = useState(initialValues.content);
   const [excerpt, setExcerpt] = useState(initialValues.excerpt);
   const [categoryId, setCategoryId] = useState(initialValues.categoryId);
-  const [tags, setTags] = useState(initialValues.tags);
+  const [selectedTags, setSelectedTags] = useState(() =>
+    parseTagsInput(initialValues.tags)
+  );
+  const [tagDraft, setTagDraft] = useState("");
   const [coverImage, setCoverImage] = useState(initialValues.coverImage);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(mode === "edit");
   const [previewHtml, setPreviewHtml] = useState("");
@@ -80,6 +103,11 @@ export function PostEditorForm({
   const categoryLookup = useMemo(() => {
     return new Map(categories.map((category) => [category.name.toLowerCase(), category.id]));
   }, [categories]);
+
+  const availableTagSuggestions = useMemo(() => {
+    const selectedTagSet = new Set(selectedTags.map((tag) => tag.toLowerCase()));
+    return availableTags.filter((tag) => !selectedTagSet.has(tag.toLowerCase()));
+  }, [availableTags, selectedTags]);
 
   useEffect(() => {
     let disposed = false;
@@ -109,6 +137,37 @@ export function PostEditorForm({
     () => (mode === "create" ? "New Post" : "Edit Post"),
     [mode]
   );
+
+  function addTagsFromValue(rawValue: string) {
+    const nextTags = parseTagsInput(rawValue);
+    if (nextTags.length === 0) {
+      return;
+    }
+
+    setSelectedTags((previous) => {
+      const merged = new Map<string, string>();
+
+      for (const tag of previous) {
+        merged.set(tag.toLowerCase(), tag);
+      }
+
+      for (const tag of nextTags) {
+        if (!merged.has(tag.toLowerCase())) {
+          merged.set(tag.toLowerCase(), tag);
+        }
+      }
+
+      return Array.from(merged.values());
+    });
+
+    setTagDraft("");
+  }
+
+  function removeTag(tagToRemove: string) {
+    setSelectedTags((previous) =>
+      previous.filter((tag) => tag.toLowerCase() !== tagToRemove.toLowerCase())
+    );
+  }
 
   function handleMarkdownFile(file: File | null) {
     if (!file) {
@@ -140,7 +199,8 @@ export function PostEditorForm({
         setSlug(nextTitle ? createSlug(nextTitle) : "");
         setSlugManuallyEdited(false);
         setDate(parsed.frontmatter.date);
-        setTags(parsed.frontmatter.tags);
+        setSelectedTags(parseTagsInput(parsed.frontmatter.tags));
+        setTagDraft("");
         setExcerpt(parsed.frontmatter.excerpt);
         setCoverImage(parsed.frontmatter.coverImage);
         setCategoryId(matchedCategoryId ? String(matchedCategoryId) : "");
@@ -359,16 +419,73 @@ export function PostEditorForm({
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-2 text-sm">
-            <span className="font-medium text-foreground">Tags</span>
-            <input
-              name="tags"
-              value={tags}
-              onChange={(event) => setTags(event.target.value)}
-              placeholder="react, typescript, nextjs"
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-            />
-          </label>
+          <section className="space-y-2 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium text-foreground">Tags</span>
+              <span className="text-xs text-muted">
+                Type and press Enter to add
+              </span>
+            </div>
+
+            <input type="hidden" name="tags" value={selectedTags.join(", ")} />
+
+            <div className="space-y-2 rounded-xl border border-border bg-background p-3">
+              {selectedTags.length > 0 ? (
+                <ul className="flex flex-wrap gap-2">
+                  {selectedTags.map((tag) => (
+                    <li
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground"
+                    >
+                      <span>{tag}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="rounded-full p-0.5 text-muted transition hover:bg-background hover:text-foreground"
+                        aria-label={`Remove tag ${tag}`}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted">No tags added yet.</p>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                <input
+                  value={tagDraft}
+                  onChange={(event) => setTagDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === ",") {
+                      event.preventDefault();
+                      addTagsFromValue(tagDraft);
+                    }
+                  }}
+                  onBlur={() => addTagsFromValue(tagDraft)}
+                  list="available-tag-options"
+                  placeholder="react, typescript, nextjs"
+                  className="min-w-52 flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => addTagsFromValue(tagDraft)}
+                  className="rounded-xl border border-border px-3 py-2 text-xs font-medium transition hover:bg-secondary"
+                >
+                  Add tag
+                </button>
+              </div>
+
+              {availableTagSuggestions.length > 0 ? (
+                <datalist id="available-tag-options">
+                  {availableTagSuggestions.map((tag) => (
+                    <option key={tag} value={tag} />
+                  ))}
+                </datalist>
+              ) : null}
+            </div>
+          </section>
 
           <label className="space-y-2 text-sm">
             <span className="font-medium text-foreground">Cover Image URL</span>
