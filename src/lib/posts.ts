@@ -24,6 +24,7 @@ export type AdminPostListItem = {
 export type PostFormInput = {
   title: string;
   slug: string;
+  date: string;
   content: string;
   excerpt: string;
   categoryId: string;
@@ -45,6 +46,20 @@ function normalizeStatus(status: string): PostStatus {
 function parseOptionalText(value: string) {
   const normalized = value.trim();
   return normalized ? normalized : null;
+}
+
+function parseOptionalDate(value: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString();
 }
 
 function parseCategoryId(value: string) {
@@ -209,6 +224,8 @@ export async function getPostForEdit(postId: number, database: PostDatabase = db
       coverImage: posts.coverImage,
       status: posts.status,
       categoryId: posts.categoryId,
+      createdAt: posts.createdAt,
+      publishedAt: posts.publishedAt,
     })
     .from(posts)
     .where(eq(posts.id, postId))
@@ -242,6 +259,8 @@ export async function createPost(
   const finalSlug = await ensureUniqueSlug(baseSlug, database);
   const status = normalizeStatus(input.status);
   const now = new Date().toISOString();
+  const parsedDate = parseOptionalDate(input.date);
+  const createdAt = parsedDate ?? now;
 
   const inserted = database
     .insert(posts)
@@ -253,9 +272,9 @@ export async function createPost(
       coverImage: parseOptionalText(input.coverImage),
       status,
       categoryId: parseCategoryId(input.categoryId),
-      createdAt: now,
+      createdAt,
       updatedAt: now,
-      publishedAt: status === "published" ? now : null,
+      publishedAt: status === "published" ? parsedDate ?? now : null,
     })
     .returning({ id: posts.id })
     .get();
@@ -282,6 +301,7 @@ export async function updatePost(
     .select({
       id: posts.id,
       status: posts.status,
+      publishedAt: posts.publishedAt,
     })
     .from(posts)
     .where(eq(posts.id, postId))
@@ -295,11 +315,10 @@ export async function updatePost(
   const finalSlug = await ensureUniqueSlug(baseSlug, database, postId);
   const status = normalizeStatus(input.status);
   const now = new Date().toISOString();
+  const parsedDate = parseOptionalDate(input.date);
   const nextPublishedAt =
     status === "published"
-      ? existingPost.status === "published"
-        ? undefined
-        : now
+      ? parsedDate ?? existingPost.publishedAt ?? now
       : null;
 
   const updatePayload = {
@@ -311,7 +330,7 @@ export async function updatePost(
     status,
     categoryId: parseCategoryId(input.categoryId),
     updatedAt: now,
-    ...(nextPublishedAt !== undefined ? { publishedAt: nextPublishedAt } : {}),
+    publishedAt: nextPublishedAt,
   };
 
   database.update(posts).set(updatePayload).where(eq(posts.id, postId)).run();

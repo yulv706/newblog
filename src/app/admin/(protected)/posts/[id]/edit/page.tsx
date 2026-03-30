@@ -35,6 +35,7 @@ export default async function EditAdminPostPage({ params }: EditAdminPostPagePro
       initialValues={{
         title: post.title,
         slug: post.slug,
+        date: post.publishedAt ?? post.createdAt,
         content: post.content,
         excerpt: post.excerpt ?? "",
         categoryId: post.categoryId ? String(post.categoryId) : "",

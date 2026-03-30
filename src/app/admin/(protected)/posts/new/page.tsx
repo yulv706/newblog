@@ -13,6 +13,7 @@ export default async function NewAdminPostPage() {
       initialValues={{
         title: "",
         slug: "",
+        date: "",
         content: "",
         excerpt: "",
         categoryId: "",
