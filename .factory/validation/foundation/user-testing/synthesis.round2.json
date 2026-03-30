@@ -1,0 +1,39 @@
+{
+  "milestone": "foundation",
+  "round": 2,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 3,
+    "passed": 1,
+    "failed": 2,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-FOUND-027"
+  ],
+  "failedAssertions": [
+    {
+      "id": "VAL-FOUND-021",
+      "reason": "Chinese glyphs render as tofu boxes on the homepage mixed-language paragraph."
+    },
+    {
+      "id": "VAL-FOUND-023",
+      "reason": "Mixed Chinese/English sentence has tofu boxes for Chinese text, so bilingual rendering is not graceful."
+    }
+  ],
+  "blockedAssertions": [],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Documented that agent-browser network evidence capture may require `agent-browser network route \"**/*\"` before page reload.",
+      "source": "flow-report"
+    }
+  ],
+  "previousRound": ".factory/validation/foundation/user-testing/synthesis.round1.json",
+  "flowReports": [
+    "/home/kongyu/workspace/tmp_3_29/.factory/validation/foundation/user-testing/flows/foundation-rerun-typography-overflow.json"
+  ],
+  "toolsUsed": [
+    "agent-browser"
+  ]
+}

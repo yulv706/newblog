@@ -1,0 +1,32 @@
+{
+  "milestone": "foundation",
+  "groupId": "foundation-rerun-cjk-typography",
+  "surface": "agent-browser",
+  "assertions": [
+    {
+      "id": "VAL-FOUND-021",
+      "status": "pass",
+      "reason": "Homepage Chinese text rendered clearly with no tofu boxes detected; computed font-family includes dedicated CJK fallback fonts (notoSansSc/PingFang SC/Source Han Sans SC).",
+      "evidence": [
+        "foundation/foundation-rerun-cjk-typography/VAL-FOUND-021-homepage-chinese-text.png",
+        "foundation/foundation-rerun-cjk-typography/VAL-FOUND-021-computed-font.json",
+        "foundation/foundation-rerun-cjk-typography/VAL-FOUND-021-console-errors.txt"
+      ]
+    },
+    {
+      "id": "VAL-FOUND-023",
+      "status": "pass",
+      "reason": "About page mixed Chinese+English paragraph rendered with natural spacing and no overlap; computed typography shows stable line-height (28.8px at 16px font, ratio 1.8) and CJK-capable font stack with no tofu boxes.",
+      "evidence": [
+        "foundation/foundation-rerun-cjk-typography/VAL-FOUND-023-about-mixed-typography.png",
+        "foundation/foundation-rerun-cjk-typography/VAL-FOUND-023-computed-font.json",
+        "foundation/foundation-rerun-cjk-typography/VAL-FOUND-023-console-errors.txt"
+      ]
+    }
+  ],
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "frictions": [],
+  "blockers": []
+}
