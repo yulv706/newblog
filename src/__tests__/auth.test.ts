@@ -34,9 +34,10 @@ describe("auth JWT session token", () => {
 
   it("rejects tampered tokens", async () => {
     const token = await signSessionToken("admin");
-    const lastChar = token.slice(-1);
-    const replacementChar = lastChar === "a" ? "b" : "a";
-    const tamperedToken = `${token.slice(0, -1)}${replacementChar}`;
+    const [header, payloadSegment, signature] = token.split(".");
+    const firstSignatureChar = signature[0] ?? "";
+    const replacementChar = firstSignatureChar === "a" ? "b" : "a";
+    const tamperedToken = `${header}.${payloadSegment}.${replacementChar}${signature.slice(1)}`;
     const payload = await verifySessionToken(tamperedToken);
 
     expect(payload).toBeNull();
