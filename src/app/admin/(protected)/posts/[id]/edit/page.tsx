@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { updatePostAction } from "@/actions/posts";
 import { PostEditorForm } from "@/components/admin/post-editor-form";
 import { getTagOptions } from "@/lib/admin/category-tags";
+import { getRequestI18n } from "@/lib/i18n/server";
 import { getPostCategories, getPostForEdit } from "@/lib/posts";
 
 type EditAdminPostPageProps = {
@@ -11,6 +12,8 @@ type EditAdminPostPageProps = {
 };
 
 export default async function EditAdminPostPage({ params }: EditAdminPostPageProps) {
+  const { dictionary } = await getRequestI18n();
+  dictionary.admin.posts.editor.editTitle;
   const { id } = await params;
   const postId = Number.parseInt(id, 10);
 

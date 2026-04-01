@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { validateAdminCredentials } from "@/lib/admin-auth";
 import { AUTH_COOKIE_NAME, getAuthCookieOptions, signSessionToken } from "@/lib/auth";
-
-const INVALID_CREDENTIALS_MESSAGE = "Invalid credentials";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 type LoginRequestBody = {
   username?: unknown;
@@ -14,13 +13,15 @@ function getFieldValue(value: unknown) {
 }
 
 export async function POST(request: Request) {
+  const { dictionary } = await getRequestI18n();
+  const loginDictionary = dictionary.admin.login;
   let body: LoginRequestBody;
 
   try {
     body = (await request.json()) as LoginRequestBody;
   } catch {
     return NextResponse.json(
-      { error: "Username and password are required" },
+      { error: loginDictionary.errors.requiredCredentials },
       { status: 400 }
     );
   }
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
 
   if (!username || !password) {
     return NextResponse.json(
-      { error: "Username and password are required" },
+      { error: loginDictionary.errors.requiredCredentials },
       { status: 400 }
     );
   }
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
 
   if (!isValidCredentials) {
     return NextResponse.json(
-      { error: INVALID_CREDENTIALS_MESSAGE },
+      { error: loginDictionary.errors.invalidCredentials },
       { status: 401 }
     );
   }

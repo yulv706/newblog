@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getRequestI18n } from "@/lib/i18n/server";
 import { saveAboutContent } from "@/lib/site-settings";
 
 export type AboutEditorActionState = {
@@ -17,10 +18,12 @@ export async function saveAboutContentAction(
   _previousState: AboutEditorActionState = DEFAULT_STATE,
   formData: FormData
 ): Promise<AboutEditorActionState> {
+  const { dictionary } = await getRequestI18n();
+  const aboutDictionary = dictionary.admin.about;
   const content = formData.get("content");
   if (typeof content !== "string") {
     return {
-      error: "Invalid content payload.",
+      error: aboutDictionary.messages.invalidPayload,
       success: null,
     };
   }
@@ -31,6 +34,6 @@ export async function saveAboutContentAction(
 
   return {
     error: null,
-    success: "About content saved.",
+    success: aboutDictionary.messages.saveSuccess,
   };
 }

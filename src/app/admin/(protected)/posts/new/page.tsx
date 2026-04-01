@@ -1,9 +1,12 @@
 import { createPostAction } from "@/actions/posts";
 import { PostEditorForm } from "@/components/admin/post-editor-form";
 import { getTagOptions } from "@/lib/admin/category-tags";
+import { getRequestI18n } from "@/lib/i18n/server";
 import { getPostCategories } from "@/lib/posts";
 
 export default async function NewAdminPostPage() {
+  const { dictionary } = await getRequestI18n();
+  dictionary.admin.posts.editor.newTitle;
   const [categories, tagOptions] = await Promise.all([
     getPostCategories(),
     getTagOptions(),

@@ -5,11 +5,14 @@ import {
   getApprovedCommentsForAdmin,
   getPendingCommentsForAdmin,
 } from "@/lib/comments";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminCommentsPage() {
+  const { dictionary } = await getRequestI18n();
+  const commentsDictionary = dictionary.admin.comments;
   const [pendingComments, approvedComments] = await Promise.all([
     getPendingCommentsForAdmin(),
     getApprovedCommentsForAdmin(),
@@ -18,22 +21,24 @@ export default async function AdminCommentsPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Comments</h1>
-        <p className="text-sm text-muted">
-          Review pending comments and decide what appears on the public post pages.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">{commentsDictionary.title}</h1>
+        <p className="text-sm text-muted">{commentsDictionary.description}</p>
       </header>
 
       <p className="text-sm text-muted">
-        Pending queue:{" "}
-        <span className="font-semibold text-foreground">{pendingComments.length}</span>
+        {commentsDictionary.pendingQueueTemplate.replace(
+          "{count}",
+          String(pendingComments.length)
+        )}
       </p>
 
       {pendingComments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-secondary/40 p-5">
-          <h2 className="text-base font-semibold tracking-tight">All caught up</h2>
+          <h2 className="text-base font-semibold tracking-tight">
+            {commentsDictionary.emptyPendingTitle}
+          </h2>
           <p className="mt-2 text-sm text-muted">
-            There are no pending comments to moderate right now.
+            {commentsDictionary.emptyPendingDescription}
           </p>
         </div>
       ) : (
@@ -45,7 +50,7 @@ export default async function AdminCommentsPage() {
             >
               <div className="space-y-1">
                 <p className="text-sm text-muted">
-                  On{" "}
+                  {commentsDictionary.onPostLabel}{" "}
                   <Link
                     href={`/blog/${comment.postSlug}`}
                     className="font-medium text-foreground underline-offset-4 transition hover:text-primary hover:underline"
@@ -56,7 +61,10 @@ export default async function AdminCommentsPage() {
                 <p className="text-sm font-medium text-foreground">{comment.nickname}</p>
                 <p className="text-xs text-muted">{comment.email}</p>
                 <p className="text-xs text-muted">
-                  Submitted {formatCommentTimestamp(comment.createdAt)}
+                  {commentsDictionary.submittedTemplate.replace(
+                    "{date}",
+                    formatCommentTimestamp(comment.createdAt)
+                  )}
                 </p>
               </div>
 
@@ -72,7 +80,7 @@ export default async function AdminCommentsPage() {
                     type="submit"
                     className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition hover:opacity-90"
                   >
-                    Approve
+                    {commentsDictionary.approveButton}
                   </button>
                 </form>
 
@@ -83,7 +91,7 @@ export default async function AdminCommentsPage() {
                     type="submit"
                     className="rounded-lg border border-destructive/40 px-3 py-1.5 text-xs font-medium text-destructive transition hover:bg-destructive/10"
                   >
-                    Delete
+                    {commentsDictionary.deleteButton}
                   </button>
                 </form>
               </div>
@@ -93,14 +101,14 @@ export default async function AdminCommentsPage() {
       )}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">Approved comments</h2>
-        <p className="text-sm text-muted">
-          Delete any approved comment to remove it from the public post page.
-        </p>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {commentsDictionary.approvedHeading}
+        </h2>
+        <p className="text-sm text-muted">{commentsDictionary.approvedDescription}</p>
 
         {approvedComments.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border bg-secondary/40 px-3 py-4 text-sm text-muted">
-            No approved comments yet.
+            {commentsDictionary.emptyApproved}
           </p>
         ) : (
           <ul className="space-y-3">
@@ -111,7 +119,7 @@ export default async function AdminCommentsPage() {
               >
                 <div className="space-y-1">
                   <p className="text-sm text-muted">
-                    On{" "}
+                    {commentsDictionary.onPostLabel}{" "}
                     <Link
                       href={`/blog/${comment.postSlug}`}
                       className="font-medium text-foreground underline-offset-4 transition hover:text-primary hover:underline"
@@ -123,7 +131,10 @@ export default async function AdminCommentsPage() {
                     {comment.nickname}
                   </p>
                   <p className="text-xs text-muted">
-                    Approved comment • {formatCommentTimestamp(comment.createdAt)}
+                    {commentsDictionary.approvedCommentTemplate.replace(
+                      "{date}",
+                      formatCommentTimestamp(comment.createdAt)
+                    )}
                   </p>
                 </div>
 
@@ -138,7 +149,7 @@ export default async function AdminCommentsPage() {
                     type="submit"
                     className="rounded-lg border border-destructive/40 px-3 py-1.5 text-xs font-medium text-destructive transition hover:bg-destructive/10"
                   >
-                    Delete
+                    {commentsDictionary.deleteButton}
                   </button>
                 </form>
               </li>

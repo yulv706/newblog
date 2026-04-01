@@ -2,9 +2,12 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getRequestI18n } from "@/lib/i18n/server";
 import { AUTH_COOKIE_NAME, getAuthCookieOptions } from "@/lib/auth";
 
 export async function logout() {
+  const { dictionary } = await getRequestI18n();
+  dictionary.admin.sidebar.logoutButton;
   const cookieStore = await cookies();
   cookieStore.set(AUTH_COOKIE_NAME, "", {
     ...getAuthCookieOptions(),

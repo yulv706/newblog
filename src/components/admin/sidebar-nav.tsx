@@ -2,11 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 import { ADMIN_SIDEBAR_LINKS, isAdminPathActive } from "@/lib/admin/navigation";
 import { cn } from "@/lib/utils";
 
 export function AdminSidebarNav() {
   const pathname = usePathname();
+  const { dictionary } = useLocaleContext();
+  const sidebarDictionary = dictionary.admin;
+
+  const localizedLabels = {
+    Dashboard: sidebarDictionary.dashboard.title,
+    Posts: sidebarDictionary.posts.title,
+    "Categories/Tags": sidebarDictionary.categories.title,
+    Comments: sidebarDictionary.comments.title,
+    About: sidebarDictionary.about.title,
+  } as const;
 
   return (
     <nav className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
@@ -25,7 +36,9 @@ export function AdminSidebarNav() {
                 : "text-muted hover:bg-secondary hover:text-foreground"
             )}
           >
-            <span className="font-medium">{link.label}</span>
+            <span className="font-medium">
+              {localizedLabels[link.label] ?? link.label}
+            </span>
             <span
               aria-hidden="true"
               className={cn(

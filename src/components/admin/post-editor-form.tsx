@@ -8,6 +8,7 @@ import {
   useTransition,
   type DragEvent,
 } from "react";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 import { createSlug } from "@/lib/slug";
 import { renderMarkdownToHtml } from "@/lib/markdown";
 import {
@@ -75,6 +76,9 @@ export function PostEditorForm({
   action,
   postId,
 }: PostEditorFormProps) {
+  const { dictionary } = useLocaleContext();
+  const postsDictionary = dictionary.admin.posts;
+  const editorDictionary = postsDictionary.editor;
   const [state, formAction, isPending] = useActionState(action, INITIAL_ACTION_STATE);
   const [title, setTitle] = useState(initialValues.title);
   const [slug, setSlug] = useState(initialValues.slug);
@@ -121,7 +125,7 @@ export function PostEditorForm({
         }
       } catch {
         if (!disposed) {
-          setPreviewError("Unable to render markdown preview.");
+          setPreviewError(editorDictionary.previewError);
         }
       }
     }
@@ -131,11 +135,11 @@ export function PostEditorForm({
     return () => {
       disposed = true;
     };
-  }, [content]);
+  }, [content, editorDictionary.previewError]);
 
   const formTitle = useMemo(
-    () => (mode === "create" ? "New Post" : "Edit Post"),
-    [mode]
+    () => (mode === "create" ? editorDictionary.newTitle : editorDictionary.editTitle),
+    [editorDictionary.editTitle, editorDictionary.newTitle, mode]
   );
 
   function addTagsFromValue(rawValue: string) {
@@ -175,7 +179,7 @@ export function PostEditorForm({
     }
 
     if (!file.name.toLowerCase().endsWith(".md")) {
-      setMarkdownUploadError("Only .md files are supported.");
+      setMarkdownUploadError(editorDictionary.onlyMarkdownFiles);
       setMarkdownUploadNotice(null);
       return;
     }
@@ -210,13 +214,18 @@ export function PostEditorForm({
         setImageUploadError(null);
         setImageUploadNotice(
           parsed.localImageReferences.length > 0
-            ? `Detected ${parsed.localImageReferences.length} local image reference(s).`
-            : "No local image references were detected."
+            ? editorDictionary.detectedLocalImageReferencesTemplate.replace(
+                "{count}",
+                String(parsed.localImageReferences.length)
+              )
+            : editorDictionary.noLocalImageReferencesDetected
         );
         setMarkdownUploadError(null);
-        setMarkdownUploadNotice(`Loaded markdown from ${file.name}.`);
+        setMarkdownUploadNotice(
+          editorDictionary.loadedMarkdownTemplate.replace("{fileName}", file.name)
+        );
       } catch {
-        setMarkdownUploadError("Unable to read markdown file.");
+        setMarkdownUploadError(editorDictionary.unableToReadFile);
         setMarkdownUploadNotice(null);
       }
     });
@@ -243,7 +252,7 @@ export function PostEditorForm({
 
   function handleImageUploadAndRewrite() {
     if (selectedImageFiles.length === 0) {
-      setImageUploadError("Select image files before uploading.");
+      setImageUploadError(editorDictionary.selectImagesFirst);
       setImageUploadNotice(null);
       return;
     }
@@ -271,14 +280,19 @@ export function PostEditorForm({
       setImageUploadError(null);
 
       if (result.replacedReferences.length === 0) {
-        setImageUploadNotice("No matching local image references were rewritten.");
+        setImageUploadNotice(editorDictionary.noReferencesRewritten);
       } else if (result.unmatchedReferences.length === 0) {
         setImageUploadNotice(
-          `Uploaded and rewrote ${result.replacedReferences.length} image reference(s).`
+          editorDictionary.rewroteAllReferencesTemplate.replace(
+            "{count}",
+            String(result.replacedReferences.length)
+          )
         );
       } else {
         setImageUploadNotice(
-          `Uploaded and rewrote ${result.replacedReferences.length} image reference(s). ${result.unmatchedReferences.length} reference(s) still unmatched.`
+          editorDictionary.rewrotePartialReferencesTemplate
+            .replace("{replaced}", String(result.replacedReferences.length))
+            .replace("{unmatched}", String(result.unmatchedReferences.length))
         );
       }
     });
@@ -290,8 +304,8 @@ export function PostEditorForm({
         <h1 className="text-2xl font-semibold tracking-tight">{formTitle}</h1>
         <p className="text-sm text-muted">
           {mode === "create"
-            ? "Write and preview your markdown before publishing."
-            : "Update this post and save your changes."}
+            ? editorDictionary.newDescription
+            : editorDictionary.editDescription}
         </p>
       </header>
 
@@ -309,9 +323,11 @@ export function PostEditorForm({
                 : "border-border bg-background/80"
             }`}
           >
-            <h2 className="text-sm font-medium text-foreground">Markdown Upload</h2>
+            <h2 className="text-sm font-medium text-foreground">
+              {editorDictionary.markdownUploadHeading}
+            </h2>
             <p className="mt-1 text-sm text-muted">
-              Drag and drop a <code>.md</code> file here, or choose one manually.
+              {editorDictionary.markdownUploadDescription}
             </p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
               <input
@@ -325,7 +341,7 @@ export function PostEditorForm({
                 }}
               />
               {isParsingMarkdown ? (
-                <span className="text-xs text-muted">Parsing markdown…</span>
+                <span className="text-xs text-muted">{editorDictionary.parsingLabel}</span>
               ) : null}
             </div>
           </div>
@@ -345,7 +361,7 @@ export function PostEditorForm({
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2 text-sm">
-            <span className="font-medium text-foreground">Title</span>
+            <span className="font-medium text-foreground">{editorDictionary.titleLabel}</span>
             <input
               name="title"
               value={title}
@@ -362,7 +378,7 @@ export function PostEditorForm({
           </label>
 
           <label className="space-y-2 text-sm">
-            <span className="font-medium text-foreground">Slug</span>
+            <span className="font-medium text-foreground">{editorDictionary.slugLabel}</span>
             <input
               name="slug"
               value={slug}
@@ -378,14 +394,14 @@ export function PostEditorForm({
 
         <div className="grid gap-4 md:grid-cols-3">
           <label className="space-y-2 text-sm">
-            <span className="font-medium text-foreground">Category</span>
+            <span className="font-medium text-foreground">{editorDictionary.categoryLabel}</span>
             <select
               name="categoryId"
               value={categoryId}
               onChange={(event) => setCategoryId(event.target.value)}
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
-              <option value="">Uncategorized</option>
+              <option value="">{postsDictionary.uncategorizedLabel}</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -395,24 +411,24 @@ export function PostEditorForm({
           </label>
 
           <label className="space-y-2 text-sm">
-            <span className="font-medium text-foreground">Status</span>
+            <span className="font-medium text-foreground">{editorDictionary.statusLabel}</span>
             <select
               name="status"
               defaultValue={initialValues.status}
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
+              <option value="draft">{postsDictionary.status.draft}</option>
+              <option value="published">{postsDictionary.status.published}</option>
             </select>
           </label>
 
           <label className="space-y-2 text-sm">
-            <span className="font-medium text-foreground">Date</span>
+            <span className="font-medium text-foreground">{editorDictionary.dateLabel}</span>
             <input
               name="date"
               value={date}
               onChange={(event) => setDate(event.target.value)}
-              placeholder="2026-03-30"
+              placeholder={editorDictionary.datePlaceholder}
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </label>
@@ -421,10 +437,8 @@ export function PostEditorForm({
         <div className="grid gap-4 md:grid-cols-2">
           <section className="space-y-2 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="font-medium text-foreground">Tags</span>
-              <span className="text-xs text-muted">
-                Type and press Enter to add
-              </span>
+              <span className="font-medium text-foreground">{editorDictionary.tagsLabel}</span>
+              <span className="text-xs text-muted">{editorDictionary.tagsHelper}</span>
             </div>
 
             <input type="hidden" name="tags" value={selectedTags.join(", ")} />
@@ -442,7 +456,10 @@ export function PostEditorForm({
                         type="button"
                         onClick={() => removeTag(tag)}
                         className="rounded-full p-0.5 text-muted transition hover:bg-background hover:text-foreground"
-                        aria-label={`Remove tag ${tag}`}
+                        aria-label={editorDictionary.removeTagAriaTemplate.replace(
+                          "{tag}",
+                          tag
+                        )}
                       >
                         ×
                       </button>
@@ -450,7 +467,7 @@ export function PostEditorForm({
                   ))}
                 </ul>
               ) : (
-                <p className="text-xs text-muted">No tags added yet.</p>
+                <p className="text-xs text-muted">{editorDictionary.noTagsLabel}</p>
               )}
 
               <div className="flex flex-wrap gap-2">
@@ -465,7 +482,7 @@ export function PostEditorForm({
                   }}
                   onBlur={() => addTagsFromValue(tagDraft)}
                   list="available-tag-options"
-                  placeholder="react, typescript, nextjs"
+                  placeholder={editorDictionary.tagsPlaceholder}
                   className="min-w-52 flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
                 <button
@@ -473,7 +490,7 @@ export function PostEditorForm({
                   onClick={() => addTagsFromValue(tagDraft)}
                   className="rounded-xl border border-border px-3 py-2 text-xs font-medium transition hover:bg-secondary"
                 >
-                  Add tag
+                  {editorDictionary.addTagButton}
                 </button>
               </div>
 
@@ -488,20 +505,20 @@ export function PostEditorForm({
           </section>
 
           <label className="space-y-2 text-sm">
-            <span className="font-medium text-foreground">Cover Image URL</span>
+            <span className="font-medium text-foreground">{editorDictionary.coverImageLabel}</span>
             <input
               name="coverImage"
               type="url"
               value={coverImage}
               onChange={(event) => setCoverImage(event.target.value)}
-              placeholder="https://example.com/cover.jpg"
+              placeholder={editorDictionary.coverImagePlaceholder}
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </label>
         </div>
 
         <label className="block space-y-2 text-sm">
-          <span className="font-medium text-foreground">Excerpt</span>
+          <span className="font-medium text-foreground">{editorDictionary.excerptLabel}</span>
           <textarea
             name="excerpt"
             value={excerpt}
@@ -513,7 +530,9 @@ export function PostEditorForm({
 
         {localImageReferences.length > 0 ? (
           <section className="space-y-3 rounded-xl border border-border bg-background p-4">
-            <h2 className="text-sm font-medium text-foreground">Detected local images</h2>
+            <h2 className="text-sm font-medium text-foreground">
+              {editorDictionary.localImagesHeading}
+            </h2>
             <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
               {localImageReferences.map((reference) => (
                 <li key={reference}>{reference}</li>
@@ -532,8 +551,11 @@ export function PostEditorForm({
               />
               <span className="text-xs text-muted">
                 {selectedImageFiles.length > 0
-                  ? `${selectedImageFiles.length} image file(s) selected`
-                  : "No image files selected"}
+                  ? editorDictionary.selectedImageFilesTemplate.replace(
+                      "{count}",
+                      String(selectedImageFiles.length)
+                    )
+                  : editorDictionary.noImageFilesSelected}
               </span>
               <button
                 type="button"
@@ -541,7 +563,9 @@ export function PostEditorForm({
                 disabled={isUploadingImages || selectedImageFiles.length === 0}
                 className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2 text-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isUploadingImages ? "Uploading..." : "Upload images and rewrite paths"}
+                {isUploadingImages
+                  ? editorDictionary.uploadingImagesButton
+                  : editorDictionary.uploadImagesButton}
               </button>
             </div>
 
@@ -561,7 +585,7 @@ export function PostEditorForm({
 
         <div className="grid gap-4 lg:grid-cols-2">
           <label className="block space-y-2 text-sm">
-            <span className="font-medium text-foreground">Content (Markdown)</span>
+            <span className="font-medium text-foreground">{editorDictionary.contentLabel}</span>
             <textarea
               name="content"
               value={content}
@@ -573,7 +597,9 @@ export function PostEditorForm({
           </label>
 
           <section className="space-y-2 rounded-xl border border-border bg-background p-4">
-            <h2 className="text-sm font-medium text-foreground">Preview</h2>
+            <h2 className="text-sm font-medium text-foreground">
+              {editorDictionary.previewHeading}
+            </h2>
             {previewError ? (
               <p className="text-sm text-destructive">{previewError}</p>
             ) : (
@@ -598,11 +624,11 @@ export function PostEditorForm({
         >
           {isPending
             ? mode === "create"
-              ? "Creating..."
-              : "Saving..."
+              ? editorDictionary.creatingButton
+              : editorDictionary.savingButton
             : mode === "create"
-              ? "Create post"
-              : "Save changes"}
+              ? editorDictionary.createButton
+              : editorDictionary.saveButton}
         </button>
       </form>
     </div>

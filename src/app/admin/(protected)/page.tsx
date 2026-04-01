@@ -3,41 +3,35 @@ import {
   DASHBOARD_QUICK_ACTIONS,
   getDashboardStats,
 } from "@/lib/admin/dashboard";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const QUICK_ACTION_DESCRIPTIONS: Record<
-  (typeof DASHBOARD_QUICK_ACTIONS)[number]["label"],
-  string
-> = {
-  "New Post": "Jump into the post workspace and start writing.",
-  "View Blog": "Open the public blog and preview published content.",
-  "Manage Comments": "Review and moderate incoming comments.",
-};
-
 export default async function AdminDashboardPage() {
+  const { dictionary } = await getRequestI18n();
+  const dashboardDictionary = dictionary.admin.dashboard;
   const stats = await getDashboardStats();
   const statCards = [
     {
-      label: "Total Posts",
+      label: dashboardDictionary.stats.totalPostsLabel,
       value: stats.totalPosts,
-      helper: "Draft + published",
+      helper: dashboardDictionary.stats.totalPostsHelper,
     },
     {
-      label: "Published Posts",
+      label: dashboardDictionary.stats.publishedPostsLabel,
       value: stats.publishedPosts,
-      helper: "Live on the public site",
+      helper: dashboardDictionary.stats.publishedPostsHelper,
     },
     {
-      label: "Total Comments",
+      label: dashboardDictionary.stats.totalCommentsLabel,
       value: stats.totalComments,
-      helper: "Pending + approved",
+      helper: dashboardDictionary.stats.totalCommentsHelper,
     },
     {
-      label: "Pending Comments",
+      label: dashboardDictionary.stats.pendingCommentsLabel,
       value: stats.pendingComments,
-      helper: "Awaiting moderation",
+      helper: dashboardDictionary.stats.pendingCommentsHelper,
     },
   ] as const;
 
@@ -45,11 +39,9 @@ export default async function AdminDashboardPage() {
     <div className="space-y-8">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Dashboard
+          {dashboardDictionary.title}
         </h1>
-        <p className="text-sm text-muted sm:text-base">
-          A quick snapshot of your blog content and moderation queue.
-        </p>
+        <p className="text-sm text-muted sm:text-base">{dashboardDictionary.description}</p>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2">
@@ -69,16 +61,19 @@ export default async function AdminDashboardPage() {
 
       {!stats.hasData && (
         <section className="rounded-2xl border border-dashed border-border bg-secondary/40 p-5">
-          <h2 className="text-base font-semibold tracking-tight">No data yet</h2>
+          <h2 className="text-base font-semibold tracking-tight">
+            {dashboardDictionary.emptyStateTitle}
+          </h2>
           <p className="mt-2 text-sm text-muted">
-            Your dashboard is ready. Create your first post to start seeing
-            activity.
+            {dashboardDictionary.emptyStateDescription}
           </p>
         </section>
       )}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">Quick Actions</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {dashboardDictionary.quickActionsHeading}
+        </h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {DASHBOARD_QUICK_ACTIONS.map((action) => (
             <Link
@@ -87,7 +82,13 @@ export default async function AdminDashboardPage() {
               className="group rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition hover:border-border hover:shadow-md"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">{action.label}</span>
+                <span className="font-medium">
+                  {action.label === "New Post"
+                    ? dashboardDictionary.quickActions.newPostLabel
+                    : action.label === "View Blog"
+                      ? dashboardDictionary.quickActions.viewBlogLabel
+                      : dashboardDictionary.quickActions.manageCommentsLabel}
+                </span>
                 <span
                   aria-hidden="true"
                   className="text-muted transition group-hover:translate-x-0.5 group-hover:text-foreground"
@@ -96,7 +97,11 @@ export default async function AdminDashboardPage() {
                 </span>
               </div>
               <p className="mt-2 text-sm text-muted">
-                {QUICK_ACTION_DESCRIPTIONS[action.label]}
+                {action.label === "New Post"
+                  ? dashboardDictionary.quickActions.newPostDescription
+                  : action.label === "View Blog"
+                    ? dashboardDictionary.quickActions.viewBlogDescription
+                    : dashboardDictionary.quickActions.manageCommentsDescription}
               </p>
             </Link>
           ))}

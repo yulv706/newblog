@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 
 type FormErrors = {
   username?: string;
@@ -11,6 +12,8 @@ type FormErrors = {
 
 export function LoginForm() {
   const router = useRouter();
+  const { dictionary } = useLocaleContext();
+  const loginDictionary = dictionary.admin.login;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
@@ -22,11 +25,11 @@ export function LoginForm() {
     const nextErrors: FormErrors = {};
 
     if (!username.trim()) {
-      nextErrors.username = "Username is required";
+      nextErrors.username = loginDictionary.errors.usernameRequired;
     }
 
     if (!password.trim()) {
-      nextErrors.password = "Password is required";
+      nextErrors.password = loginDictionary.errors.passwordRequired;
     }
 
     if (nextErrors.username || nextErrors.password) {
@@ -55,7 +58,7 @@ export function LoginForm() {
           | null;
 
         setErrors({
-          form: result?.error ?? "Invalid credentials",
+          form: result?.error ?? loginDictionary.errors.invalidCredentials,
         });
         return;
       }
@@ -71,7 +74,7 @@ export function LoginForm() {
     <form className="space-y-5" onSubmit={handleSubmit} noValidate>
       <div className="space-y-2">
         <label htmlFor="username" className="block text-sm font-medium text-foreground">
-          Username
+          {loginDictionary.usernameLabel}
         </label>
         <input
           id="username"
@@ -94,7 +97,7 @@ export function LoginForm() {
 
       <div className="space-y-2">
         <label htmlFor="password" className="block text-sm font-medium text-foreground">
-          Password
+          {loginDictionary.passwordLabel}
         </label>
         <input
           id="password"
@@ -129,7 +132,9 @@ export function LoginForm() {
         disabled={isSubmitting}
         className="inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isSubmitting ? "Signing in..." : "Sign in"}
+        {isSubmitting
+          ? loginDictionary.submittingButton
+          : loginDictionary.submitButton}
       </button>
     </form>
   );

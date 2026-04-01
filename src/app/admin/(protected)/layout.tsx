@@ -1,17 +1,21 @@
 import { logout } from "@/actions/auth";
 import { AdminSidebarNav } from "@/components/admin/sidebar-nav";
+import { getRequestI18n } from "@/lib/i18n/server";
 
-export default function AdminProtectedLayout({
+export default async function AdminProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { dictionary } = await getRequestI18n();
+  const sidebarDictionary = dictionary.admin.sidebar;
+
   return (
     <div className="py-6 sm:py-8">
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start lg:gap-6">
         <aside className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm lg:sticky lg:top-20">
           <h2 className="px-2 text-sm font-semibold uppercase tracking-wide text-muted">
-            Admin
+            {sidebarDictionary.title}
           </h2>
 
           <AdminSidebarNav />
@@ -21,7 +25,7 @@ export default function AdminProtectedLayout({
               type="submit"
               className="w-full rounded-xl border border-border px-3 py-2 text-left text-sm text-foreground transition hover:bg-secondary"
             >
-              Logout
+              {sidebarDictionary.logoutButton}
             </button>
           </form>
         </aside>

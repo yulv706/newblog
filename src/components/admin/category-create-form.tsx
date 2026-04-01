@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 import {
   createCategoryAction,
   type CategoryFormActionState,
@@ -13,6 +14,8 @@ const INITIAL_CATEGORY_FORM_STATE: CategoryFormActionState = {
 };
 
 export function CategoryCreateForm() {
+  const { dictionary } = useLocaleContext();
+  const categoryDictionary = dictionary.admin.categories;
   const [name, setName] = useState("");
   const [state, formAction, isPending] = useActionState(
     createCategoryAction,
@@ -31,19 +34,23 @@ export function CategoryCreateForm() {
     <form action={formAction} className="space-y-4 rounded-2xl border border-border p-4">
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
         <label className="space-y-2 text-sm">
-          <span className="font-medium text-foreground">Category name</span>
+          <span className="font-medium text-foreground">
+            {categoryDictionary.createForm.nameLabel}
+          </span>
           <input
             name="name"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Frontend Development"
+            placeholder={categoryDictionary.createForm.namePlaceholder}
             required
             className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </label>
 
         <div className="space-y-2 text-sm">
-          <span className="font-medium text-foreground">Auto slug</span>
+          <span className="font-medium text-foreground">
+            {categoryDictionary.createForm.autoSlugLabel}
+          </span>
           <p className="rounded-xl border border-border bg-secondary/40 px-3 py-2.5 font-mono text-xs text-muted">
             {autoSlug}
           </p>
@@ -54,7 +61,9 @@ export function CategoryCreateForm() {
           disabled={isPending}
           className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {isPending ? "Creating..." : "Create category"}
+          {isPending
+            ? categoryDictionary.createForm.creatingButton
+            : categoryDictionary.createForm.createButton}
         </button>
       </div>
 

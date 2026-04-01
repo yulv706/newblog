@@ -4,11 +4,14 @@ import {
   getAdminCategorySummaries,
   getAdminTagSummaries,
 } from "@/lib/admin/category-tags";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminCategoriesPage() {
+  const { dictionary } = await getRequestI18n();
+  const categoriesDictionary = dictionary.admin.categories;
   const [categories, tags] = await Promise.all([
     getAdminCategorySummaries(),
     getAdminTagSummaries(),
@@ -17,38 +20,38 @@ export default async function AdminCategoriesPage() {
   return (
     <div className="space-y-8">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Categories & Tags</h1>
-        <p className="text-sm text-muted">
-          Create categories, inspect usage, and clean up unused tags.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">{categoriesDictionary.title}</h1>
+        <p className="text-sm text-muted">{categoriesDictionary.description}</p>
       </header>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight">Create Category</h2>
+        <h2 className="text-lg font-semibold tracking-tight">
+          {categoriesDictionary.createHeading}
+        </h2>
         <CategoryCreateForm />
       </section>
 
       <section className="space-y-3">
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold tracking-tight">Categories</h2>
-          <p className="text-sm text-muted">
-            Deleting a category keeps all posts and marks them as uncategorized.
-          </p>
+          <h2 className="text-lg font-semibold tracking-tight">
+            {categoriesDictionary.categoriesHeading}
+          </h2>
+          <p className="text-sm text-muted">{categoriesDictionary.categoriesDescription}</p>
         </div>
 
         {categories.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border bg-secondary/40 p-4 text-sm text-muted">
-            No categories yet.
+            {categoriesDictionary.emptyCategories}
           </p>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-border/70">
             <table className="min-w-full divide-y divide-border text-sm">
               <thead className="bg-secondary/40 text-left">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Slug</th>
-                  <th className="px-4 py-3 font-medium">Posts</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-medium">{categoriesDictionary.table.nameColumn}</th>
+                  <th className="px-4 py-3 font-medium">{categoriesDictionary.table.slugColumn}</th>
+                  <th className="px-4 py-3 font-medium">{categoriesDictionary.table.postsColumn}</th>
+                  <th className="px-4 py-3 font-medium">{categoriesDictionary.table.actionsColumn}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/70">
@@ -64,7 +67,7 @@ export default async function AdminCategoriesPage() {
                           type="submit"
                           className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-secondary"
                         >
-                          Delete
+                          {categoriesDictionary.actions.delete}
                         </button>
                       </form>
                     </td>
@@ -78,26 +81,25 @@ export default async function AdminCategoriesPage() {
 
       <section className="space-y-3">
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold tracking-tight">Tags</h2>
-          <p className="text-sm text-muted">
-            Tags are created inline in the post editor. Only unused tags can be
-            deleted here.
-          </p>
+          <h2 className="text-lg font-semibold tracking-tight">
+            {categoriesDictionary.tagsHeading}
+          </h2>
+          <p className="text-sm text-muted">{categoriesDictionary.tagsDescription}</p>
         </div>
 
         {tags.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border bg-secondary/40 p-4 text-sm text-muted">
-            No tags yet.
+            {categoriesDictionary.emptyTags}
           </p>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-border/70">
             <table className="min-w-full divide-y divide-border text-sm">
               <thead className="bg-secondary/40 text-left">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Slug</th>
-                  <th className="px-4 py-3 font-medium">Posts</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-medium">{categoriesDictionary.table.nameColumn}</th>
+                  <th className="px-4 py-3 font-medium">{categoriesDictionary.table.slugColumn}</th>
+                  <th className="px-4 py-3 font-medium">{categoriesDictionary.table.postsColumn}</th>
+                  <th className="px-4 py-3 font-medium">{categoriesDictionary.table.actionsColumn}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/70">
@@ -117,7 +119,9 @@ export default async function AdminCategoriesPage() {
                             disabled={isInUse}
                             className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {isInUse ? "In use" : "Delete"}
+                          {isInUse
+                            ? categoriesDictionary.actions.inUse
+                            : categoriesDictionary.actions.delete}
                           </button>
                         </form>
                       </td>

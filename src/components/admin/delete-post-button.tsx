@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocaleContext } from "@/components/i18n/locale-provider";
+
 type DeletePostButtonProps = {
   postId: number;
   postTitle: string;
@@ -11,12 +13,15 @@ export function DeletePostButton({
   postTitle,
   action,
 }: DeletePostButtonProps) {
+  const { dictionary } = useLocaleContext();
+  const postsDictionary = dictionary.admin.posts;
+
   return (
     <form
       action={action}
       onSubmit={(event) => {
         const shouldDelete = window.confirm(
-          `Delete "${postTitle}"? This action cannot be undone.`
+          postsDictionary.actions.deleteConfirmTemplate.replace("{title}", postTitle)
         );
 
         if (!shouldDelete) {
@@ -29,7 +34,7 @@ export function DeletePostButton({
         type="submit"
         className="rounded-lg border border-destructive/30 px-2.5 py-1.5 text-xs font-medium text-destructive transition hover:bg-destructive/10"
       >
-        Delete
+        {postsDictionary.actions.delete}
       </button>
     </form>
   );

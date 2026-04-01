@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { deletePostAction, togglePostStatusAction } from "@/actions/posts";
 import { DeletePostButton } from "@/components/admin/delete-post-button";
+import { getRequestI18n } from "@/lib/i18n/server";
 import { getAdminPosts } from "@/lib/posts";
 
 export const dynamic = "force-dynamic";
@@ -12,19 +13,9 @@ type AdminPostsPageProps = {
   }>;
 };
 
-function formatDate(dateString: string | null) {
-  if (!dateString) {
-    return "—";
-  }
-
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
 export default async function AdminPostsPage({ searchParams }: AdminPostsPageProps) {
+  const { dictionary, locale } = await getRequestI18n();
+  const postsDictionary = dictionary.admin.posts;
   const resolvedSearchParams = (await searchParams) ?? {};
   const sortDirection = resolvedSearchParams.sort === "asc" ? "asc" : "desc";
   const posts = await getAdminPosts(sortDirection);
@@ -34,9 +25,8 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Posts</h1>
-          <p className="text-sm text-muted">
-            Manage post metadata, publication state, and deletion.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{postsDictionary.title}</h1>
+          <p className="text-sm text-muted">{postsDictionary.description}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -44,22 +34,29 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
             href={`?sort=${sortDirection === "desc" ? "asc" : "desc"}`}
             className="rounded-xl border border-border px-3 py-2 text-sm transition hover:bg-secondary"
           >
-            Sort by date: {sortDirection === "desc" ? "Newest" : "Oldest"}
+            {postsDictionary.sortButtonTemplate.replace(
+              "{label}",
+              sortDirection === "desc"
+                ? postsDictionary.sortNewest
+                : postsDictionary.sortOldest
+            )}
           </Link>
           <Link
             href="/admin/posts/new"
             className="rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90"
           >
-            New Post
+            {postsDictionary.newPostButton}
           </Link>
         </div>
       </header>
 
       {posts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-secondary/40 p-5">
-          <h2 className="text-base font-semibold tracking-tight">No posts yet</h2>
+          <h2 className="text-base font-semibold tracking-tight">
+            {postsDictionary.emptyTitle}
+          </h2>
           <p className="mt-2 text-sm text-muted">
-            Create your first post to start publishing content.
+            {postsDictionary.emptyDescription}
           </p>
         </div>
       ) : (
@@ -67,11 +64,11 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-secondary/40 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium">Title</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Category</th>
-                <th className="px-4 py-3 font-medium">Date</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
+                <th className="px-4 py-3 font-medium">{postsDictionary.table.titleColumn}</th>
+                <th className="px-4 py-3 font-medium">{postsDictionary.table.statusColumn}</th>
+                <th className="px-4 py-3 font-medium">{postsDictionary.table.categoryColumn}</th>
+                <th className="px-4 py-3 font-medium">{postsDictionary.table.dateColumn}</th>
+                <th className="px-4 py-3 font-medium">{postsDictionary.table.actionsColumn}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/70">
@@ -91,14 +88,23 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
                           : "inline-flex rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300"
                       }
                     >
-                      {post.status}
+                      {post.status === "published"
+                        ? postsDictionary.status.published
+                        : postsDictionary.status.draft}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted">
-                    {post.categoryName ?? "Uncategorized"}
+                    {post.categoryName ?? postsDictionary.uncategorizedLabel}
                   </td>
                   <td className="px-4 py-3 text-muted">
-                    {formatDate(post.publishedAt ?? post.createdAt)}
+                    {new Date(post.publishedAt ?? post.createdAt).toLocaleDateString(
+                      locale === "zh-CN" ? "zh-CN" : "en-US",
+                      {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      }
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
@@ -106,7 +112,7 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
                         href={`/admin/posts/${post.id}/edit`}
                         className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-secondary"
                       >
-                        Edit
+                        {postsDictionary.actions.edit}
                       </Link>
 
                       <form action={togglePostStatusAction}>
@@ -115,7 +121,9 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
                           type="submit"
                           className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition hover:bg-secondary"
                         >
-                          {post.status === "published" ? "Move to draft" : "Publish"}
+                          {post.status === "published"
+                            ? postsDictionary.actions.moveToDraft
+                            : postsDictionary.actions.publish}
                         </button>
                       </form>
 

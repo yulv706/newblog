@@ -6,6 +6,7 @@ import {
   deleteCategoryById,
   deleteTagIfUnused,
 } from "@/lib/admin/category-tags";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 export type CategoryFormActionState = {
   error: string | null;
@@ -38,12 +39,14 @@ export async function createCategoryAction(
   _previousState: CategoryFormActionState = INITIAL_CATEGORY_FORM_STATE,
   formData: FormData
 ): Promise<CategoryFormActionState> {
+  const { dictionary } = await getRequestI18n();
+  const categoryDictionary = dictionary.admin.categories;
   const nameValue = formData.get("name");
   const name = typeof nameValue === "string" ? nameValue : "";
 
   if (!name.trim()) {
     return {
-      error: "Category name is required.",
+      error: categoryDictionary.createForm.errors.nameRequired,
       success: null,
     };
   }
@@ -54,11 +57,15 @@ export async function createCategoryAction(
 
     return {
       error: null,
-      success: `Created category “${created.name}” (${created.slug}).`,
+      success: categoryDictionary.createForm.successTemplate
+        .replace("{name}", created.name)
+        .replace("{slug}", created.slug),
     };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Unable to create category.";
+      error instanceof Error
+        ? error.message
+        : categoryDictionary.createForm.errors.createFailed;
 
     return {
       error: message,

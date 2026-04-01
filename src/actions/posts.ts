@@ -16,6 +16,7 @@ import {
   parseMarkdownUpload,
   rewriteMarkdownImageReferences,
 } from "@/lib/markdown-upload";
+import { getRequestI18n } from "@/lib/i18n/server";
 import { createSlug } from "@/lib/slug";
 
 export type PostFormActionState = {
@@ -55,17 +56,21 @@ function readPostFormData(formData: FormData): PostFormInput {
   };
 }
 
-function validateFormData(input: PostFormInput) {
+function getValidationErrorMessage(input: PostFormInput, messages?: {
+  titleRequired: string;
+  slugRequired: string;
+  contentRequired: string;
+}) {
   if (!input.title.trim()) {
-    return "Title is required.";
+    return messages?.titleRequired ?? "Title is required.";
   }
 
   if (!input.slug.trim()) {
-    return "Slug is required.";
+    return messages?.slugRequired ?? "Slug is required.";
   }
 
   if (!input.content.trim()) {
-    return "Content is required.";
+    return messages?.contentRequired ?? "Content is required.";
   }
 
   return null;
@@ -142,6 +147,7 @@ async function getUniqueUploadFileName(
 export async function parseMarkdownUploadAction(
   markdownSource: string
 ): Promise<ParseMarkdownUploadActionResult> {
+  const { dictionary } = await getRequestI18n();
   try {
     const parsed = parseMarkdownUpload(markdownSource);
     return {
@@ -154,7 +160,7 @@ export async function parseMarkdownUploadAction(
     const message =
       error instanceof Error
         ? error.message
-        : "Unable to parse markdown frontmatter.";
+        : dictionary.admin.messages.parseFrontmatterFailed;
 
     return {
       ...EMPTY_UPLOAD_PARSE_RESULT,
@@ -176,6 +182,8 @@ export type UploadMarkdownImagesActionResult = {
 export async function uploadMarkdownImagesAction(
   formData: FormData
 ): Promise<UploadMarkdownImagesActionResult> {
+  const { dictionary } = await getRequestI18n();
+  const adminMessages = dictionary.admin.messages;
   const markdownContent = getFieldValue(formData, "markdownContent");
   const rawReferences = formData
     .getAll("localImageReference")
@@ -186,7 +194,7 @@ export async function uploadMarkdownImagesAction(
 
   if (!markdownContent.trim()) {
     return {
-      error: "Please upload a markdown file first.",
+      error: adminMessages.uploadMarkdownFirst,
       rewrittenContent: markdownContent,
       replacedReferences: [],
       unmatchedReferences: rawReferences,
@@ -195,7 +203,7 @@ export async function uploadMarkdownImagesAction(
 
   if (rawReferences.length === 0) {
     return {
-      error: "No local image references were detected in this markdown content.",
+      error: adminMessages.noImageReferencesDetected,
       rewrittenContent: markdownContent,
       replacedReferences: [],
       unmatchedReferences: [],
@@ -204,7 +212,7 @@ export async function uploadMarkdownImagesAction(
 
   if (files.length === 0) {
     return {
-      error: "Please select image files to upload.",
+      error: adminMessages.selectImagesFirst,
       rewrittenContent: markdownContent,
       replacedReferences: [],
       unmatchedReferences: rawReferences,
@@ -251,8 +259,9 @@ export async function createPostAction(
   _previousState: PostFormActionState = DEFAULT_STATE,
   formData: FormData
 ): Promise<PostFormActionState> {
+  const { dictionary } = await getRequestI18n();
   const input = readPostFormData(formData);
-  const validationError = validateFormData(input);
+  const validationError = getValidationErrorMessage(input, dictionary.admin.messages);
 
   if (validationError) {
     return {
@@ -269,15 +278,16 @@ export async function updatePostAction(
   _previousState: PostFormActionState = DEFAULT_STATE,
   formData: FormData
 ): Promise<PostFormActionState> {
+  const { dictionary } = await getRequestI18n();
   const postId = getPostId(formData);
   if (!postId) {
     return {
-      error: "Invalid post id.",
+      error: dictionary.admin.messages.invalidPostId,
     };
   }
 
   const input = readPostFormData(formData);
-  const validationError = validateFormData(input);
+  const validationError = getValidationErrorMessage(input, dictionary.admin.messages);
 
   if (validationError) {
     return {
@@ -288,7 +298,7 @@ export async function updatePostAction(
   const result = await updatePost(postId, input);
   if (!result) {
     return {
-      error: "Post not found.",
+      error: dictionary.admin.messages.postNotFound,
     };
   }
 

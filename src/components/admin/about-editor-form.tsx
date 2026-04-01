@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 import { renderMarkdownToHtml } from "@/lib/markdown";
 import type { AboutEditorActionState } from "@/actions/about";
 
@@ -18,6 +19,8 @@ const INITIAL_ACTION_STATE: AboutEditorActionState = {
 };
 
 export function AboutEditorForm({ initialContent, action }: AboutEditorFormProps) {
+  const { dictionary } = useLocaleContext();
+  const aboutDictionary = dictionary.admin.about;
   const [state, formAction, isPending] = useActionState(action, INITIAL_ACTION_STATE);
   const [content, setContent] = useState(initialContent);
   const [previewHtml, setPreviewHtml] = useState("");
@@ -35,7 +38,7 @@ export function AboutEditorForm({ initialContent, action }: AboutEditorFormProps
         }
       } catch {
         if (!disposed) {
-          setPreviewError("Unable to render markdown preview.");
+          setPreviewError(aboutDictionary.previewError);
         }
       }
     }
@@ -50,16 +53,14 @@ export function AboutEditorForm({ initialContent, action }: AboutEditorFormProps
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">About Page</h1>
-        <p className="text-sm text-muted">
-          Edit your public About page content using markdown.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">{aboutDictionary.title}</h1>
+        <p className="text-sm text-muted">{aboutDictionary.description}</p>
       </header>
 
       <form action={formAction} className="space-y-5">
         <div className="grid gap-4 lg:grid-cols-2">
           <label className="block space-y-2 text-sm">
-            <span className="font-medium text-foreground">Content (Markdown)</span>
+            <span className="font-medium text-foreground">{aboutDictionary.contentLabel}</span>
             <textarea
               name="content"
               value={content}
@@ -70,7 +71,7 @@ export function AboutEditorForm({ initialContent, action }: AboutEditorFormProps
           </label>
 
           <section className="space-y-2 rounded-xl border border-border bg-background p-4">
-            <h2 className="text-sm font-medium text-foreground">Preview</h2>
+            <h2 className="text-sm font-medium text-foreground">{aboutDictionary.previewHeading}</h2>
             {previewError ? (
               <p className="text-sm text-destructive">{previewError}</p>
             ) : (
@@ -99,7 +100,7 @@ export function AboutEditorForm({ initialContent, action }: AboutEditorFormProps
           disabled={isPending}
           className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {isPending ? "Saving..." : "Save about content"}
+          {isPending ? aboutDictionary.savingButton : aboutDictionary.saveButton}
         </button>
       </form>
     </div>
