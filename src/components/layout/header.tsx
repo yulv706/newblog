@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "./language-switcher";
 import { ThemeToggle } from "./theme-toggle";
 import { MobileNav } from "./mobile-nav";
 import { NAV_LINKS } from "./nav-links";
 
-function SearchIcon() {
+function SearchIcon({ ariaLabel }: { ariaLabel: string }) {
   return (
     <Link
       href="/search"
@@ -17,7 +19,7 @@ function SearchIcon() {
         "hover:bg-secondary hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       )}
-      aria-label="Search"
+      aria-label={ariaLabel}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -40,6 +42,8 @@ function SearchIcon() {
 
 export function Header() {
   const pathname = usePathname();
+  const { dictionary } = useLocaleContext();
+  const navDictionary = dictionary.shell.navigation;
 
   return (
     <header
@@ -55,13 +59,13 @@ export function Header() {
           href="/"
           className="text-lg font-semibold tracking-tight text-foreground transition-opacity duration-[var(--duration-fast)] hover:opacity-70"
         >
-          Tech Blog
+          {dictionary.shell.siteTitle}
         </Link>
 
         {/* Desktop navigation */}
         <nav
           className="hidden items-center gap-1 md:flex"
-          aria-label="Main navigation"
+          aria-label={navDictionary.mainAriaLabel}
         >
           {NAV_LINKS.map((link) => {
             const isActive =
@@ -80,7 +84,7 @@ export function Header() {
                     : "text-muted hover:text-foreground"
                 )}
               >
-                {link.label}
+                {navDictionary.links[link.key]}
                 {isActive && (
                   <span
                     className="absolute bottom-0 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full bg-primary"
@@ -94,7 +98,8 @@ export function Header() {
 
         {/* Right-side actions */}
         <div className="flex items-center gap-1">
-          <SearchIcon />
+          <SearchIcon ariaLabel={navDictionary.searchAriaLabel} />
+          <LanguageSwitcher />
           <ThemeToggle />
           <MobileNav />
         </div>

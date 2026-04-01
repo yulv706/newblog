@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import { NAV_LINKS } from "./nav-links";
 
@@ -12,6 +13,8 @@ export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDrawerMounted, setIsDrawerMounted] = useState(false);
   const pathname = usePathname();
+  const { dictionary } = useLocaleContext();
+  const navDictionary = dictionary.shell.navigation;
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -64,7 +67,11 @@ export function MobileNav() {
           "hover:bg-secondary hover:text-foreground",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         )}
-        aria-label={isOpen ? "Close menu" : "Open menu"}
+        aria-label={
+          isOpen
+            ? navDictionary.closeMenuAriaLabel
+            : navDictionary.openMenuAriaLabel
+        }
         aria-expanded={isOpen}
         type="button"
       >
@@ -129,7 +136,7 @@ export function MobileNav() {
           role="dialog"
           aria-modal={isOpen}
           aria-hidden={!isOpen}
-          aria-label="Navigation menu"
+          aria-label={navDictionary.drawerAriaLabel}
         >
           {/* Close button inside drawer */}
           <div className="flex h-16 items-center justify-end px-4">
@@ -141,7 +148,7 @@ export function MobileNav() {
                 "hover:bg-secondary hover:text-foreground",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               )}
-              aria-label="Close menu"
+              aria-label={navDictionary.closeMenuAriaLabel}
               type="button"
             >
               <svg
@@ -163,7 +170,10 @@ export function MobileNav() {
           </div>
 
           {/* Nav links */}
-          <nav className="flex flex-col px-4 py-2" aria-label="Mobile navigation">
+          <nav
+            className="flex flex-col px-4 py-2"
+            aria-label={navDictionary.mobileAriaLabel}
+          >
             {NAV_LINKS.map((link) => {
               const isActive =
                 link.href === "/"
@@ -182,7 +192,7 @@ export function MobileNav() {
                       : "text-muted hover:bg-secondary hover:text-foreground"
                   )}
                 >
-                  {link.label}
+                  {navDictionary.links[link.key]}
                 </Link>
               );
             })}

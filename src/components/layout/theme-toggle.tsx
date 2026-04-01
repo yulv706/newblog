@@ -2,11 +2,13 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { dictionary } = useLocaleContext();
 
   useEffect(() => {
     setMounted(true);
@@ -21,7 +23,7 @@ export function ThemeToggle() {
     return (
       <button
         className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors duration-[var(--duration-fast)] hover:bg-secondary hover:text-foreground"
-        aria-label="Toggle theme"
+        aria-label={dictionary.shell.themeToggle.placeholderAriaLabel}
         type="button"
       >
         <span className="h-5 w-5" />
@@ -39,7 +41,9 @@ export function ThemeToggle() {
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       )}
       aria-label={
-        resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+        resolvedTheme === "dark"
+          ? dictionary.shell.themeToggle.switchToLightAriaLabel
+          : dictionary.shell.themeToggle.switchToDarkAriaLabel
       }
       type="button"
     >

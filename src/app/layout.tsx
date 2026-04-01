@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
+import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { getRequestI18n } from "@/lib/i18n/server";
 import {
   DEFAULT_SITE_DESCRIPTION,
   SITE_NAME,
@@ -74,13 +76,15 @@ const themeScript = `
 })();
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { locale, dictionary } = await getRequestI18n();
+
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body
         className={`${inter.variable} ${notoSansSc.variable} ${jetBrainsMono.variable} flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground antialiased`}
       >
@@ -88,11 +92,13 @@ export default function RootLayout({
           {themeScript}
         </Script>
         <ThemeProvider>
-          <Header />
-          <main className="w-full flex-1 px-[var(--spacing-page)]">
-            {children}
-          </main>
-          <Footer />
+          <LocaleProvider locale={locale} dictionary={dictionary}>
+            <Header />
+            <main className="w-full flex-1 px-[var(--spacing-page)]">
+              {children}
+            </main>
+            <Footer dictionary={dictionary.shell.footer} />
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

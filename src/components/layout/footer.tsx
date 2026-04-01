@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { AppDictionary } from "@/lib/i18n/dictionaries";
 import { cn } from "@/lib/utils";
 
 const SOCIAL_LINKS = [
@@ -49,8 +50,18 @@ function SocialIcon({ icon }: { icon: string }) {
   return null;
 }
 
-export function Footer() {
+type FooterDictionary = AppDictionary["shell"]["footer"];
+
+type FooterProps = {
+  dictionary: FooterDictionary;
+};
+
+export function Footer({ dictionary }: FooterProps) {
   const currentYear = new Date().getFullYear();
+  const copyright = dictionary.copyrightTemplate.replace(
+    "{year}",
+    String(currentYear)
+  );
 
   return (
     <footer className="w-full border-t border-border/50">
@@ -61,12 +72,13 @@ export function Footer() {
         )}
       >
         {/* Copyright */}
-        <p className="text-sm text-muted">
-          © {currentYear} Tech Blog. All rights reserved.
-        </p>
+        <p className="text-sm text-muted">{copyright}</p>
 
         {/* Social links */}
-        <div className="flex items-center gap-3" aria-label="Social links">
+        <div
+          className="flex items-center gap-3"
+          aria-label={dictionary.socialLinksAriaLabel}
+        >
           {SOCIAL_LINKS.map((link) => (
             <Link
               key={link.label}
