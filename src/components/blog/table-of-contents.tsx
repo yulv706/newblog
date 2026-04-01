@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { TableOfContentsItem } from "@/lib/markdown";
 
@@ -15,8 +16,11 @@ export function TableOfContents({
   headings,
   className,
   collapsible = false,
-  title = "Table of Contents",
+  title,
 }: TableOfContentsProps) {
+  const { dictionary } = useLocaleContext();
+  const tocDictionary = dictionary.public.post.tableOfContents;
+  const resolvedTitle = title ?? tocDictionary.title;
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(
     headings[0]?.id ?? null
   );
@@ -64,7 +68,7 @@ export function TableOfContents({
 
   return (
     <nav
-      aria-label="Table of contents"
+      aria-label={tocDictionary.ariaLabel}
       className={cn(
         "rounded-2xl border border-border/60 bg-card/80 p-4 shadow-xs",
         className
@@ -72,7 +76,7 @@ export function TableOfContents({
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-          {title}
+          {resolvedTitle}
         </h2>
         {collapsible ? (
           <button
@@ -82,7 +86,7 @@ export function TableOfContents({
             aria-controls="post-detail-toc-list"
             className="rounded-md border border-border/60 px-2.5 py-1 text-xs font-medium text-muted transition hover:bg-secondary hover:text-foreground"
           >
-            {isOpen ? "Hide" : "Show"}
+            {isOpen ? tocDictionary.hideButton : tocDictionary.showButton}
           </button>
         ) : null}
       </div>

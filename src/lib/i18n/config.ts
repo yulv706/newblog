@@ -24,6 +24,10 @@ export function getNextLocale(locale: AppLocale): AppLocale {
   return locale === "zh-CN" ? "en" : "zh-CN";
 }
 
+export function getDateLocale(locale: AppLocale) {
+  return locale === "zh-CN" ? "zh-CN" : "en-US";
+}
+
 export function getLocaleCookieOptions() {
   return {
     httpOnly: true,

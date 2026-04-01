@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 
 type CodeBlockEnhancerProps = {
   containerId: string;
@@ -54,6 +55,9 @@ async function copyTextToClipboard(text: string) {
 }
 
 export function CodeBlockEnhancer({ containerId }: CodeBlockEnhancerProps) {
+  const { dictionary } = useLocaleContext();
+  const codeBlockDictionary = dictionary.public.post.codeBlock;
+
   useEffect(() => {
     const container = document.getElementById(containerId);
     if (!container) {
@@ -91,28 +95,28 @@ export function CodeBlockEnhancer({ containerId }: CodeBlockEnhancerProps) {
       const copyButtonElement = document.createElement("button");
       copyButtonElement.type = "button";
       copyButtonElement.className = "post-code-copy-button";
-      copyButtonElement.textContent = "Copy";
+      copyButtonElement.textContent = codeBlockDictionary.copyButton;
 
       let timeoutId: ReturnType<typeof setTimeout> | null = null;
       const handleCopy = async () => {
         const codeText = getCodeText(preElement);
         const copied = await copyTextToClipboard(codeText);
         if (copied) {
-          copyButtonElement.textContent = "Copied";
+          copyButtonElement.textContent = codeBlockDictionary.copiedButton;
           if (timeoutId) {
             clearTimeout(timeoutId);
           }
           timeoutId = setTimeout(() => {
-            copyButtonElement.textContent = "Copy";
+            copyButtonElement.textContent = codeBlockDictionary.copyButton;
             timeoutId = null;
           }, 1200);
         } else {
-          copyButtonElement.textContent = "Failed";
+          copyButtonElement.textContent = codeBlockDictionary.failedButton;
           if (timeoutId) {
             clearTimeout(timeoutId);
           }
           timeoutId = setTimeout(() => {
-            copyButtonElement.textContent = "Copy";
+            copyButtonElement.textContent = codeBlockDictionary.copyButton;
             timeoutId = null;
           }, 1200);
         }
@@ -135,7 +139,7 @@ export function CodeBlockEnhancer({ containerId }: CodeBlockEnhancerProps) {
         cleanup();
       }
     };
-  }, [containerId]);
+  }, [codeBlockDictionary, containerId]);
 
   return null;
 }

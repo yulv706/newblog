@@ -1,7 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { approveComment, createPendingComment, deleteComment } from "@/lib/comments";
+import {
+  approveComment,
+  createPendingComment,
+  deleteComment,
+  type CommentMessageOverrides,
+} from "@/lib/comments";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 type CommentFieldErrors = {
   nickname?: string;
@@ -42,13 +48,24 @@ export async function submitCommentAction(
   _previousState: SubmitCommentActionState,
   formData: FormData
 ): Promise<SubmitCommentActionState> {
+  const { dictionary } = await getRequestI18n();
+  const commentDictionary = dictionary.public.post.comments;
+  const commentMessages: CommentMessageOverrides = {
+    nicknameRequired: commentDictionary.form.messages.nicknameRequired,
+    emailRequired: commentDictionary.form.messages.emailRequired,
+    emailInvalid: commentDictionary.form.messages.emailInvalid,
+    bodyRequired: commentDictionary.form.messages.bodyRequired,
+    bodyTooLongTemplate: commentDictionary.form.messages.bodyTooLongTemplate,
+    onlyPublished: commentDictionary.form.messages.onlyPublished,
+    submitFailed: commentDictionary.form.messages.retry,
+  };
   const postId = parseIntegerField(formData, "postId");
   const postSlug = parseStringField(formData, "postSlug").trim();
 
   if (!postId) {
     return {
       status: "error",
-      message: "Unable to submit comment for this post.",
+      message: commentDictionary.form.messages.invalidPost,
       errors: {},
     };
   }
@@ -58,12 +75,12 @@ export async function submitCommentAction(
     nickname: parseStringField(formData, "nickname"),
     email: parseStringField(formData, "email"),
     body: parseStringField(formData, "body"),
-  });
+  }, undefined, commentMessages);
 
   if (!result.ok) {
     return {
       status: "error",
-      message: result.errors.form ?? "Please fix the highlighted fields.",
+      message: result.errors.form ?? commentDictionary.form.messages.retry,
       errors: {
         nickname: result.errors.nickname,
         email: result.errors.email,
@@ -76,7 +93,7 @@ export async function submitCommentAction(
 
   return {
     status: "success",
-    message: "Thanks! Your comment is pending approval.",
+    message: commentDictionary.form.messages.success,
     errors: {},
   };
 }

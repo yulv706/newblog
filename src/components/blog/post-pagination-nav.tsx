@@ -9,6 +9,11 @@ type PostPaginationNavProps = {
     title: string;
     slug: string;
   } | null;
+  dictionary: {
+    ariaLabel: string;
+    previousPostLabel: string;
+    nextPostLabel: string;
+  };
 };
 
 function PostNavLink({
@@ -39,19 +44,23 @@ function PostNavLink({
   );
 }
 
-export function PostPaginationNav({ previous, next }: PostPaginationNavProps) {
+export function PostPaginationNav({
+  previous,
+  next,
+  dictionary,
+}: PostPaginationNavProps) {
   if (!previous && !next) {
     return null;
   }
 
   return (
     <nav
-      aria-label="Post navigation"
+      aria-label={dictionary.ariaLabel}
       className="grid gap-3 border-t border-border/60 pt-8 sm:grid-cols-2"
     >
       {previous ? (
         <PostNavLink
-          label="Previous post"
+          label={dictionary.previousPostLabel}
           title={previous.title}
           href={`/blog/${previous.slug}`}
         />
@@ -61,7 +70,7 @@ export function PostPaginationNav({ previous, next }: PostPaginationNavProps) {
 
       {next ? (
         <PostNavLink
-          label="Next post"
+          label={dictionary.nextPostLabel}
           title={next.title}
           href={`/blog/${next.slug}`}
           align="right"

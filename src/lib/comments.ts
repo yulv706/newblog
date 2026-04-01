@@ -21,6 +21,18 @@ export type CreatePendingCommentInput = {
   body: string;
 };
 
+type CommentMessageCatalog = {
+  nicknameRequired: string;
+  emailRequired: string;
+  emailInvalid: string;
+  bodyRequired: string;
+  bodyTooLongTemplate: string;
+  onlyPublished: string;
+  submitFailed: string;
+};
+
+export type CommentMessageOverrides = Partial<CommentMessageCatalog>;
+
 export type CreatePendingCommentResult =
   | {
       ok: true;
@@ -63,6 +75,16 @@ const AVATAR_COLOR_VARIANTS = [
   "bg-indigo-500/15 text-indigo-700 dark:text-indigo-200",
 ] as const;
 
+const DEFAULT_COMMENT_MESSAGES: CommentMessageCatalog = {
+  nicknameRequired: "Nickname is required.",
+  emailRequired: "Email is required.",
+  emailInvalid: "Please enter a valid email address.",
+  bodyRequired: "Comment body is required.",
+  bodyTooLongTemplate: `Comment must be ${COMMENT_BODY_MAX_LENGTH} characters or fewer.`,
+  onlyPublished: "Comments can only be submitted to published posts.",
+  submitFailed: "Unable to submit comment. Please try again.",
+};
+
 function toCount(value: unknown) {
   if (typeof value === "number") {
     return value;
@@ -104,26 +126,50 @@ export function sanitizeCommentBody(rawBody: string) {
     .trim();
 }
 
-function validateCommentInput(input: CreatePendingCommentInput): CommentValidationErrors {
+function resolveCommentMessages(
+  overrides: CommentMessageOverrides = {}
+): CommentMessageCatalog {
+  return {
+    ...DEFAULT_COMMENT_MESSAGES,
+    ...overrides,
+  };
+}
+
+function interpolateTemplate(
+  template: string,
+  values: Record<string, string | number>
+) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
+    template
+  );
+}
+
+function validateCommentInput(
+  input: CreatePendingCommentInput,
+  messages: CommentMessageCatalog
+): CommentValidationErrors {
   const errors: CommentValidationErrors = {};
   const nickname = sanitizeNickname(input.nickname);
   const email = input.email.trim();
   const body = sanitizeCommentBody(input.body);
 
   if (!nickname) {
-    errors.nickname = "Nickname is required.";
+    errors.nickname = messages.nicknameRequired;
   }
 
   if (!email) {
-    errors.email = "Email is required.";
+    errors.email = messages.emailRequired;
   } else if (!EMAIL_PATTERN.test(email)) {
-    errors.email = "Please enter a valid email address.";
+    errors.email = messages.emailInvalid;
   }
 
   if (!body) {
-    errors.body = "Comment body is required.";
+    errors.body = messages.bodyRequired;
   } else if (body.length > COMMENT_BODY_MAX_LENGTH) {
-    errors.body = `Comment must be ${COMMENT_BODY_MAX_LENGTH} characters or fewer.`;
+    errors.body = interpolateTemplate(messages.bodyTooLongTemplate, {
+      max: COMMENT_BODY_MAX_LENGTH,
+    });
   }
 
   return errors;
@@ -135,9 +181,11 @@ function hasValidationErrors(errors: CommentValidationErrors) {
 
 export async function createPendingComment(
   input: CreatePendingCommentInput,
-  database: CommentDatabase = db
+  database: CommentDatabase = db,
+  messageOverrides: CommentMessageOverrides = {}
 ): Promise<CreatePendingCommentResult> {
-  const validationErrors = validateCommentInput(input);
+  const messages = resolveCommentMessages(messageOverrides);
+  const validationErrors = validateCommentInput(input, messages);
   if (hasValidationErrors(validationErrors)) {
     return {
       ok: false,
@@ -158,7 +206,7 @@ export async function createPendingComment(
     return {
       ok: false,
       errors: {
-        form: "Comments can only be submitted to published posts.",
+        form: messages.onlyPublished,
       },
     };
   }
@@ -179,7 +227,7 @@ export async function createPendingComment(
     return {
       ok: false,
       errors: {
-        form: "Unable to submit comment. Please try again.",
+        form: messages.submitFailed,
       },
     };
   }
@@ -328,13 +376,17 @@ export function getCommentAvatarPlaceholder(nickname: string) {
   };
 }
 
-export function formatCommentTimestamp(dateString: string) {
+export function formatCommentTimestamp(
+  dateString: string,
+  locale = "en-US",
+  unknownDateLabel = "Unknown date"
+) {
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) {
-    return "Unknown date";
+    return unknownDateLabel;
   }
 
-  return date.toLocaleString("en-US", {
+  return date.toLocaleString(locale, {
     month: "long",
     day: "numeric",
     year: "numeric",

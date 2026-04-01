@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { HomePostCard } from "@/components/blog/home-post-card";
 import { FadeIn, StaggeredItem, StaggeredList } from "@/components/ui/animations";
+import { getRequestI18n } from "@/lib/i18n/server";
 import { getBlogListingData } from "@/lib/posts";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +55,16 @@ function buildBlogHref({
   return query ? `/blog?${query}` : "/blog";
 }
 
+function interpolateTemplate(
+  template: string,
+  values: Record<string, string | number>
+) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
+    template
+  );
+}
+
 function FilterLink({
   label,
   href,
@@ -78,6 +89,10 @@ function FilterLink({
 }
 
 export default async function BlogPage({ searchParams }: BlogPageProps) {
+  const { locale, dictionary } = await getRequestI18n();
+  const blogDictionary = dictionary.public.blog;
+  const commonDictionary = dictionary.public.common;
+  const postDictionary = dictionary.public.post;
   const resolvedSearchParams = (await searchParams) ?? {};
   const requestedPage = parsePage(resolvedSearchParams.page);
   const categoryFilter = resolvedSearchParams.category?.trim() || undefined;
@@ -96,9 +111,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   return (
     <div className="mx-auto w-full max-w-[var(--content-wide-max-width)] space-y-10 py-10 sm:py-14">
       <FadeIn className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Blog</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          {blogDictionary.title}
+        </h1>
         <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
-          Browse all published posts, then narrow results by category or tag.
+          {blogDictionary.description}
         </p>
       </FadeIn>
 
@@ -106,11 +123,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
         <FadeIn className="space-y-5 rounded-2xl border border-border/60 bg-card/80 p-5 lg:sticky lg:top-24">
           <div className="space-y-3">
             <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted">
-              Categories
+              {blogDictionary.categoriesHeading}
             </h2>
             <div className="flex flex-wrap gap-2">
               <FilterLink
-                label="All"
+                label={commonDictionary.allLabel}
                 href={buildBlogHref({ tag: activeTag?.slug, page: 1 })}
                 active={!activeCategory}
               />
@@ -131,11 +148,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
           <div className="space-y-3">
             <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted">
-              Tags
+              {blogDictionary.tagsHeading}
             </h2>
             <div className="flex flex-wrap gap-2">
               <FilterLink
-                label="All"
+                label={commonDictionary.allLabel}
                 href={buildBlogHref({ category: activeCategory?.slug, page: 1 })}
                 active={!activeTag}
               />
@@ -158,16 +175,18 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
         <div className="space-y-6">
           {posts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card/70 p-8 text-center">
-              <p className="text-base font-medium text-foreground">No posts found.</p>
+              <p className="text-base font-medium text-foreground">
+                {blogDictionary.emptyTitle}
+              </p>
               <p className="mt-2 text-sm text-muted">
-                Try adjusting filters to see more articles.
+                {blogDictionary.emptyDescription}
               </p>
               {(activeCategory || activeTag) && (
                 <Link
                   href="/blog"
                   className="mt-4 inline-flex rounded-full border border-border px-3 py-1.5 text-sm text-muted transition hover:bg-secondary hover:text-foreground"
                 >
-                  Clear all filters
+                  {blogDictionary.clearFiltersButton}
                 </Link>
               )}
             </div>
@@ -175,7 +194,16 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
             <StaggeredList className="grid gap-6 sm:grid-cols-2">
               {posts.map((post) => (
                 <StaggeredItem key={post.id}>
-                  <HomePostCard post={post} />
+                  <HomePostCard
+                    post={post}
+                    locale={locale}
+                    dictionary={{
+                      noCoverImageLabel: commonDictionary.noCoverImageLabel,
+                      uncategorizedLabel: commonDictionary.uncategorizedLabel,
+                      coverImageAltTemplate: postDictionary.coverImageAltTemplate,
+                      dateFallbackLabel: commonDictionary.dateFallbackLabel,
+                    }}
+                  />
                 </StaggeredItem>
               ))}
             </StaggeredList>
@@ -192,16 +220,19 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                   })}
                   className="rounded-full border border-border px-4 py-2 text-sm font-medium transition hover:bg-secondary"
                 >
-                  Previous
+                  {blogDictionary.previousPageLabel}
                 </Link>
               ) : (
                 <span className="rounded-full border border-border/40 px-4 py-2 text-sm text-muted">
-                  Previous
+                  {blogDictionary.previousPageLabel}
                 </span>
               )}
 
               <p className="text-sm text-muted">
-                Page {currentPage} of {pagination.totalPages}
+                {interpolateTemplate(blogDictionary.pageIndicatorTemplate, {
+                  current: currentPage,
+                  total: pagination.totalPages,
+                })}
               </p>
 
               {pagination.hasNextPage ? (
@@ -213,11 +244,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                   })}
                   className="rounded-full border border-border px-4 py-2 text-sm font-medium transition hover:bg-secondary"
                 >
-                  Next
+                  {blogDictionary.nextPageLabel}
                 </Link>
               ) : (
                 <span className="rounded-full border border-border/40 px-4 py-2 text-sm text-muted">
-                  Next
+                  {blogDictionary.nextPageLabel}
                 </span>
               )}
             </div>

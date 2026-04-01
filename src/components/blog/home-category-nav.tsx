@@ -5,12 +5,23 @@ type HomeCategory = {
   slug: string;
 };
 
-export function HomeCategoryNav({ categories }: { categories: HomeCategory[] }) {
+type HomeCategoryNavDictionary = {
+  heading: string;
+  emptyState: string;
+};
+
+export function HomeCategoryNav({
+  categories,
+  dictionary,
+}: {
+  categories: HomeCategory[];
+  dictionary: HomeCategoryNavDictionary;
+}) {
   return (
     <aside className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 sm:p-6">
-      <h2 className="text-lg font-semibold tracking-tight">Browse Categories</h2>
+      <h2 className="text-lg font-semibold tracking-tight">{dictionary.heading}</h2>
       {categories.length === 0 ? (
-        <p className="text-sm text-muted">No categories available yet.</p>
+        <p className="text-sm text-muted">{dictionary.emptyState}</p>
       ) : (
         <ul className="space-y-2.5">
           {categories.map((category) => (

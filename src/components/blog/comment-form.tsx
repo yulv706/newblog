@@ -5,6 +5,7 @@ import {
   submitCommentAction,
   type SubmitCommentActionState,
 } from "@/actions/comments";
+import { useLocaleContext } from "@/components/i18n/locale-provider";
 
 type CommentFormProps = {
   postId: number;
@@ -12,6 +13,8 @@ type CommentFormProps = {
 };
 
 export function CommentForm({ postId, postSlug }: CommentFormProps) {
+  const { dictionary } = useLocaleContext();
+  const formDictionary = dictionary.public.post.comments.form;
   const initialState: SubmitCommentActionState = {
     status: "idle",
     message: null,
@@ -41,7 +44,9 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2 text-sm">
-          <span className="font-medium text-foreground">Nickname</span>
+          <span className="font-medium text-foreground">
+            {formDictionary.nicknameLabel}
+          </span>
           <input
             type="text"
             name="nickname"
@@ -56,7 +61,9 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
         </label>
 
         <label className="space-y-2 text-sm">
-          <span className="font-medium text-foreground">Email</span>
+          <span className="font-medium text-foreground">
+            {formDictionary.emailLabel}
+          </span>
           <input
             type="email"
             name="email"
@@ -71,7 +78,7 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
       </div>
 
       <label className="space-y-2 text-sm">
-        <span className="font-medium text-foreground">Comment</span>
+        <span className="font-medium text-foreground">{formDictionary.bodyLabel}</span>
         <textarea
           name="body"
           required
@@ -100,7 +107,9 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
         disabled={isPending}
         className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isPending ? "Submitting..." : "Submit comment"}
+        {isPending
+          ? formDictionary.submittingButton
+          : formDictionary.submitButton}
       </button>
     </form>
   );

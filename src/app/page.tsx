@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { HomeCategoryNav } from "@/components/blog/home-category-nav";
 import { HomePostCard } from "@/components/blog/home-post-card";
 import { FadeIn, StaggeredItem, StaggeredList } from "@/components/ui/animations";
+import { getRequestI18n } from "@/lib/i18n/server";
 import { getHomepageData } from "@/lib/posts";
 import { getDefaultOgImageUrl } from "@/lib/seo";
 
@@ -27,6 +28,10 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
+  const { locale, dictionary } = await getRequestI18n();
+  const homeDictionary = dictionary.public.home;
+  const commonDictionary = dictionary.public.common;
+  const postDictionary = dictionary.public.post;
   const { featuredPost, latestPosts, categories } = await getHomepageData();
 
   return (
@@ -35,22 +40,31 @@ export default async function HomePage() {
         <FadeIn className="space-y-6">
           <div className="space-y-2">
             <p className="text-sm font-medium uppercase tracking-[0.18em] text-primary/80">
-              Featured
+              {homeDictionary.featuredEyebrow}
             </p>
             <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Insights on modern web engineering
+              {homeDictionary.title}
             </h1>
             <p className="max-w-2xl text-base leading-relaxed text-muted">
-              Latest writing on Next.js, TypeScript, backend architecture, and
-              practical lessons from building production apps.
+              {homeDictionary.description}
             </p>
           </div>
 
           {featuredPost ? (
-            <HomePostCard post={featuredPost} featured />
+            <HomePostCard
+              post={featuredPost}
+              featured
+              locale={locale}
+              dictionary={{
+                noCoverImageLabel: commonDictionary.noCoverImageLabel,
+                uncategorizedLabel: commonDictionary.uncategorizedLabel,
+                coverImageAltTemplate: postDictionary.coverImageAltTemplate,
+                dateFallbackLabel: commonDictionary.dateFallbackLabel,
+              }}
+            />
           ) : (
             <div className="rounded-2xl border border-border/60 bg-card/80 p-6 text-muted">
-              No published posts yet.
+              {homeDictionary.featuredEmpty}
             </div>
           )}
         </FadeIn>
@@ -60,23 +74,31 @@ export default async function HomePage() {
         <div className="space-y-6">
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Latest Posts
+              {homeDictionary.latestHeading}
             </h2>
             <p className="text-sm text-muted">
-              Fresh articles with practical tips, deep dives, and implementation
-              details.
+              {homeDictionary.latestDescription}
             </p>
           </div>
 
           {latestPosts.length === 0 ? (
             <p className="rounded-2xl border border-border/60 bg-card/80 p-6 text-sm text-muted">
-              More posts are coming soon.
+              {homeDictionary.latestEmpty}
             </p>
           ) : (
             <StaggeredList className="grid gap-6 sm:grid-cols-2">
               {latestPosts.map((post) => (
                 <StaggeredItem key={post.id}>
-                  <HomePostCard post={post} />
+                  <HomePostCard
+                    post={post}
+                    locale={locale}
+                    dictionary={{
+                      noCoverImageLabel: commonDictionary.noCoverImageLabel,
+                      uncategorizedLabel: commonDictionary.uncategorizedLabel,
+                      coverImageAltTemplate: postDictionary.coverImageAltTemplate,
+                      dateFallbackLabel: commonDictionary.dateFallbackLabel,
+                    }}
+                  />
                 </StaggeredItem>
               ))}
             </StaggeredList>
@@ -84,7 +106,13 @@ export default async function HomePage() {
         </div>
 
         <FadeIn className="lg:sticky lg:top-24">
-          <HomeCategoryNav categories={categories} />
+          <HomeCategoryNav
+            categories={categories}
+            dictionary={{
+              heading: homeDictionary.categoriesHeading,
+              emptyState: homeDictionary.categoriesEmpty,
+            }}
+          />
         </FadeIn>
       </section>
     </div>

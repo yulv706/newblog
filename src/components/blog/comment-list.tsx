@@ -3,17 +3,27 @@ import {
   getCommentAvatarPlaceholder,
   type ApprovedComment,
 } from "@/lib/comments";
+import type { AppLocale } from "@/lib/i18n/config";
+import { getDateLocale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 
 type CommentListProps = {
   comments: ApprovedComment[];
+  locale: AppLocale;
+  emptyStateLabel: string;
+  unknownDateLabel: string;
 };
 
-export function CommentList({ comments }: CommentListProps) {
+export function CommentList({
+  comments,
+  locale,
+  emptyStateLabel,
+  unknownDateLabel,
+}: CommentListProps) {
   if (comments.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-border bg-secondary/40 px-4 py-5 text-sm text-muted">
-        No approved comments yet. Be the first to share your thoughts.
+        {emptyStateLabel}
       </p>
     );
   }
@@ -48,7 +58,11 @@ export function CommentList({ comments }: CommentListProps) {
                     dateTime={comment.createdAt}
                     className="text-xs text-muted sm:text-sm"
                   >
-                    {formatCommentTimestamp(comment.createdAt)}
+                    {formatCommentTimestamp(
+                      comment.createdAt,
+                      getDateLocale(locale),
+                      unknownDateLabel
+                    )}
                   </time>
                 </div>
                 <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-7 text-foreground">

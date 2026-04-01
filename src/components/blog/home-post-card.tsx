@@ -1,14 +1,27 @@
 import Link from "next/link";
 import { CardHover } from "@/components/ui/animations";
+import type { AppLocale } from "@/lib/i18n/config";
+import { getDateLocale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
 import type { HomepagePostCard } from "@/lib/posts";
 
-function formatDate(dateString: string | null) {
+type HomePostCardDictionary = {
+  uncategorizedLabel: string;
+  noCoverImageLabel: string;
+  coverImageAltTemplate: string;
+  dateFallbackLabel: string;
+};
+
+function formatDate(
+  dateString: string | null,
+  locale: AppLocale,
+  fallbackLabel: string
+) {
   if (!dateString) {
-    return "—";
+    return fallbackLabel;
   }
 
-  return new Date(dateString).toLocaleDateString("en-US", {
+  return new Date(dateString).toLocaleDateString(getDateLocale(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -19,10 +32,14 @@ function CardCover({
   title,
   coverImage,
   featured,
+  noCoverImageLabel,
+  coverImageAltTemplate,
 }: {
   title: string;
   coverImage: string | null;
   featured: boolean;
+  noCoverImageLabel: string;
+  coverImageAltTemplate: string;
 }) {
   if (!coverImage) {
     return (
@@ -32,7 +49,7 @@ function CardCover({
           featured ? "h-64 md:h-full md:min-h-[260px]" : "h-44"
         )}
       >
-        No Cover Image
+        {noCoverImageLabel}
       </div>
     );
   }
@@ -40,7 +57,7 @@ function CardCover({
   return (
     <img
       src={coverImage}
-      alt={`${title} cover image`}
+      alt={coverImageAltTemplate.replace("{title}", title)}
       className={cn(
         "w-full object-cover",
         featured ? "h-64 md:h-full md:min-h-[260px]" : "h-44"
@@ -53,9 +70,13 @@ function CardCover({
 export function HomePostCard({
   post,
   featured = false,
+  locale,
+  dictionary,
 }: {
   post: HomepagePostCard;
   featured?: boolean;
+  locale: AppLocale;
+  dictionary: HomePostCardDictionary;
 }) {
   return (
     <Link href={`/blog/${post.slug}`} className="block">
@@ -65,7 +86,13 @@ export function HomePostCard({
           featured ? "md:grid md:grid-cols-[1.2fr_1fr]" : ""
         )}
       >
-        <CardCover title={post.title} coverImage={post.coverImage} featured={featured} />
+        <CardCover
+          title={post.title}
+          coverImage={post.coverImage}
+          featured={featured}
+          noCoverImageLabel={dictionary.noCoverImageLabel}
+          coverImageAltTemplate={dictionary.coverImageAltTemplate}
+        />
 
         <div
           className={cn(
@@ -76,10 +103,14 @@ export function HomePostCard({
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="rounded-full bg-primary/10 px-2.5 py-1 font-medium text-primary">
-                {post.categoryName ?? "Uncategorized"}
+                {post.categoryName ?? dictionary.uncategorizedLabel}
               </span>
               <span className="text-muted">
-                {formatDate(post.publishedAt ?? post.createdAt)}
+                {formatDate(
+                  post.publishedAt ?? post.createdAt,
+                  locale,
+                  dictionary.dateFallbackLabel
+                )}
               </span>
             </div>
 
