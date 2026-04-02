@@ -17,6 +17,7 @@ export type ParsedMarkdownUpload = {
 
 const MARKDOWN_IMAGE_REGEX =
   /!\[[^\]]*]\(([^)\s]+)(?:\s+(?:"[^"]*"|'[^']*'))?\)/g;
+const OBSIDIAN_WIKI_IMAGE_REGEX = /!\[\[([^[\]\n]+?)]]/g;
 const LOCAL_IMAGE_EXTENSION_REGEX = /\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i;
 
 function toOptionalString(value: unknown) {
@@ -102,6 +103,18 @@ export function detectLocalImageReferences(markdownContent: string) {
     }
   }
 
+  for (const match of markdownContent.matchAll(OBSIDIAN_WIKI_IMAGE_REGEX)) {
+    const rawReference = match[1];
+    if (!rawReference) {
+      continue;
+    }
+
+    const normalized = normalizeImageReference(rawReference);
+    if (isLocalImageReference(normalized)) {
+      references.add(normalized);
+    }
+  }
+
   return Array.from(references);
 }
 
@@ -171,7 +184,7 @@ export function rewriteMarkdownImageReferences(
     return markdownContent;
   }
 
-  return markdownContent.replace(
+  const rewrittenMarkdownImages = markdownContent.replace(
     MARKDOWN_IMAGE_REGEX,
     (fullMatch, rawReference: string) => {
       const normalizedReference = normalizeImageReference(rawReference);
@@ -187,6 +200,20 @@ export function rewriteMarkdownImageReferences(
           : replacement;
 
       return fullMatch.replace(rawReference, nextReference);
+    }
+  );
+
+  return rewrittenMarkdownImages.replace(
+    OBSIDIAN_WIKI_IMAGE_REGEX,
+    (fullMatch, rawReference: string) => {
+      const normalizedReference = normalizeImageReference(rawReference);
+      const replacement = replacements[normalizedReference];
+
+      if (!replacement) {
+        return fullMatch;
+      }
+
+      return `![[${replacement}]]`;
     }
   );
 }

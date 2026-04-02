@@ -12,6 +12,51 @@ import { visit } from "unist-util-visit";
 import GithubSlugger from "github-slugger";
 import type { Element, Root as HastRoot } from "hast";
 import type { Heading, Root as MdastRoot } from "mdast";
+import type { Plugin } from "unified";
+
+function getWikiImageAltText(reference: string) {
+  const normalized = reference.split(/[?#|]/, 1)[0]?.trim() ?? reference.trim();
+  const fileName = normalized.split("/").at(-1) ?? normalized;
+  const withoutExtension = fileName.replace(/\.[^.]+$/, "");
+  return withoutExtension || "image";
+}
+
+const remarkObsidianWikiImages: Plugin<[], MdastRoot> = () => {
+  return (tree) => {
+    visit(tree, "paragraph", (node, index, parent) => {
+      if (!parent || typeof index !== "number") {
+        return;
+      }
+
+      if (node.children.length !== 1 || node.children[0]?.type !== "text") {
+        return;
+      }
+
+      const textNode = node.children[0];
+      const value = textNode.value.trim();
+      const match = value.match(/^!\[\[([^[\]\n]+?)]]$/);
+      if (!match) {
+        return;
+      }
+
+      const reference = match[1]?.trim();
+      if (!reference) {
+        return;
+      }
+
+      parent.children[index] = {
+        type: "paragraph",
+        children: [
+          {
+            type: "image",
+            url: reference,
+            alt: getWikiImageAltText(reference),
+          },
+        ],
+      };
+    });
+  };
+};
 
 export type TableOfContentsItem = {
   id: string;
@@ -22,6 +67,7 @@ export type TableOfContentsItem = {
 export async function renderMarkdownToHtml(markdown: string) {
   const file = await unified()
     .use(remarkParse)
+    .use(remarkObsidianWikiImages)
     .use(remarkGfm)
     .use(remarkRehype)
     .use(rehypeSanitize)
@@ -88,6 +134,7 @@ const POST_MARKDOWN_THEME = {
 export async function renderPostMarkdownToHtml(markdown: string) {
   const file = await unified()
     .use(remarkParse)
+    .use(remarkObsidianWikiImages)
     .use(remarkGfm)
     .use(remarkRehype)
     .use(rehypeSlug)
@@ -111,7 +158,11 @@ export async function renderPostMarkdownToHtml(markdown: string) {
 }
 
 export function extractTableOfContents(markdown: string): TableOfContentsItem[] {
-  const tree = unified().use(remarkParse).use(remarkGfm).parse(markdown || "") as MdastRoot;
+  const tree = unified()
+    .use(remarkParse)
+    .use(remarkObsidianWikiImages)
+    .use(remarkGfm)
+    .parse(markdown || "") as MdastRoot;
   const slugger = new GithubSlugger();
   const toc: TableOfContentsItem[] = [];
 

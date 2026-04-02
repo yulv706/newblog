@@ -68,24 +68,24 @@ excerpt: E2E markdown upload and publish flow
 
 ## Integration heading
 
-![Local image](./img/photo.png)
+![[Pasted image 20260316162343.png]]
 ![Remote image](https://example.com/remote.png)
 `;
 
     const parsed = parseMarkdownUpload(markdown);
-    expect(parsed.localImageReferences).toEqual(["./img/photo.png"]);
+    expect(parsed.localImageReferences).toEqual(["Pasted image 20260316162343.png"]);
 
     const { replacements, unmatchedReferences } = buildImageReferenceReplacements(
       parsed.localImageReferences,
       {
-        "photo.png": "/uploads/images/photo.png",
+        "pasted image 20260316162343.png": "/uploads/images/photo.png",
       }
     );
 
     expect(unmatchedReferences).toEqual([]);
 
     const rewrittenContent = rewriteMarkdownImageReferences(parsed.content, replacements);
-    expect(rewrittenContent).toContain("/uploads/images/photo.png");
+    expect(rewrittenContent).toContain("![[/uploads/images/photo.png]]");
     expect(rewrittenContent).toContain("https://example.com/remote.png");
 
     const created = await createPost(

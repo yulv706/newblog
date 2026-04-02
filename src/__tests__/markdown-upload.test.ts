@@ -66,6 +66,8 @@ describe("markdown upload image detection and rewriting", () => {
 ![A](./images/a.png)
 ![B](images/b.jpg)
 ![C](../img/c.webp)
+![[Pasted image 20260316162343.png]]
+![[assets/diagram.svg]]
 ![Remote](https://example.com/x.png)
 ![Absolute](/uploads/images/keep.png)
 `;
@@ -74,15 +76,19 @@ describe("markdown upload image detection and rewriting", () => {
       "./images/a.png",
       "images/b.jpg",
       "../img/c.webp",
+      "Pasted image 20260316162343.png",
+      "assets/diagram.svg",
     ]);
     expect(isLocalImageReference("https://example.com/x.png")).toBe(false);
     expect(isLocalImageReference("./images/a.png")).toBe(true);
+    expect(isLocalImageReference("Pasted image 20260316162343.png")).toBe(true);
   });
 
   it("rewrites local references to uploaded URLs while preserving network URLs", () => {
     const markdown = `
 ![A](./images/a.png)
 ![B](images/b.jpg)
+![[Pasted image 20260316162343.png]]
 ![Remote](https://example.com/x.png)
 `;
     const references = detectLocalImageReferences(markdown);
@@ -91,6 +97,8 @@ describe("markdown upload image detection and rewriting", () => {
       {
         "a.png": "/uploads/images/a-1.png",
         "b.jpg": "/uploads/images/b-1.jpg",
+        "pasted image 20260316162343.png":
+          "/uploads/images/pasted-image-20260316162343.png",
       }
     );
 
@@ -98,6 +106,32 @@ describe("markdown upload image detection and rewriting", () => {
     const rewritten = rewriteMarkdownImageReferences(markdown, replacements);
     expect(rewritten).toContain("![A](/uploads/images/a-1.png)");
     expect(rewritten).toContain("![B](/uploads/images/b-1.jpg)");
+    expect(rewritten).toContain(
+      "![[/uploads/images/pasted-image-20260316162343.png]]"
+    );
     expect(rewritten).toContain("![Remote](https://example.com/x.png)");
+  });
+
+  it("keeps unmatched Obsidian wiki-image references identifiable", () => {
+    const markdown = `
+![[Pasted image 20260316162343.png]]
+![[Nested/Sketch 1.webp]]
+`;
+    const references = detectLocalImageReferences(markdown);
+    const { replacements, unmatchedReferences } = buildImageReferenceReplacements(
+      references,
+      {
+        "pasted image 20260316162343.png": "/uploads/images/pasted-image.png",
+      }
+    );
+
+    expect(replacements).toEqual({
+      "Pasted image 20260316162343.png": "/uploads/images/pasted-image.png",
+    });
+    expect(unmatchedReferences).toEqual(["Nested/Sketch 1.webp"]);
+
+    const rewritten = rewriteMarkdownImageReferences(markdown, replacements);
+    expect(rewritten).toContain("![[/uploads/images/pasted-image.png]]");
+    expect(rewritten).toContain("![[Nested/Sketch 1.webp]]");
   });
 });

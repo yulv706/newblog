@@ -36,6 +36,21 @@ const answer = 42;
     expect(html).toContain("data-line");
     expect(html).not.toContain("<script");
   });
+
+  it("renders Obsidian wiki-image embeds as standard images", async () => {
+    const html = await renderPostMarkdownToHtml(
+      [
+        "# Obsidian",
+        "",
+        "![[/uploads/images/pasted-image-20260316162343.png]]",
+      ].join("\n")
+    );
+
+    expect(html).toContain(
+      '<img src="/uploads/images/pasted-image-20260316162343.png" alt="pasted-image-20260316162343"'
+    );
+    expect(html).not.toContain("![[/uploads/images/pasted-image-20260316162343.png]]");
+  });
 });
 
 describe("post-detail table of contents", () => {
