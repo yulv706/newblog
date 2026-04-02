@@ -1,29 +1,22 @@
 import type { Metadata } from "next";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { renderMarkdownToHtml } from "@/lib/markdown";
-import { getDefaultOgImageUrl } from "@/lib/seo";
+import { buildLocalizedMetadataFields } from "@/lib/seo";
 import { getAboutContentForPublic } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const aboutDescription =
-  "Learn more about the author behind Tech Blog, including engineering background, interests, and writing focus.";
+export async function generateMetadata(): Promise<Metadata> {
+  const { locale, dictionary } = await getRequestI18n();
+  const aboutDictionary = dictionary.public.about;
 
-export const metadata: Metadata = {
-  title: "About",
-  description: aboutDescription,
-  openGraph: {
-    title: "About — Tech Blog",
-    description: aboutDescription,
-    url: "/about",
-    images: [
-      {
-        url: getDefaultOgImageUrl(),
-      },
-    ],
-  },
-};
+  return buildLocalizedMetadataFields(locale, {
+    title: aboutDictionary.title,
+    description: aboutDictionary.description,
+    path: "/about",
+  });
+}
 
 export default async function AboutPage() {
   const { dictionary } = await getRequestI18n();

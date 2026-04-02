@@ -3,15 +3,21 @@ import Link from "next/link";
 import { getDateLocale } from "@/lib/i18n/config";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { getRecentPostsForSearch, searchPublishedPosts } from "@/lib/posts";
+import { buildLocalizedMetadataFields } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export const metadata: Metadata = {
-  title: "Search",
-  description:
-    "Search published posts by title or content with support for both English and Chinese keywords.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { locale, dictionary } = await getRequestI18n();
+  const searchDictionary = dictionary.public.search;
+
+  return buildLocalizedMetadataFields(locale, {
+    title: searchDictionary.title,
+    description: searchDictionary.description,
+    path: "/search",
+  });
+}
 
 type SearchPageProps = {
   searchParams?: Promise<{

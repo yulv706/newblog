@@ -89,5 +89,18 @@ describe("admin i18n route and component wiring", () => {
     );
     expect(loginRouteSource).toContain("getRequestI18n");
     expect(loginRouteSource).toContain("dictionary.admin");
+
+    const localeRouteSource = fs.readFileSync(
+      path.join(process.cwd(), "src/app/api/locale/route.ts"),
+      "utf8"
+    );
+    expect(localeRouteSource).toContain("normalizeLocale");
+
+    const middlewareSource = fs.readFileSync(
+      path.join(process.cwd(), "src/middleware.ts"),
+      "utf8"
+    );
+    expect(middlewareSource).toContain("normalizeLocale");
+    expect(middlewareSource).toContain("dictionary");
   });
 });

@@ -8,10 +8,8 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { getRequestI18n } from "@/lib/i18n/server";
 import {
-  DEFAULT_SITE_DESCRIPTION,
-  SITE_NAME,
+  buildLocalizedMetadataAlternates,
   getAbsoluteUrl,
-  getDefaultOgImageUrl,
   getSiteUrl,
 } from "@/lib/seo";
 import "./globals.css";
@@ -36,31 +34,19 @@ const jetBrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
-  title: {
-    default: SITE_NAME,
-    template: `%s | ${SITE_NAME}`,
-  },
-  description: DEFAULT_SITE_DESCRIPTION,
-  alternates: {
-    types: {
-      "application/rss+xml": getAbsoluteUrl("/feed.xml"),
-    },
-  },
-  openGraph: {
-    type: "website",
-    siteName: SITE_NAME,
-    title: SITE_NAME,
-    description: DEFAULT_SITE_DESCRIPTION,
-    url: getAbsoluteUrl("/"),
-    images: [
-      {
-        url: getDefaultOgImageUrl(),
+export async function generateMetadata(): Promise<Metadata> {
+  await getRequestI18n();
+
+  return {
+    metadataBase: new URL(getSiteUrl()),
+    alternates: {
+      ...buildLocalizedMetadataAlternates("/"),
+      types: {
+        "application/rss+xml": getAbsoluteUrl("/feed.xml"),
       },
-    ],
-  },
-};
+    },
+  };
+}
 
 // Blocking script to prevent FOUC - reads localStorage theme before paint
 const themeScript = `

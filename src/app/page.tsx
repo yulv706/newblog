@@ -4,28 +4,21 @@ import { HomePostCard } from "@/components/blog/home-post-card";
 import { FadeIn, StaggeredItem, StaggeredList } from "@/components/ui/animations";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { getHomepageData } from "@/lib/posts";
-import { getDefaultOgImageUrl } from "@/lib/seo";
+import { buildLocalizedMetadataFields } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const homeDescription =
-  "Explore featured and latest engineering posts covering Next.js, TypeScript, backend architecture, and practical production lessons.";
+export async function generateMetadata(): Promise<Metadata> {
+  const { locale, dictionary } = await getRequestI18n();
+  const homeDictionary = dictionary.public.home;
 
-export const metadata: Metadata = {
-  title: "Home",
-  description: homeDescription,
-  openGraph: {
-    title: "Tech Blog — Home",
-    description: homeDescription,
-    url: "/",
-    images: [
-      {
-        url: getDefaultOgImageUrl(),
-      },
-    ],
-  },
-};
+  return buildLocalizedMetadataFields(locale, {
+    title: homeDictionary.title,
+    description: homeDictionary.description,
+    path: "/",
+  });
+}
 
 export default async function HomePage() {
   const { locale, dictionary } = await getRequestI18n();

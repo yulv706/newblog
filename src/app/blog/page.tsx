@@ -4,15 +4,21 @@ import { HomePostCard } from "@/components/blog/home-post-card";
 import { FadeIn, StaggeredItem, StaggeredList } from "@/components/ui/animations";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { getBlogListingData } from "@/lib/posts";
+import { buildLocalizedMetadataFields } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export const metadata: Metadata = {
-  title: "Blog",
-  description:
-    "Browse all published posts and filter articles by category or tag to find topics that match your interests.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { locale, dictionary } = await getRequestI18n();
+  const blogDictionary = dictionary.public.blog;
+
+  return buildLocalizedMetadataFields(locale, {
+    title: blogDictionary.title,
+    description: blogDictionary.description,
+    path: "/blog",
+  });
+}
 
 type BlogPageProps = {
   searchParams?: Promise<{

@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { getDictionary } from "@/lib/i18n/dictionaries";
+import { normalizeLocale } from "@/lib/i18n/config";
+
+function getRequestDictionary(request: NextRequest) {
+  const locale = normalizeLocale(request.cookies.get("locale")?.value);
+  return getDictionary(locale);
+}
 
 function getLoginRedirectResponse(request: NextRequest) {
   const loginUrl = new URL("/admin/login", request.url);
   return NextResponse.redirect(loginUrl);
 }
 
-function getUnauthorizedApiResponse() {
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+function getUnauthorizedApiResponse(request: NextRequest) {
+  const dictionary = getRequestDictionary(request);
+  return NextResponse.json(
+    { error: dictionary.admin.login.errors.invalidCredentials },
+    { status: 401 }
+  );
 }
 
 export async function middleware(request: NextRequest) {
@@ -23,7 +34,7 @@ export async function middleware(request: NextRequest) {
 
   if (!token) {
     return isAdminApiRoute
-      ? getUnauthorizedApiResponse()
+      ? getUnauthorizedApiResponse(request)
       : getLoginRedirectResponse(request);
   }
 
@@ -31,7 +42,7 @@ export async function middleware(request: NextRequest) {
 
   if (!payload) {
     return isAdminApiRoute
-      ? getUnauthorizedApiResponse()
+      ? getUnauthorizedApiResponse(request)
       : getLoginRedirectResponse(request);
   }
 

@@ -12,10 +12,10 @@ import { getRequestI18n } from "@/lib/i18n/server";
 import { extractTableOfContents, renderPostMarkdownToHtml } from "@/lib/markdown";
 import { getAdjacentPublishedPosts, getPublishedPostDetailBySlug } from "@/lib/posts";
 import {
-  SITE_NAME,
+  buildLocalizedMetadataFields,
   buildBlogPostingJsonLd,
   buildMetaDescription,
-  getAbsoluteUrl,
+  getLocalizedSiteName,
   resolveOgImageUrl,
   serializeJsonLd,
 } from "@/lib/seo";
@@ -32,30 +32,40 @@ type BlogPostPageProps = {
 export async function generateMetadata({
   params,
 }: BlogPostPageProps): Promise<Metadata> {
+  const { locale } = await getRequestI18n();
   const { slug } = await params;
   const post = await getPublishedPostDetailBySlug(slug);
 
   if (!post) {
-    return {
-      title: "Post Not Found",
-      description: "The requested post could not be found.",
-    };
+    return buildLocalizedMetadataFields(locale, {
+      title: locale === "zh-CN" ? "文章未找到" : "Post Not Found",
+      description:
+        locale === "zh-CN"
+          ? "请求的文章不存在。"
+          : "The requested post could not be found.",
+      path: `/blog/${slug}`,
+      type: "article",
+    });
   }
 
   const description = buildMetaDescription(
     post.excerpt,
-    `Read ${post.title} on ${SITE_NAME}.`
+    locale === "zh-CN"
+      ? `阅读《${post.title}》，来自${getLocalizedSiteName(locale)}。`
+      : `Read ${post.title} on ${getLocalizedSiteName(locale)}.`
   );
-  const canonicalUrl = getAbsoluteUrl(`/blog/${post.slug}`);
-
-  return {
+  const localizedMetadata = buildLocalizedMetadataFields(locale, {
     title: post.title,
     description,
+    path: `/blog/${post.slug}`,
+    imageUrl: post.coverImage,
+    type: "article",
+  });
+
+  return {
+    ...localizedMetadata,
     openGraph: {
-      type: "article",
-      title: post.title,
-      description,
-      url: canonicalUrl,
+      ...localizedMetadata.openGraph,
       images: [
         {
           url: resolveOgImageUrl(post.coverImage),
@@ -63,7 +73,7 @@ export async function generateMetadata({
       ],
       publishedTime: post.publishedAt ?? post.createdAt,
       modifiedTime: post.updatedAt,
-      authors: [SITE_NAME],
+      authors: [getLocalizedSiteName(locale)],
     },
   };
 }
@@ -109,7 +119,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     getApprovedCommentsForPost(post.id),
   ]);
   const blogPostingJsonLd = buildBlogPostingJsonLd(post, {
-    authorName: SITE_NAME,
+    authorName: getLocalizedSiteName(locale),
   });
 
   return (

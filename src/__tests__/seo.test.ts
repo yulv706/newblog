@@ -10,6 +10,8 @@ import { comments, postTags, posts, tags } from "@/lib/db/schema";
 import { getPublishedPosts, updatePost } from "@/lib/posts";
 import {
   SITE_NAME,
+  buildLocalizedMetadataAlternates,
+  buildLocalizedMetadataFields,
   buildBlogPostingJsonLd,
   buildRssFeedXml,
   buildSitemapXml,
@@ -203,5 +205,60 @@ describe("seo feeds and structured data", () => {
     expect(jsonLd.headline).toBe("Structured Data Post");
     expect(jsonLd.datePublished).toBe("2026-03-30T12:00:00.000Z");
     expect(jsonLd.author.name).toBe(SITE_NAME);
+  });
+
+  it("localizes metadata fields and alternates for zh-CN and en", () => {
+    const zh = buildLocalizedMetadataFields("zh-CN", {
+      title: "首页",
+      description: "中文描述",
+      path: "/",
+    });
+    const en = buildLocalizedMetadataFields("en", {
+      title: "Home",
+      description: "English description",
+      path: "/",
+    });
+    const alternates = buildLocalizedMetadataAlternates("/");
+
+    expect(zh.openGraph.locale).toBe("zh_CN");
+    expect(zh.openGraph.title).toBe("首页");
+    expect(zh.title).toEqual({
+      absolute: "首页 | 技术博客",
+    });
+
+    expect(en.openGraph.locale).toBe("en_US");
+    expect(en.openGraph.title).toBe("Home");
+    expect(en.title).toEqual({
+      absolute: "Home | Tech Blog",
+    });
+
+    expect(alternates.languages).toEqual({
+      "zh-CN": getAbsoluteUrl("/"),
+      en: getAbsoluteUrl("/"),
+      "x-default": getAbsoluteUrl("/"),
+    });
+  });
+
+  it("localizes rss feed channel metadata for zh-CN and en", () => {
+    const zhXml = buildRssFeedXml([], {
+      locale: "zh-CN",
+      siteTitle: "技术博客",
+      siteDescription: "中文站点描述",
+      language: "zh-CN",
+    });
+    const enXml = buildRssFeedXml([], {
+      locale: "en",
+      siteTitle: "Tech Blog",
+      siteDescription: "English site description",
+      language: "en-US",
+    });
+
+    expect(zhXml).toContain("<title>技术博客</title>");
+    expect(zhXml).toContain("<description>中文站点描述</description>");
+    expect(zhXml).toContain("<language>zh-CN</language>");
+
+    expect(enXml).toContain("<title>Tech Blog</title>");
+    expect(enXml).toContain("<description>English site description</description>");
+    expect(enXml).toContain("<language>en-US</language>");
   });
 });

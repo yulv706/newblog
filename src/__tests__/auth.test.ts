@@ -77,9 +77,11 @@ describe("admin middleware protection", () => {
     const response = await middleware(request);
 
     expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toMatchObject({
-      error: "Unauthorized",
-    });
+    await expect(response.json()).resolves.toMatchObject(
+      expect.objectContaining({
+        error: expect.any(String),
+      })
+    );
   });
 
   it("allows authenticated /admin request with a valid auth cookie", async () => {
