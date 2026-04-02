@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CoverMedia } from "@/components/blog/cover-media";
 import { CodeBlockEnhancer } from "@/components/blog/code-block-enhancer";
 import { CommentForm } from "@/components/blog/comment-form";
 import { CommentList } from "@/components/blog/comment-list";
@@ -181,15 +182,17 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </div>
           </header>
 
-          {post.coverImage ? (
-            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/60">
-              <img
-                src={post.coverImage}
-                alt={postDictionary.coverImageAltTemplate.replace("{title}", post.title)}
-                className="h-auto max-h-[460px] w-full object-cover"
-              />
-            </div>
-          ) : null}
+          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/60">
+            <CoverMedia
+              src={post.coverImage}
+              alt={postDictionary.coverImageAltTemplate.replace("{title}", post.title)}
+              title={post.title}
+              className="h-auto max-h-[460px] w-full object-cover"
+              fallbackClassName="min-h-[220px] sm:min-h-[280px] lg:min-h-[340px]"
+              fallbackAccentClassName="top-6 inset-x-6"
+              loading="eager"
+            />
+          </div>
 
           <div className="lg:hidden">
             <TableOfContents headings={tocHeadings} collapsible />

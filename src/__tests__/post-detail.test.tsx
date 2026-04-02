@@ -1,10 +1,13 @@
+import React from "react";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { renderToStaticMarkup } from "react-dom/server";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import { CoverMedia } from "@/components/blog/cover-media";
 import * as schema from "@/lib/db/schema";
 import { categories, postTags, posts, tags } from "@/lib/db/schema";
 import {
@@ -177,5 +180,24 @@ describe("post-detail data", () => {
     const lastAdjacent = await getAdjacentPublishedPosts(lastPost.id, database);
     expect(lastAdjacent.previous?.slug).toBe("middle-post");
     expect(lastAdjacent.next).toBeNull();
+  });
+
+  it("renders polished detail fallback media when a cover image is missing", () => {
+    const markup = renderToStaticMarkup(
+      <CoverMedia
+        src={null}
+        alt="Missing cover fallback"
+        title="Refined Detail Cover"
+        className="h-auto max-h-[460px] w-full object-cover"
+        fallbackClassName="min-h-[220px] sm:min-h-[280px] lg:min-h-[340px]"
+        fallbackAccentClassName="top-6 inset-x-6"
+        loading="eager"
+      />
+    );
+
+    expect(markup).toContain("Article");
+    expect(markup).toContain("RD");
+    expect(markup).not.toContain("暂无封面图");
+    expect(markup).not.toContain("No Cover Image");
   });
 });

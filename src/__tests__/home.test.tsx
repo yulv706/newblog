@@ -1,10 +1,13 @@
+import React from "react";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { renderToStaticMarkup } from "react-dom/server";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import { HomePostCard } from "@/components/blog/home-post-card";
 import * as schema from "@/lib/db/schema";
 import { categories, postTags, posts, tags } from "@/lib/db/schema";
 import { getHomepageData } from "@/lib/posts";
@@ -156,5 +159,34 @@ describe("homepage data", () => {
     expect(data.featuredPost).toBeNull();
     expect(data.latestPosts).toEqual([]);
     expect(data.categories).toEqual([]);
+  });
+
+  it("renders a polished fallback tile instead of raw missing-cover text", () => {
+    const markup = renderToStaticMarkup(
+      <HomePostCard
+        post={{
+          id: 1,
+          title: "Elegant Missing Cover",
+          slug: "elegant-missing-cover",
+          excerpt: "A post without a cover image.",
+          coverImage: null,
+          createdAt: "2026-03-30T12:00:00.000Z",
+          publishedAt: "2026-03-30T12:00:00.000Z",
+          categoryName: "Design",
+          categorySlug: "design",
+          tags: [],
+        }}
+        locale="en"
+        dictionary={{
+          uncategorizedLabel: "Uncategorized",
+          coverImageAltTemplate: "{title} cover image",
+          dateFallbackLabel: "—",
+        }}
+      />
+    );
+
+    expect(markup).not.toContain("No Cover Image");
+    expect(markup).toContain("Article");
+    expect(markup).toContain("EM");
   });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { type ReactNode, useEffect, useState } from "react";
 import { motion, useInView, type Variants } from "motion/react";
 import { useRef } from "react";

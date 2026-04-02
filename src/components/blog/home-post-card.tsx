@@ -1,4 +1,6 @@
+import React from "react";
 import Link from "next/link";
+import { CoverMedia } from "@/components/blog/cover-media";
 import { CardHover } from "@/components/ui/animations";
 import type { AppLocale } from "@/lib/i18n/config";
 import { getDateLocale } from "@/lib/i18n/config";
@@ -7,7 +9,6 @@ import type { HomepagePostCard } from "@/lib/posts";
 
 type HomePostCardDictionary = {
   uncategorizedLabel: string;
-  noCoverImageLabel: string;
   coverImageAltTemplate: string;
   dateFallbackLabel: string;
 };
@@ -32,34 +33,23 @@ function CardCover({
   title,
   coverImage,
   featured,
-  noCoverImageLabel,
   coverImageAltTemplate,
 }: {
   title: string;
   coverImage: string | null;
   featured: boolean;
-  noCoverImageLabel: string;
   coverImageAltTemplate: string;
 }) {
-  if (!coverImage) {
-    return (
-      <div
-        className={cn(
-          "flex items-center justify-center bg-secondary text-sm font-medium text-muted",
-          featured ? "h-64 md:h-full md:min-h-[260px]" : "h-44"
-        )}
-      >
-        {noCoverImageLabel}
-      </div>
-    );
-  }
-
   return (
-    <img
+    <CoverMedia
       src={coverImage}
       alt={coverImageAltTemplate.replace("{title}", title)}
+      title={title}
       className={cn(
         "w-full object-cover",
+        featured ? "h-64 md:h-full md:min-h-[260px]" : "h-44"
+      )}
+      fallbackClassName={cn(
         featured ? "h-64 md:h-full md:min-h-[260px]" : "h-44"
       )}
       loading={featured ? "eager" : "lazy"}
@@ -90,7 +80,6 @@ export function HomePostCard({
           title={post.title}
           coverImage={post.coverImage}
           featured={featured}
-          noCoverImageLabel={dictionary.noCoverImageLabel}
           coverImageAltTemplate={dictionary.coverImageAltTemplate}
         />
 
