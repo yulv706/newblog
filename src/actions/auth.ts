@@ -6,8 +6,7 @@ import { getRequestI18n } from "@/lib/i18n/server";
 import { AUTH_COOKIE_NAME, getAuthCookieOptions } from "@/lib/auth";
 
 export async function logout() {
-  const { dictionary } = await getRequestI18n();
-  dictionary.admin.sidebar.logoutButton;
+  await getRequestI18n();
   const cookieStore = await cookies();
   cookieStore.set(AUTH_COOKIE_NAME, "", {
     ...getAuthCookieOptions(),

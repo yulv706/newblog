@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React from "react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -94,11 +95,13 @@ export function CoverMedia({
   }
 
   return (
-    <img
+    <Image
       src={src}
       alt={alt}
       className={className}
       loading={loading}
+      fill
+      sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 800px"
       onError={() => setHasError(true)}
     />
   );

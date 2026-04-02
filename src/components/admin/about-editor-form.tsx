@@ -48,7 +48,7 @@ export function AboutEditorForm({ initialContent, action }: AboutEditorFormProps
     return () => {
       disposed = true;
     };
-  }, [content]);
+  }, [aboutDictionary.previewError, content]);
 
   return (
     <div className="space-y-6">

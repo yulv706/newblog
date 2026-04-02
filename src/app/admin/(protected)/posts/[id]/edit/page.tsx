@@ -12,8 +12,7 @@ type EditAdminPostPageProps = {
 };
 
 export default async function EditAdminPostPage({ params }: EditAdminPostPageProps) {
-  const { dictionary } = await getRequestI18n();
-  dictionary.admin.posts.editor.editTitle;
+  await getRequestI18n();
   const { id } = await params;
   const postId = Number.parseInt(id, 10);
 

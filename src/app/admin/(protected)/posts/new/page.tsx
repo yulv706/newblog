@@ -5,8 +5,7 @@ import { getRequestI18n } from "@/lib/i18n/server";
 import { getPostCategories } from "@/lib/posts";
 
 export default async function NewAdminPostPage() {
-  const { dictionary } = await getRequestI18n();
-  dictionary.admin.posts.editor.newTitle;
+  await getRequestI18n();
   const [categories, tagOptions] = await Promise.all([
     getPostCategories(),
     getTagOptions(),

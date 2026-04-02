@@ -7,8 +7,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminAboutPage() {
-  const { dictionary } = await getRequestI18n();
-  dictionary.admin.about.title;
+  await getRequestI18n();
   const aboutContent = (await getAboutContent()) ?? "";
 
   return (
