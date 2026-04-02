@@ -190,7 +190,7 @@ describe("homepage data", () => {
     expect(markup).toContain("EM");
   });
 
-  it("preserves allowed remote cover hosts used by published posts", () => {
+  it("renders remote covers without using the Next optimizer", () => {
     const markup = renderToStaticMarkup(
       <HomePostCard
         post={{
@@ -216,6 +216,8 @@ describe("homepage data", () => {
     );
 
     expect(markup).toContain("images.unsplash.com");
+    expect(markup).toContain('src="https://images.unsplash.com/');
+    expect(markup).not.toContain("/_next/image");
     expect(markup).not.toContain("Article");
   });
 });

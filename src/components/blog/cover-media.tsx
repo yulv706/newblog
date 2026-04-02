@@ -5,6 +5,10 @@ import React from "react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
+function isRemoteUrl(src: string) {
+  return /^https?:\/\//i.test(src);
+}
+
 type CoverFallbackProps = {
   title: string;
   className?: string;
@@ -83,6 +87,7 @@ export function CoverMedia({
   loading = "lazy",
 }: CoverMediaProps) {
   const [hasError, setHasError] = useState(false);
+  const isRemote = src ? isRemoteUrl(src) : false;
 
   if (!src || hasError) {
     return (
@@ -95,14 +100,17 @@ export function CoverMedia({
   }
 
   return (
-    <Image
-      src={src}
-      alt={alt}
-      className={className}
-      loading={loading}
-      fill
-      sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 800px"
-      onError={() => setHasError(true)}
-    />
+    <div className={cn("relative h-full w-full", className)}>
+      <Image
+        src={src}
+        alt={alt}
+        className="h-full w-full object-cover"
+        loading={loading}
+        fill
+        unoptimized={isRemote}
+        sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 800px"
+        onError={() => setHasError(true)}
+      />
+    </div>
   );
 }

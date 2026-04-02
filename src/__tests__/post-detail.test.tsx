@@ -201,7 +201,7 @@ describe("post-detail data", () => {
     expect(markup).not.toContain("No Cover Image");
   });
 
-  it("renders remote detail cover markup for allowed hosts", () => {
+  it("renders remote detail covers without using the Next optimizer", () => {
     const markup = renderToStaticMarkup(
       <CoverMedia
         src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80"
@@ -215,6 +215,8 @@ describe("post-detail data", () => {
     );
 
     expect(markup).toContain("images.unsplash.com");
+    expect(markup).toContain('src="https://images.unsplash.com/');
+    expect(markup).not.toContain("/_next/image");
     expect(markup).not.toContain("Article");
   });
 });
