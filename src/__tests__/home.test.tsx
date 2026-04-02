@@ -189,4 +189,33 @@ describe("homepage data", () => {
     expect(markup).toContain("Article");
     expect(markup).toContain("EM");
   });
+
+  it("preserves allowed remote cover hosts used by published posts", () => {
+    const markup = renderToStaticMarkup(
+      <HomePostCard
+        post={{
+          id: 2,
+          title: "Remote Cover Host",
+          slug: "remote-cover-host",
+          excerpt: "A post with an allowed remote host cover.",
+          coverImage:
+            "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+          createdAt: "2026-03-30T12:00:00.000Z",
+          publishedAt: "2026-03-30T12:00:00.000Z",
+          categoryName: "Design",
+          categorySlug: "design",
+          tags: [],
+        }}
+        locale="en"
+        dictionary={{
+          uncategorizedLabel: "Uncategorized",
+          coverImageAltTemplate: "{title} cover image",
+          dateFallbackLabel: "—",
+        }}
+      />
+    );
+
+    expect(markup).toContain("images.unsplash.com");
+    expect(markup).not.toContain("Article");
+  });
 });

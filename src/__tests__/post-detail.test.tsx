@@ -200,4 +200,21 @@ describe("post-detail data", () => {
     expect(markup).not.toContain("暂无封面图");
     expect(markup).not.toContain("No Cover Image");
   });
+
+  it("renders remote detail cover markup for allowed hosts", () => {
+    const markup = renderToStaticMarkup(
+      <CoverMedia
+        src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80"
+        alt="Allowed remote cover"
+        title="Remote Detail Cover"
+        className="h-auto max-h-[460px] w-full object-cover"
+        fallbackClassName="min-h-[220px] sm:min-h-[280px] lg:min-h-[340px]"
+        fallbackAccentClassName="top-6 inset-x-6"
+        loading="eager"
+      />
+    );
+
+    expect(markup).toContain("images.unsplash.com");
+    expect(markup).not.toContain("Article");
+  });
 });
