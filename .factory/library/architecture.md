@@ -1,79 +1,101 @@
-# Architecture — Personal Tech Blog
+# Architecture
 
-## Overview
+How the deployment system for this blog should work.
 
-A full-stack personal blog built with Next.js 15 (App Router) as a monolithic application. Server-rendered pages for SEO, client components only where interactivity is needed. SQLite for data persistence, filesystem for image storage.
+**What belongs here:** runtime topology, persistence model, deployment/data-flow invariants, and how operator automation should interact with the app.
+**What does NOT belong here:** exact command syntax (use `.factory/services.yaml`) or user-facing procedures (use the deployment docs/scripts).
 
-## Components
+---
 
-### Web Application (Next.js 15)
-- **App Router** with `src/app/` directory structure
-- **Server Components** (default) for all pages — direct DB access, zero client JS
-- **Client Components** (`'use client'`) only for: dark mode toggle, mobile nav menu, animations (motion), comment form, admin interactive forms, markdown editor/preview, search input
-- **Server Actions** for mutations (create/edit/delete posts, approve/delete comments, upload files)
-- **Route Handlers** (`src/app/api/`) for auth endpoints and any REST-like APIs
-- **Middleware** (`src/middleware.ts`) for admin route protection
+## System Topology
 
-### Database (SQLite via Drizzle ORM)
-- File: `./data/blog.db`
-- WAL mode for concurrent read performance
-- Tables: `posts`, `categories`, `tags`, `post_tags` (many-to-many), `comments`, `site_settings` (for About Me content and site config)
-- Drizzle ORM with `better-sqlite3` driver
-- Migrations via `drizzle-kit`
+This project is a single-repo, single-host deployment:
 
-### Authentication
-- Custom username/password auth (not NextAuth for simplicity since no OAuth initially)
-- bcrypt for password hashing
-- JWT stored in HttpOnly cookie
-- Middleware checks JWT for `/admin/*` routes
-- Single admin user (credentials from env vars or seeded in DB)
+- **Next.js app container**
+  - Serves the application on internal port `3000`
+  - Reads/writes the SQLite database under `./data`
+  - Reads/writes uploaded files under `./public/uploads`
+  - Runs database migrations before serving production traffic
+- **Nginx container**
+  - Publishes the public HTTP port
+  - Proxies dynamic traffic to the app container
+  - Serves uploaded files directly from the mounted uploads directory
+- **Host persistence**
+  - `./data` is the authoritative database persistence root
+  - `./public/uploads` is the authoritative uploaded-media persistence root
 
-### File Storage
-- Uploaded images stored in `./public/uploads/images/`
-- Served statically by Next.js from `/uploads/images/`
-- When markdown is uploaded with local image refs, images are uploaded separately and paths are rewritten
+## Application Runtime Model
 
-### Markdown Processing Pipeline
-- `gray-matter` for frontmatter parsing
-- `unified` → `remark-parse` → `remark-gfm` → `remark-rehype` → `rehype-pretty-code` (Shiki) → `rehype-slug` → `rehype-autolink-headings` → `rehype-stringify`
-- Processed at render time in Server Components (cached by Next.js)
+- The web app is a Next.js 15 App Router application.
+- Public pages, admin pages, RSS/sitemap/robots, and auth/session endpoints are all served from the same app.
+- SQLite is accessed through `better-sqlite3` + Drizzle and is required at runtime for public and admin flows.
+- Uploaded media is written by the app and then served through the public proxy from the persisted uploads directory.
 
-### Styling
-- Tailwind CSS v4 with `@theme` CSS-first config
-- `@tailwindcss/typography` for prose/article content
-- `next-themes` for dark/light mode (system preference + manual toggle + localStorage persistence)
-- `motion` (Framer Motion v12) for animations — wrapped in client components
-- Apple-style design: generous whitespace, subtle animations, clean typography
+## Deployment Model
 
-## Data Flow
+The mission target is a **canonical scripted operator surface** that wraps the deployment lifecycle:
 
-### Post Creation (Markdown Upload)
-1. Admin uploads `.md` file + optional image files via admin UI
-2. Server Action parses frontmatter (title, date, tags, category, excerpt, coverImage)
-3. Detects local image references in markdown body
-4. Saves uploaded images to `./public/uploads/images/`
-5. Rewrites local image paths to `/uploads/images/filename`
-6. Saves post record to SQLite (markdown content stored as-is)
-7. On public page request: markdown is rendered to HTML via unified pipeline
+- `check` / `init`
+- `start` / `stop` / `update`
+- `backup` / `restore`
 
-### Page Rendering
-1. Request hits Next.js server
-2. Server Component fetches data from SQLite via Drizzle
-3. Markdown content is processed through unified pipeline
-4. HTML is rendered server-side and sent to client
-5. Client hydrates interactive components only
+These entrypoints should become the authoritative way to operate the stack. Docs, tests, validators, and smoke checks must all use the same entrypoints rather than ad hoc shell sequences.
 
-### Comment Flow
-1. Visitor submits comment (nickname, email, body)
-2. Server Action saves with `approved: false`
-3. Admin sees pending comments in moderation panel
-4. Admin approves → comment becomes visible on post page
-5. Comments are fetched as part of post detail Server Component
+### Milestone mapping
 
-## Key Invariants
-- Only published posts are visible on public pages, RSS, and sitemap
-- Draft posts are accessible only in admin
-- Comments require admin approval before public display
-- All admin routes require valid JWT session
-- Image paths in stored markdown always use web-accessible URLs (never local filesystem paths)
-- SQLite DB and uploads directory must persist across deployments (Docker volumes)
+- **Milestone 1** should establish a usable deployment surface for `check`, `init`, `start`, and `update`, plus health-gated runtime behavior.
+- **Milestone 2** should establish `backup` and `restore`, then align the operator documentation and end-to-end recovery flows to those same entrypoints.
+- Before the canonical scripts exist, workers may use raw compose commands only as an implementation/debugging aid. The final supported workflow must be the committed canonical entrypoints.
+
+## Data and Request Flow
+
+### Public request flow
+1. Client hits the published Nginx port.
+2. Nginx proxies dynamic routes to the app container.
+3. The app serves SSR/route-handler responses and queries SQLite as needed.
+4. Generated absolute URLs must use the configured public site URL, not localhost fallbacks.
+
+### Upload/media flow
+1. Authenticated admin writes content and uploads files through the app.
+2. The app writes uploaded bytes to `./public/uploads/images/...`.
+3. Public requests for `/uploads/...` are served directly by Nginx from the persisted uploads mount.
+4. Media-backed content must survive restart, redeploy, backup, and restore.
+
+### Backup/restore flow
+1. Backup captures the restorable database state plus uploaded media.
+2. Restore places those artifacts back into the persisted host paths.
+3. Startup reuses restored state and applies forward migrations if needed.
+4. Restore must not silently degrade into a fresh empty site that looks successful.
+
+## Health and Readiness Model
+
+- Container start is not enough to declare success.
+- A dedicated app-level readiness surface must represent:
+  - app process is up
+  - database access works
+  - the stack is ready to serve real traffic
+- The intended architecture is a dedicated HTTP readiness endpoint consumed by startup automation, healthchecks, and validators.
+- The public start flow and container health reporting should key off this readiness surface.
+- Nginx-only availability before app readiness is a failure mode to detect, not a success signal.
+
+## Security and Configuration Invariants
+
+- The supported deployment path must not rely on insecure placeholder defaults for auth secret, admin password, or public site URL.
+- The environment source used by operator scripts must be the same source consumed by runtime startup and in-app URL/auth behavior.
+- Workers should converge on a single repo-local source of truth for deployment configuration rather than separate compose-only and app-only files.
+- Admin credential behavior is partly persisted in the database; deployment, backup, restore, and docs must respect that persisted source of truth.
+
+## Persistence Invariants
+
+- `./data` and `./public/uploads` are the only durable application-state roots in this repo.
+- For this mission, treat those host-relative paths as the canonical bind-mount contract for validation and operator docs.
+- Image/container rebuilds are disposable; persisted data is not.
+- SQLite runs with WAL semantics in the current codebase, so backup/recovery tooling must produce a restoreable SQLite-consistent state.
+- Validators should prove recovery with actual restored content, not only archive listings.
+
+## Design Constraints for Workers
+
+- Prefer additive deployment hardening over architectural rewrites.
+- Keep the deployment target single-host and Docker-friendly.
+- Use repo-committed scripts/config/docs as the operator contract.
+- When a feature changes operator behavior, update the docs/scripts/tests together so validators and operators observe the same truth.

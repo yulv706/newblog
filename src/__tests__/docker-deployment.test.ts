@@ -20,6 +20,7 @@ describe("docker deployment configuration", () => {
     expect(dockerfile).toContain("npm install --omit=dev");
     expect(dockerfile).toContain("COPY --from=builder /app/.next ./.next");
     expect(dockerfile).toContain("COPY --from=builder /app/public ./public");
+    expect(dockerfile).toContain("HEALTHCHECK");
   });
 
   it("defines app and nginx services with persistence volumes in docker-compose", () => {
@@ -30,12 +31,15 @@ describe("docker deployment configuration", () => {
     expect(compose).toContain("services:");
     expect(compose).toContain("app:");
     expect(compose).toContain("nginx:");
+    expect(compose).toContain("env_file:");
+    expect(compose).toContain("./deploy/.env.production");
     expect(compose).toContain("./data:/app/data");
     expect(compose).toContain("./public/uploads:/app/public/uploads");
     expect(compose).toContain("AUTH_SECRET");
     expect(compose).toContain("ADMIN_USERNAME");
     expect(compose).toContain("ADMIN_PASSWORD");
     expect(compose).toContain("NEXT_PUBLIC_SITE_URL");
+    expect(compose).toContain("condition: service_healthy");
   });
 
   it("configures nginx proxying and static file handling", () => {
@@ -45,6 +49,7 @@ describe("docker deployment configuration", () => {
 
     expect(nginxConfig).toContain("proxy_pass http://app:3000");
     expect(nginxConfig).toContain("location /uploads/");
+    expect(nginxConfig).toContain("location = /healthz");
     expect(nginxConfig).toContain("X-Forwarded-For");
     expect(nginxConfig).toContain("X-Forwarded-Proto");
   });

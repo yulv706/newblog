@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 echo "=== Blog Init: Installing dependencies ==="
 npm install
@@ -12,29 +12,31 @@ else
   npm rebuild better-sqlite3 --update-binary
 fi
 
-# Hard fail early if the native module still cannot load after install/rebuild.
 node -e "const Database=require('better-sqlite3'); const db=new Database(':memory:'); db.close();" >/dev/null 2>&1
 
-echo "=== Blog Init: Creating data directory ==="
+echo "=== Blog Init: Creating persistence directories ==="
 mkdir -p data
 mkdir -p public/uploads/images
 
-echo "=== Blog Init: Setting up environment ==="
+echo "=== Blog Init: Ensuring local environment file ==="
 if [ ! -f .env.local ]; then
-  AUTH_SECRET=$(openssl rand -base64 32)
+  AUTH_SECRET="$(openssl rand -base64 32 | tr -d '\n')"
+  ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
   cat > .env.local << EOF
 AUTH_SECRET=${AUTH_SECRET}
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
 NEXT_PUBLIC_SITE_URL=http://localhost:3100
 EOF
-  echo "Created .env.local with default credentials (admin/admin123)"
+  echo "Created .env.local with generated local-only credentials"
+  echo "ADMIN_USERNAME=admin"
+  echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}"
 else
-  echo ".env.local already exists, skipping"
+  echo ".env.local already exists, leaving it unchanged"
 fi
 
 echo "=== Blog Init: Running database migrations ==="
-npx drizzle-kit generate 2>/dev/null || true
-npx drizzle-kit migrate 2>/dev/null || true
+npx drizzle-kit generate
+npx drizzle-kit migrate
 
 echo "=== Blog Init: Complete ==="
