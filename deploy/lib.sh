@@ -9,6 +9,12 @@ DEPLOY_DATA_DIR="${DEPLOY_DATA_DIR:-${REPO_ROOT}/data}"
 DEPLOY_UPLOADS_DIR="${DEPLOY_UPLOADS_DIR:-${REPO_ROOT}/public/uploads}"
 DEPLOY_UPLOADS_IMAGES_DIR="${DEPLOY_UPLOADS_DIR}/images"
 DEPLOY_DB_PATH="${DEPLOY_DB_PATH:-${DEPLOY_DATA_DIR}/blog.db}"
+DEPLOY_BACKUP_DIR="${DEPLOY_BACKUP_DIR:-${REPO_ROOT}/data/backups}"
+DEPLOY_BACKUP_BASENAME="${DEPLOY_BACKUP_BASENAME:-blog-backup}"
+DEPLOY_BACKUP_LABEL="${DEPLOY_BACKUP_LABEL:-$(date -u +%Y%m%dT%H%M%SZ)}"
+DEPLOY_BACKUP_STAGING_DIR="${DEPLOY_BACKUP_STAGING_DIR:-${DEPLOY_BACKUP_DIR}/.${DEPLOY_BACKUP_BASENAME}-${DEPLOY_BACKUP_LABEL}.tmp}"
+DEPLOY_BACKUP_OUTPUT="${DEPLOY_BACKUP_OUTPUT:-${DEPLOY_BACKUP_DIR}/${DEPLOY_BACKUP_BASENAME}-${DEPLOY_BACKUP_LABEL}.tar.gz}"
+DEPLOY_RESTORE_ARCHIVE="${DEPLOY_RESTORE_ARCHIVE:-}"
 DEPLOY_HEALTH_PATH="${DEPLOY_HEALTH_PATH:-/healthz}"
 DEPLOY_RUNTIME_HEALTH_URL="${DEPLOY_RUNTIME_HEALTH_URL:-http://localhost:${NGINX_PORT:-8080}${DEPLOY_HEALTH_PATH}}"
 DEPLOY_START_TIMEOUT_SECONDS="${DEPLOY_START_TIMEOUT_SECONDS:-90}"
@@ -44,7 +50,7 @@ load_env_file() {
 }
 
 ensure_runtime_env_paths() {
-  export DEPLOY_ENV_FILE DEPLOY_DATA_DIR DEPLOY_UPLOADS_DIR DEPLOY_UPLOADS_IMAGES_DIR DEPLOY_DB_PATH DEPLOY_HEALTH_PATH DEPLOY_RUNTIME_HEALTH_URL DEPLOY_START_TIMEOUT_SECONDS
+  export DEPLOY_ENV_FILE DEPLOY_DATA_DIR DEPLOY_UPLOADS_DIR DEPLOY_UPLOADS_IMAGES_DIR DEPLOY_DB_PATH DEPLOY_BACKUP_DIR DEPLOY_BACKUP_BASENAME DEPLOY_BACKUP_LABEL DEPLOY_BACKUP_STAGING_DIR DEPLOY_BACKUP_OUTPUT DEPLOY_RESTORE_ARCHIVE DEPLOY_HEALTH_PATH DEPLOY_RUNTIME_HEALTH_URL DEPLOY_START_TIMEOUT_SECONDS
 }
 
 append_issue() {
@@ -140,7 +146,17 @@ prepare_persistence_dirs() {
   local created=()
   local existing=()
 
-  for target in "${DEPLOY_DATA_DIR}" "${DEPLOY_UPLOADS_DIR}" "${DEPLOY_UPLOADS_IMAGES_DIR}"; do
+  local skip_upload_targets=0
+  if [[ "${SKIP_UPLOADS_DIR_PREPARE:-0}" == "1" ]]; then
+    skip_upload_targets=1
+  fi
+
+  local targets=("${DEPLOY_DATA_DIR}")
+  if (( skip_upload_targets == 0 )); then
+    targets+=("${DEPLOY_UPLOADS_DIR}" "${DEPLOY_UPLOADS_IMAGES_DIR}")
+  fi
+
+  for target in "${targets[@]}"; do
     if [[ -d "${target}" ]]; then
       existing+=("${target}")
     else
@@ -154,9 +170,17 @@ prepare_persistence_dirs() {
     return 1
   fi
 
-  if [[ ! -w "${DEPLOY_UPLOADS_DIR}" ]]; then
+  if (( skip_upload_targets == 0 )) && [[ ! -w "${DEPLOY_UPLOADS_DIR}" ]]; then
     print_error "Persistence path ${DEPLOY_UPLOADS_DIR} is not writable."
     return 1
+  fi
+
+  local backups_root
+  backups_root="$(cd "${DEPLOY_BACKUP_DIR}" 2>/dev/null && pwd || true)"
+  local data_root
+  data_root="$(cd "${DEPLOY_DATA_DIR}" 2>/dev/null && pwd || true)"
+  if [[ -n "${backups_root}" && -n "${data_root}" && "${backups_root}" == "${data_root}" ]]; then
+    print_info "backup-storage-present-within-data-root: ${DEPLOY_BACKUP_DIR}"
   fi
 
   if (( ${#created[@]} > 0 )); then
@@ -182,6 +206,53 @@ run_migrations() {
 
 compose() {
   (cd "${REPO_ROOT}" && docker compose --env-file "${DEPLOY_ENV_FILE}" "$@")
+}
+
+require_file() {
+  local file_path="$1"
+  local message="$2"
+  if [[ ! -f "${file_path}" ]]; then
+    print_error "${message}"
+    return 1
+  fi
+}
+
+require_directory() {
+  local dir_path="$1"
+  local message="$2"
+  if [[ ! -d "${dir_path}" ]]; then
+    print_error "${message}"
+    return 1
+  fi
+}
+
+copy_sqlite_consistent_snapshot() {
+  local source_db_path="$1"
+  local destination_db_path="$2"
+
+  python3 - "${source_db_path}" "${destination_db_path}" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1])
+destination = Path(sys.argv[2])
+destination.parent.mkdir(parents=True, exist_ok=True)
+
+if not source.exists():
+    print(f"source database missing: {source}", file=sys.stderr)
+    raise SystemExit(1)
+
+src_conn = sqlite3.connect(str(source))
+try:
+    dest_conn = sqlite3.connect(str(destination))
+    try:
+        src_conn.backup(dest_conn)
+    finally:
+        dest_conn.close()
+finally:
+    src_conn.close()
+PY
 }
 
 wait_for_runtime_health() {
