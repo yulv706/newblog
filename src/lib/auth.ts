@@ -18,6 +18,13 @@ type SignOptions = {
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+function getWebCrypto() {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error("A Web Crypto implementation is unavailable in this runtime.");
+  }
+
+  return globalThis.crypto;
+}
 
 function toBase64Url(bytes: Uint8Array) {
   const binary = String.fromCharCode(...bytes);
@@ -36,7 +43,8 @@ function getAuthSecret() {
 }
 
 async function importSigningKey(secret: string) {
-  return crypto.subtle.importKey(
+  const webCrypto = await getWebCrypto();
+  return webCrypto.subtle.importKey(
     "raw",
     encoder.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
@@ -47,7 +55,8 @@ async function importSigningKey(secret: string) {
 
 async function signMessage(message: string, secret: string) {
   const key = await importSigningKey(secret);
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
+  const webCrypto = await getWebCrypto();
+  const signature = await webCrypto.subtle.sign("HMAC", key, encoder.encode(message));
   return toBase64Url(new Uint8Array(signature));
 }
 
@@ -57,7 +66,8 @@ async function verifyMessage(
   secret: string
 ) {
   const key = await importSigningKey(secret);
-  return crypto.subtle.verify(
+  const webCrypto = await getWebCrypto();
+  return webCrypto.subtle.verify(
     "HMAC",
     key,
     fromBase64Url(signature),

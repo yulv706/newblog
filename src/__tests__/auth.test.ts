@@ -7,6 +7,22 @@ import {
   verifySessionToken,
 } from "@/lib/auth";
 
+const originalCrypto = globalThis.crypto;
+const nodeCrypto = process.versions.node
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require("crypto").webcrypto as Crypto)
+  : undefined;
+
+function installTestCrypto() {
+  const cryptoImpl = originalCrypto?.subtle ? originalCrypto : nodeCrypto;
+
+  if (!cryptoImpl?.subtle) {
+    throw new Error("Test runtime does not provide Web Crypto.");
+  }
+
+  globalThis.crypto = cryptoImpl;
+}
+
 function createRequest(path: string, cookie?: string) {
   const url = new URL(path, "http://localhost:3100");
   const headers = new Headers();
@@ -21,6 +37,7 @@ function createRequest(path: string, cookie?: string) {
 describe("auth JWT session token", () => {
   beforeEach(() => {
     process.env.AUTH_SECRET = "test-auth-secret";
+    installTestCrypto();
   });
 
   it("signs and verifies a valid session token", async () => {
@@ -59,9 +76,25 @@ describe("auth JWT session token", () => {
   });
 });
 
+describe("auth runtime requirements", () => {
+  beforeEach(() => {
+    process.env.AUTH_SECRET = "test-auth-secret";
+    installTestCrypto();
+  });
+
+  it("fails clearly when Web Crypto is unavailable", async () => {
+    globalThis.crypto = undefined as unknown as typeof globalThis.crypto;
+
+    await expect(signSessionToken("admin")).rejects.toThrow(
+      "A Web Crypto implementation is unavailable in this runtime."
+    );
+  });
+});
+
 describe("admin middleware protection", () => {
   beforeEach(() => {
     process.env.AUTH_SECRET = "test-auth-secret";
+    installTestCrypto();
   });
 
   it("redirects /admin to /admin/login when auth cookie is missing", async () => {

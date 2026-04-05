@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { HomepagePostCard } from "@/lib/posts";
 
 type HomePostCardDictionary = {
+  noCoverImageLabel: string;
   uncategorizedLabel: string;
   coverImageAltTemplate: string;
   dateFallbackLabel: string;

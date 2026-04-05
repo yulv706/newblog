@@ -178,6 +178,7 @@ describe("homepage data", () => {
         }}
         locale="en"
         dictionary={{
+          noCoverImageLabel: "No Cover Image",
           uncategorizedLabel: "Uncategorized",
           coverImageAltTemplate: "{title} cover image",
           dateFallbackLabel: "—",
@@ -208,6 +209,7 @@ describe("homepage data", () => {
         }}
         locale="en"
         dictionary={{
+          noCoverImageLabel: "No Cover Image",
           uncategorizedLabel: "Uncategorized",
           coverImageAltTemplate: "{title} cover image",
           dateFallbackLabel: "—",

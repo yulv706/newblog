@@ -3,6 +3,8 @@ import { AUTH_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { normalizeLocale } from "@/lib/i18n/config";
 
+export const runtime = "nodejs";
+
 function getRequestDictionary(request: NextRequest) {
   const locale = normalizeLocale(request.cookies.get("locale")?.value);
   return getDictionary(locale);
