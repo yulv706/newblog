@@ -25,6 +25,7 @@ require_directory "${DEPLOY_BACKUP_STAGING_DIR}/public/uploads" "Restore archive
 
 mkdir -p "${DEPLOY_DATA_DIR}"
 mkdir -p "$(dirname "${DEPLOY_UPLOADS_DIR}")"
+mkdir -p "${DEPLOY_UPLOADS_DIR}"
 
 backup_dir_inside_data_root=0
 case "${DEPLOY_BACKUP_DIR}" in

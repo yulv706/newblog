@@ -307,4 +307,65 @@ describe("canonical deployment entrypoints", () => {
     expect(restore.stderr).toContain("is not empty");
     expect(readFileSync(path.join(dataDir, "keep.db"), "utf8")).toBe("existing");
   });
+
+  it("restore keeps pristine-workspace output clean while preserving loud failures", () => {
+    const tempDir = makeTempDir();
+    const envFile = path.join(tempDir, "deploy", ".env.production");
+    const archiveDir = path.join(tempDir, "archive");
+    const pristineDataDir = path.join(tempDir, "restored-data");
+    const pristineUploadsDir = path.join(tempDir, "restored-public-assets", "uploads");
+    mkdirSync(path.dirname(envFile), { recursive: true });
+    mkdirSync(path.join(archiveDir, "data"), { recursive: true });
+    mkdirSync(path.join(archiveDir, "public", "uploads", "images"), { recursive: true });
+    writeFileSync(
+      envFile,
+      [
+        "AUTH_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef",
+        "ADMIN_USERNAME=operator-user",
+        "ADMIN_PASSWORD=StrongerPassword!234",
+        "NEXT_PUBLIC_SITE_URL=http://example.com",
+        "NGINX_PORT=8080",
+      ].join("\n")
+    );
+    writeFileSync(path.join(archiveDir, "backup-manifest.txt"), "ok");
+    writeFileSync(path.join(archiveDir, "data", "blog.db"), "sqlite");
+    writeFileSync(path.join(archiveDir, "public", "uploads", "images", "proof.txt"), "asset");
+
+    const archivePath = path.join(tempDir, "fixture.tar.gz");
+    const tarResult = spawnSync("tar", ["-C", archiveDir, "-czf", archivePath, "."], {
+      encoding: "utf8",
+    });
+    expect(tarResult.status).toBe(0);
+
+    const restore = runScript("restore.sh", [], {
+      DEPLOY_ENV_FILE: envFile,
+      DEPLOY_DATA_DIR: pristineDataDir,
+      DEPLOY_UPLOADS_DIR: pristineUploadsDir,
+      DEPLOY_RESTORE_ARCHIVE: archivePath,
+    });
+
+    expect(restore.status).toBe(0);
+    expect(restore.stderr).not.toContain("No such file or directory");
+    expect(readFileSync(path.join(pristineUploadsDir, "images", "proof.txt"), "utf8")).toBe("asset");
+
+    rmSync(archiveDir, { recursive: true, force: true });
+    mkdirSync(path.join(archiveDir, "data"), { recursive: true });
+    writeFileSync(path.join(archiveDir, "backup-manifest.txt"), "ok");
+    writeFileSync(path.join(archiveDir, "data", "blog.db"), "sqlite");
+    const badArchivePath = path.join(tempDir, "fixture-missing-uploads.tar.gz");
+    const badTarResult = spawnSync("tar", ["-C", archiveDir, "-czf", badArchivePath, "."], {
+      encoding: "utf8",
+    });
+    expect(badTarResult.status).toBe(0);
+
+    const missingUploadsRestore = runScript("restore.sh", [], {
+      DEPLOY_ENV_FILE: envFile,
+      DEPLOY_DATA_DIR: path.join(tempDir, "missing-uploads-data"),
+      DEPLOY_UPLOADS_DIR: path.join(tempDir, "missing-uploads-public", "uploads"),
+      DEPLOY_RESTORE_ARCHIVE: badArchivePath,
+    });
+
+    expect(missingUploadsRestore.status).not.toBe(0);
+    expect(missingUploadsRestore.stderr).toContain("missing public/uploads");
+  });
 });
