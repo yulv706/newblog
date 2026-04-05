@@ -63,6 +63,12 @@ describe("canonical deployment entrypoints", () => {
 
     expect(dockerfile).toContain("HEALTHCHECK");
     expect(nginxConfig).toContain("location = /healthz");
+    expect(readFileSync(path.join(deployDir, "lib.sh"), "utf8")).toContain(
+      'docker compose --env-file "${DEPLOY_ENV_FILE}"'
+    );
+    expect(readFileSync(path.join(deployDir, "start.sh"), "utf8")).toContain(
+      "wait_for_runtime_health"
+    );
   });
 
   it("check reports every invalid env key in one run and exits before startup", () => {

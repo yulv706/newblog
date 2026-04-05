@@ -9,7 +9,9 @@ DEPLOY_DATA_DIR="${DEPLOY_DATA_DIR:-${REPO_ROOT}/data}"
 DEPLOY_UPLOADS_DIR="${DEPLOY_UPLOADS_DIR:-${REPO_ROOT}/public/uploads}"
 DEPLOY_UPLOADS_IMAGES_DIR="${DEPLOY_UPLOADS_DIR}/images"
 DEPLOY_DB_PATH="${DEPLOY_DB_PATH:-${DEPLOY_DATA_DIR}/blog.db}"
-DEPLOY_RUNTIME_HEALTH_URL="${DEPLOY_RUNTIME_HEALTH_URL:-http://localhost:${NGINX_PORT:-8080}/healthz}"
+DEPLOY_HEALTH_PATH="${DEPLOY_HEALTH_PATH:-/healthz}"
+DEPLOY_RUNTIME_HEALTH_URL="${DEPLOY_RUNTIME_HEALTH_URL:-http://localhost:${NGINX_PORT:-8080}${DEPLOY_HEALTH_PATH}}"
+DEPLOY_START_TIMEOUT_SECONDS="${DEPLOY_START_TIMEOUT_SECONDS:-90}"
 
 print_info() {
   printf '[deploy] %s\n' "$*"
@@ -42,7 +44,7 @@ load_env_file() {
 }
 
 ensure_runtime_env_paths() {
-  export DEPLOY_ENV_FILE DEPLOY_DATA_DIR DEPLOY_UPLOADS_DIR DEPLOY_UPLOADS_IMAGES_DIR DEPLOY_DB_PATH
+  export DEPLOY_ENV_FILE DEPLOY_DATA_DIR DEPLOY_UPLOADS_DIR DEPLOY_UPLOADS_IMAGES_DIR DEPLOY_DB_PATH DEPLOY_HEALTH_PATH DEPLOY_RUNTIME_HEALTH_URL DEPLOY_START_TIMEOUT_SECONDS
 }
 
 append_issue() {
@@ -179,5 +181,40 @@ run_migrations() {
 }
 
 compose() {
-  (cd "${REPO_ROOT}" && docker compose "$@")
+  (cd "${REPO_ROOT}" && docker compose --env-file "${DEPLOY_ENV_FILE}" "$@")
+}
+
+wait_for_runtime_health() {
+  local timeout_seconds="${1:-${DEPLOY_START_TIMEOUT_SECONDS}}"
+  local started_at
+  started_at="$(date +%s)"
+
+  print_info "Waiting for readiness probe ${DEPLOY_RUNTIME_HEALTH_URL} (timeout: ${timeout_seconds}s)"
+
+  while true; do
+    if curl -fsS --max-time 5 "${DEPLOY_RUNTIME_HEALTH_URL}" >/tmp/blog-runtime-health.$$ 2>/tmp/blog-runtime-health-error.$$; then
+      local body
+      body="$(cat /tmp/blog-runtime-health.$$)"
+      rm -f /tmp/blog-runtime-health.$$ /tmp/blog-runtime-health-error.$$
+      print_info "Readiness probe passed: ${body}"
+      return 0
+    fi
+
+    local now
+    now="$(date +%s)"
+    if (( now - started_at >= timeout_seconds )); then
+      local curl_error=""
+      if [[ -f /tmp/blog-runtime-health-error.$$ ]]; then
+        curl_error="$(cat /tmp/blog-runtime-health-error.$$)"
+      fi
+      rm -f /tmp/blog-runtime-health.$$ /tmp/blog-runtime-health-error.$$
+      print_error "Timed out waiting for readiness probe ${DEPLOY_RUNTIME_HEALTH_URL} after ${timeout_seconds}s."
+      if [[ -n "${curl_error}" ]]; then
+        print_error "Last probe error: ${curl_error}"
+      fi
+      return 1
+    fi
+
+    sleep 2
+  done
 }

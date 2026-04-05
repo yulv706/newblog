@@ -20,4 +20,10 @@ fi
 print_info "Starting compose stack"
 compose up --build -d
 
-print_info "Compose stack started; health verification will be enforced by the readiness-gated follow-up feature."
+if ! wait_for_runtime_health; then
+  print_error "Deployment failed to become ready."
+  print_error "Inspect the stack with 'docker compose --env-file ${DEPLOY_ENV_FILE} ps' and 'docker compose --env-file ${DEPLOY_ENV_FILE} logs app nginx'."
+  exit 1
+fi
+
+print_info "Compose stack is running and readiness-gated on ${DEPLOY_HEALTH_PATH}"
