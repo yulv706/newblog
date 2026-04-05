@@ -2,11 +2,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { eq } from "drizzle-orm";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import * as bcryptjs from "bcryptjs";
 import * as schema from "@/lib/db/schema";
-import { comments, postTags, posts, tags } from "@/lib/db/schema";
+import { comments, postTags, posts, siteSettings, tags } from "@/lib/db/schema";
 import { getDashboardStats } from "@/lib/admin/dashboard";
 import {
   buildImageReferenceReplacements,
@@ -22,6 +24,7 @@ import {
   searchPublishedPosts,
   togglePostStatus,
 } from "@/lib/posts";
+import { validateAdminCredentials } from "@/lib/admin-auth";
 import { buildRssFeedXml, buildSitemapXml } from "@/lib/seo";
 
 describe("cross-area integration coverage", () => {
@@ -48,6 +51,7 @@ describe("cross-area integration coverage", () => {
     testDb.delete(comments).run();
     testDb.delete(posts).run();
     testDb.delete(tags).run();
+    testDb.delete(siteSettings).run();
   });
 
   afterAll(() => {
@@ -226,5 +230,109 @@ excerpt: E2E markdown upload and publish flow
     );
     expect(afterDelete.totalPosts).toBe(0);
     expect(afterDelete.publishedPosts).toBe(0);
+  });
+
+  it("authenticates the configured admin after first deploy and persists the seeded password hash", async () => {
+    const originalUsername = process.env.ADMIN_USERNAME;
+    const originalPassword = process.env.ADMIN_PASSWORD;
+
+    process.env.ADMIN_USERNAME = "durable-operator";
+    process.env.ADMIN_PASSWORD = "PersistentPassword!234";
+
+    try {
+      expect(
+        await validateAdminCredentials(
+          "durable-operator",
+          "PersistentPassword!234",
+          testDb as unknown as Parameters<typeof validateAdminCredentials>[2]
+        )
+      ).toBe(true);
+
+      const storedHash = testDb
+        .select({ value: siteSettings.value })
+        .from(siteSettings)
+        .where(eq(siteSettings.key, "admin_password_hash"))
+        .get();
+
+      expect(storedHash?.value).toBeTypeOf("string");
+      expect(storedHash?.value).not.toBe("PersistentPassword!234");
+      expect(await bcryptjs.compare("PersistentPassword!234", storedHash!.value)).toBe(true);
+
+      process.env.ADMIN_PASSWORD = "ChangedAfterSeed!678";
+      expect(
+        await validateAdminCredentials(
+          "durable-operator",
+          "PersistentPassword!234",
+          testDb as unknown as Parameters<typeof validateAdminCredentials>[2]
+        )
+      ).toBe(true);
+      expect(
+        await validateAdminCredentials(
+          "durable-operator",
+          "ChangedAfterSeed!678",
+          testDb as unknown as Parameters<typeof validateAdminCredentials>[2]
+        )
+      ).toBe(false);
+    } finally {
+      if (originalUsername === undefined) {
+        delete process.env.ADMIN_USERNAME;
+      } else {
+        process.env.ADMIN_USERNAME = originalUsername;
+      }
+
+      if (originalPassword === undefined) {
+        delete process.env.ADMIN_PASSWORD;
+      } else {
+        process.env.ADMIN_PASSWORD = originalPassword;
+      }
+    }
+  });
+
+  it("preserves media-backed published content across database and uploads restoration", async () => {
+    const uploadsDir = path.join(tempDir, "uploads-fixture");
+    fs.mkdirSync(path.join(uploadsDir, "images"), { recursive: true });
+    const assetPath = path.join(uploadsDir, "images", "durability-proof.txt");
+    fs.writeFileSync(assetPath, "upload-proof");
+
+    const created = await createPost(
+      {
+        title: "Durability proof post",
+        slug: "durability-proof-post",
+        date: "2026-04-05",
+        content:
+          "Published content that references ![](/uploads/images/durability-proof.txt) after restore.",
+        excerpt: "proof that restored content still references restored uploads",
+        categoryId: "",
+        tags: "durability, restore",
+        coverImage: "",
+        status: "published",
+      },
+      testDb as unknown as Parameters<typeof createPost>[1]
+    );
+
+    const backupDbPath = path.join(tempDir, "durability-backup.db");
+    await sqlite.backup(backupDbPath);
+
+    testDb.delete(postTags).run();
+    testDb.delete(posts).run();
+    fs.rmSync(uploadsDir, { recursive: true, force: true });
+
+    const restoredSqlite = new Database(backupDbPath, { readonly: true });
+    restoredSqlite.pragma("foreign_keys = ON");
+    const restoredDb = drizzle(restoredSqlite, { schema });
+    fs.mkdirSync(path.join(uploadsDir, "images"), { recursive: true });
+    fs.writeFileSync(assetPath, "upload-proof");
+
+    const restoredPost = await getPublishedPostDetailBySlug(
+      created.slug,
+      restoredDb as unknown as Parameters<typeof getPublishedPostDetailBySlug>[1]
+    );
+
+    expect(restoredPost?.title).toBe("Durability proof post");
+    expect(restoredPost?.content).toContain("/uploads/images/durability-proof.txt");
+    expect(fs.readFileSync(assetPath, "utf8")).toBe("upload-proof");
+
+    restoredSqlite.close();
+    fs.rmSync(backupDbPath, { force: true });
   });
 });

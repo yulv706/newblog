@@ -15,8 +15,14 @@ function getInitialAdminPassword() {
   return process.env.ADMIN_PASSWORD ?? DEFAULT_ADMIN_PASSWORD;
 }
 
-async function upsertAdminPasswordHash(passwordHash: string) {
-  db.insert(siteSettings)
+type AdminAuthDatabase = Pick<typeof db, "insert" | "select">;
+
+async function upsertAdminPasswordHash(
+  passwordHash: string,
+  database: AdminAuthDatabase = db
+) {
+  database
+    .insert(siteSettings)
     .values({
       key: ADMIN_PASSWORD_HASH_KEY,
       value: passwordHash,
@@ -32,8 +38,8 @@ async function upsertAdminPasswordHash(passwordHash: string) {
     .run();
 }
 
-async function getOrCreateAdminPasswordHash() {
-  const existingPasswordHash = db
+async function getOrCreateAdminPasswordHash(database: AdminAuthDatabase = db) {
+  const existingPasswordHash = database
     .select({
       value: siteSettings.value,
     })
@@ -46,18 +52,19 @@ async function getOrCreateAdminPasswordHash() {
   }
 
   const passwordHash = await bcryptjs.hash(getInitialAdminPassword(), 10);
-  await upsertAdminPasswordHash(passwordHash);
+  await upsertAdminPasswordHash(passwordHash, database);
   return passwordHash;
 }
 
 export async function validateAdminCredentials(
   username: string,
-  password: string
+  password: string,
+  database: AdminAuthDatabase = db
 ) {
   if (username !== getAdminUsername()) {
     return false;
   }
 
-  const passwordHash = await getOrCreateAdminPasswordHash();
+  const passwordHash = await getOrCreateAdminPasswordHash(database);
   return bcryptjs.compare(password, passwordHash);
 }
