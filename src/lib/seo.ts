@@ -16,7 +16,7 @@ export const LOCALE_OG_MAP: Record<AppLocale, string> = {
   en: "en_US",
 };
 
-const DEFAULT_SITE_URL = "http://localhost:3100";
+const DEFAULT_SITE_URL = "http://localhost:8080";
 
 export type SeoPostEntry = {
   title: string;

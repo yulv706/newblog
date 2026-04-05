@@ -38,7 +38,9 @@
     "tailwind-merge": "^3.2.0",
     "typescript": "^5.9.3",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.1.0"
+    "unist-util-visit": "^5.1.0",
+    "@fontsource/inter": "^5.2.6",
+    "@fontsource/jetbrains-mono": "^5.2.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

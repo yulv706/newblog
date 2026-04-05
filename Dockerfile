@@ -35,6 +35,8 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/src/lib/db/migrations ./src/lib/db/migrations
 
+ENV NODE_OPTIONS=--require=/app/scripts/node-runtime-setup.cjs
+
 RUN mkdir -p data public/uploads/images
 
 EXPOSE 3000
@@ -42,4 +44,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=6 \
   CMD curl -fsS http://localhost:3000/healthz >/dev/null || exit 1
 
-CMD ["sh", "-c", "node scripts/run-migrations.js && npm run start"]
+CMD ["sh", "-c", "node scripts/run-migrations.js && node ./node_modules/next/dist/bin/next start"]
