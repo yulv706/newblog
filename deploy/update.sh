@@ -6,7 +6,8 @@ source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 "${DEPLOY_DIR}/init.sh"
 
 print_info "Rebuilding and restarting compose stack without deleting persisted data"
-compose up --build -d
+print_info "Forcing service recreation so nginx and app pick up updated runtime configuration"
+compose up --build -d --force-recreate
 
 if ! wait_for_runtime_health; then
   print_error "Updated deployment failed to become ready."

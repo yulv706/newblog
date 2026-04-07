@@ -234,4 +234,22 @@ describe("post-detail data", () => {
     expect(markup).not.toContain("/_next/image");
     expect(markup).not.toContain("Article");
   });
+
+  it("falls back on detail pages when the cover path is not root-relative or absolute", () => {
+    const markup = renderToStaticMarkup(
+      <CoverMedia
+        src="img/cover.png"
+        alt="Broken cover path"
+        title="Broken Detail Cover"
+        className="h-auto max-h-[460px] w-full object-cover"
+        fallbackClassName="min-h-[220px] sm:min-h-[280px] lg:min-h-[340px]"
+        fallbackAccentClassName="top-6 inset-x-6"
+        loading="eager"
+      />
+    );
+
+    expect(markup).toContain("Article");
+    expect(markup).toContain("BD");
+    expect(markup).not.toContain('src="img/cover.png"');
+  });
 });

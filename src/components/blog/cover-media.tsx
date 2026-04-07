@@ -9,6 +9,19 @@ function isRemoteUrl(src: string) {
   return /^https?:\/\//i.test(src);
 }
 
+function getRenderableImageSrc(src: string | null) {
+  const normalized = src?.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.startsWith("/") || isRemoteUrl(normalized)) {
+    return normalized;
+  }
+
+  return null;
+}
+
 type CoverFallbackProps = {
   title: string;
   className?: string;
@@ -87,9 +100,10 @@ export function CoverMedia({
   loading = "lazy",
 }: CoverMediaProps) {
   const [hasError, setHasError] = useState(false);
-  const isRemote = src ? isRemoteUrl(src) : false;
+  const renderableSrc = getRenderableImageSrc(src);
+  const isRemote = renderableSrc ? isRemoteUrl(renderableSrc) : false;
 
-  if (!src || hasError) {
+  if (!renderableSrc || hasError) {
     return (
       <CoverFallback
         title={title}
@@ -102,7 +116,7 @@ export function CoverMedia({
   return (
     <div className={cn("relative h-full w-full", className)}>
       <Image
-        src={src}
+        src={renderableSrc}
         alt={alt}
         className="h-full w-full object-cover"
         loading={loading}

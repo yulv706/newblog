@@ -73,6 +73,15 @@ function getValidationErrorMessage(input: PostFormInput, messages?: {
     return messages?.contentRequired ?? "Content is required.";
   }
 
+  const normalizedCoverImage = input.coverImage.trim();
+  if (
+    normalizedCoverImage &&
+    !normalizedCoverImage.startsWith("/") &&
+    !/^https?:\/\//i.test(normalizedCoverImage)
+  ) {
+    return "Cover image must be an absolute http(s) URL or a root-relative path starting with '/'.";
+  }
+
   return null;
 }
 
@@ -269,8 +278,20 @@ export async function createPostAction(
     };
   }
 
-  const result = await createPost(input);
-  revalidateAdminAndBlogPaths(result.slug);
+  try {
+    const result = await createPost(input);
+    revalidateAdminAndBlogPaths(result.slug);
+  } catch (error) {
+    console.error("createPostAction failed", error);
+
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create post.",
+    };
+  }
+
   redirect("/admin/posts");
 }
 
@@ -295,14 +316,26 @@ export async function updatePostAction(
     };
   }
 
-  const result = await updatePost(postId, input);
-  if (!result) {
+  try {
+    const result = await updatePost(postId, input);
+    if (!result) {
+      return {
+        error: dictionary.admin.messages.postNotFound,
+      };
+    }
+
+    revalidateAdminAndBlogPaths(result.slug);
+  } catch (error) {
+    console.error("updatePostAction failed", error);
+
     return {
-      error: dictionary.admin.messages.postNotFound,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to update post.",
     };
   }
 
-  revalidateAdminAndBlogPaths(result.slug);
   redirect("/admin/posts");
 }
 

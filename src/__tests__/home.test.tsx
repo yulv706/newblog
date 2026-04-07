@@ -222,4 +222,34 @@ describe("homepage data", () => {
     expect(markup).not.toContain("/_next/image");
     expect(markup).not.toContain("Article");
   });
+
+  it("falls back gracefully when a persisted cover path is not valid for next/image", () => {
+    const markup = renderToStaticMarkup(
+      <HomePostCard
+        post={{
+          id: 3,
+          title: "Broken Relative Cover",
+          slug: "broken-relative-cover",
+          excerpt: "A post with a relative cover path from imported markdown.",
+          coverImage: "img/cover.png",
+          createdAt: "2026-03-30T12:00:00.000Z",
+          publishedAt: "2026-03-30T12:00:00.000Z",
+          categoryName: "Design",
+          categorySlug: "design",
+          tags: [],
+        }}
+        locale="en"
+        dictionary={{
+          noCoverImageLabel: "No Cover Image",
+          uncategorizedLabel: "Uncategorized",
+          coverImageAltTemplate: "{title} cover image",
+          dateFallbackLabel: "—",
+        }}
+      />
+    );
+
+    expect(markup).toContain("Article");
+    expect(markup).toContain("BR");
+    expect(markup).not.toContain('src="img/cover.png"');
+  });
 });

@@ -17,8 +17,8 @@ if [[ ! -w "${DEPLOY_DATA_DIR}" || ! -w "${DEPLOY_UPLOADS_DIR}" ]]; then
   exit 1
 fi
 
-print_info "Starting compose stack"
-compose up --build -d
+print_info "Starting compose stack and recreating services to pick up runtime config changes"
+compose up --build -d --force-recreate
 
 if ! wait_for_runtime_health; then
   print_error "Deployment failed to become ready."
