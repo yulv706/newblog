@@ -12,6 +12,7 @@ import * as schema from "@/lib/db/schema";
 import { categories, postTags, posts, tags } from "@/lib/db/schema";
 import {
   extractTableOfContents,
+  renderMarkdownToHtml,
   renderPostMarkdownToHtml,
 } from "@/lib/markdown";
 import {
@@ -46,6 +47,30 @@ const answer = 42;
       ].join("\n")
     );
 
+    expect(html).toContain(
+      '<img src="/uploads/images/pasted-image-20260316162343.png" alt="pasted-image-20260316162343"'
+    );
+    expect(html).not.toContain("![[/uploads/images/pasted-image-20260316162343.png]]");
+  });
+
+  it("renders inline Obsidian wiki-image embeds when mixed with paragraph text", async () => {
+    const html = await renderPostMarkdownToHtml(
+      "今天打开飞书就看到了这个 不错不错hhhhh ![[/uploads/images/pasted-image-20260316162343.png]]"
+    );
+
+    expect(html).toContain("今天打开飞书就看到了这个");
+    expect(html).toContain(
+      '<img src="/uploads/images/pasted-image-20260316162343.png" alt="pasted-image-20260316162343"'
+    );
+    expect(html).not.toContain("![[/uploads/images/pasted-image-20260316162343.png]]");
+  });
+
+  it("renders inline Obsidian wiki-image embeds in the admin preview pipeline", async () => {
+    const html = await renderMarkdownToHtml(
+      "今天打开飞书就看到了这个 不错不错hhhhh ![[/uploads/images/pasted-image-20260316162343.png]]"
+    );
+
+    expect(html).toContain("今天打开飞书就看到了这个");
     expect(html).toContain(
       '<img src="/uploads/images/pasted-image-20260316162343.png" alt="pasted-image-20260316162343"'
     );

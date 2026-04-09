@@ -11,8 +11,10 @@ import { toString } from "mdast-util-to-string";
 import { visit } from "unist-util-visit";
 import GithubSlugger from "github-slugger";
 import type { Element, Root as HastRoot } from "hast";
-import type { Heading, Root as MdastRoot } from "mdast";
+import type { Heading, PhrasingContent, Root as MdastRoot, Text } from "mdast";
 import type { Plugin } from "unified";
+
+const OBSIDIAN_WIKI_IMAGE_PATTERN = /!\[\[([^[\]\n]+?)]]/g;
 
 function getWikiImageAltText(reference: string) {
   const normalized = reference.split(/[?#|]/, 1)[0]?.trim() ?? reference.trim();
@@ -21,39 +23,79 @@ function getWikiImageAltText(reference: string) {
   return withoutExtension || "image";
 }
 
+function buildObsidianWikiImageNodes(value: string): PhrasingContent[] | null {
+  const matches = Array.from(value.matchAll(OBSIDIAN_WIKI_IMAGE_PATTERN));
+  if (matches.length === 0) {
+    return null;
+  }
+
+  const children: PhrasingContent[] = [];
+  let cursor = 0;
+
+  for (const match of matches) {
+    const fullMatch = match[0];
+    const reference = match[1]?.trim();
+    const startIndex = match.index ?? -1;
+
+    if (!fullMatch || !reference || startIndex < 0) {
+      continue;
+    }
+
+    const leadingText = value.slice(cursor, startIndex);
+    if (leadingText) {
+      children.push({
+        type: "text",
+        value: leadingText,
+      });
+    }
+
+    children.push({
+      type: "image",
+      url: reference,
+      alt: getWikiImageAltText(reference),
+    });
+
+    cursor = startIndex + fullMatch.length;
+  }
+
+  const trailingText = value.slice(cursor);
+  if (trailingText) {
+    children.push({
+      type: "text",
+      value: trailingText,
+    });
+  }
+
+  return children;
+}
+
 const remarkObsidianWikiImages: Plugin<[], MdastRoot> = () => {
   return (tree) => {
-    visit(tree, "paragraph", (node, index, parent) => {
-      if (!parent || typeof index !== "number") {
+    visit(tree, "paragraph", (node) => {
+      const nextChildren: PhrasingContent[] = [];
+      let didRewrite = false;
+
+      for (const child of node.children) {
+        if (child.type !== "text") {
+          nextChildren.push(child);
+          continue;
+        }
+
+        const rewrittenChildren = buildObsidianWikiImageNodes((child as Text).value);
+        if (!rewrittenChildren) {
+          nextChildren.push(child);
+          continue;
+        }
+
+        nextChildren.push(...rewrittenChildren);
+        didRewrite = true;
+      }
+
+      if (!didRewrite) {
         return;
       }
 
-      if (node.children.length !== 1 || node.children[0]?.type !== "text") {
-        return;
-      }
-
-      const textNode = node.children[0];
-      const value = textNode.value.trim();
-      const match = value.match(/^!\[\[([^[\]\n]+?)]]$/);
-      if (!match) {
-        return;
-      }
-
-      const reference = match[1]?.trim();
-      if (!reference) {
-        return;
-      }
-
-      parent.children[index] = {
-        type: "paragraph",
-        children: [
-          {
-            type: "image",
-            url: reference,
-            alt: getWikiImageAltText(reference),
-          },
-        ],
-      };
+      node.children = nextChildren;
     });
   };
 };
