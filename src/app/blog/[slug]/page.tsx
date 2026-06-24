@@ -5,12 +5,14 @@ import { CoverMedia } from "@/components/blog/cover-media";
 import { CodeBlockEnhancer } from "@/components/blog/code-block-enhancer";
 import { CommentForm } from "@/components/blog/comment-form";
 import { CommentList } from "@/components/blog/comment-list";
+import { PostContent } from "@/components/blog/post-content";
 import { PostPaginationNav } from "@/components/blog/post-pagination-nav";
 import { TableOfContents } from "@/components/blog/table-of-contents";
 import { getApprovedCommentsForPost } from "@/lib/comments";
 import { getDateLocale } from "@/lib/i18n/config";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { extractTableOfContents, renderPostMarkdownToHtml } from "@/lib/markdown";
+import { hasPendulumContent, parseContentSegments } from "@/lib/pendulum";
 import { getAdjacentPublishedPosts, getPublishedPostDetailBySlug } from "@/lib/posts";
 import {
   buildLocalizedMetadataFields,
@@ -113,8 +115,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
-  const [html, tocHeadings, adjacentPosts, approvedComments] = await Promise.all([
-    renderPostMarkdownToHtml(post.content),
+  const usePendulum = hasPendulumContent(post.content);
+
+  const [html, segments, tocHeadings, adjacentPosts, approvedComments] = await Promise.all([
+    usePendulum ? Promise.resolve("") : renderPostMarkdownToHtml(post.content),
+    usePendulum ? parseContentSegments(post.content) : Promise.resolve([]),
     Promise.resolve(extractTableOfContents(post.content)),
     getAdjacentPublishedPosts(post.id),
     getApprovedCommentsForPost(post.id),
@@ -198,13 +203,23 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             <TableOfContents headings={tocHeadings} collapsible />
           </div>
 
-          <section
-            id="blog-post-content"
-            className="prose markdown-prose max-w-none prose-neutral dark:prose-invert lg:max-w-[72ch]"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-
-          <CodeBlockEnhancer containerId="blog-post-content" />
+          {usePendulum ? (
+            <>
+              <div id="blog-post-content">
+                <PostContent segments={segments} />
+              </div>
+              <CodeBlockEnhancer containerId="blog-post-content" />
+            </>
+          ) : (
+            <>
+              <section
+                id="blog-post-content"
+                className="prose markdown-prose max-w-none prose-neutral dark:prose-invert lg:max-w-[72ch]"
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+              <CodeBlockEnhancer containerId="blog-post-content" />
+            </>
+          )}
 
           <section className="space-y-4">
             <div className="space-y-1">
