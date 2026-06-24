@@ -14,29 +14,17 @@ interface CharState {
   hotTime: number;
 }
 
-interface PendulumConfig {
-  maxAngle?: number;
-  angularFreq?: number;
-  damping?: number;
-  influenceRadius?: number;
-  pushStrength?: number;
-  returnStrength?: number;
-  velocityDamping?: number;
-  colorHot?: string;
-  colorCool?: string;
-}
-
-const DEFAULT_CONFIG: Required<PendulumConfig> = {
-  maxAngle: Math.PI / 2.8,
-  angularFreq: 1.6,
-  damping: 0.06,
-  influenceRadius: 90,
-  pushStrength: 3.5,
-  returnStrength: 0.06,
-  velocityDamping: 0.88,
-  colorHot: "#e63946",
-  colorCool: "#3b82f6",
-};
+// Real pendulum physics: T = 2π√(L/g)
+// For L≈2m, g=9.81: T≈2.84s → ω = 2π/T ≈ 2.21 rad/s
+// This gives a slow, realistic grandfather-clock swing
+const PENDULUM_OMEGA = 2.21;
+const PENDULUM_MAX_ANGLE = Math.PI / 3.2; // ~56° wide swing
+const PENDULUM_DAMPING = 0.008; // very slow natural decay
+const INFLUENCE_RADIUS = 75;
+const PUSH_STRENGTH = 2.8;
+const VELOCITY_DAMPING = 0.94; // friction only, NO spring-back
+const COLOR_HOT = "#e63946";
+const COLOR_COOL = "#3b82f6";
 
 function pointToSegmentDist(
   px: number, py: number,
@@ -54,14 +42,7 @@ function pointToSegmentDist(
   return Math.sqrt((px - nearX) ** 2 + (py - nearY) ** 2);
 }
 
-export function PendulumSwing({
-  text,
-  config: userConfig,
-}: {
-  text: string;
-  config?: PendulumConfig;
-}) {
-  const cfg = { ...DEFAULT_CONFIG, ...userConfig };
+export function PendulumSwing({ text }: { text: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const [mounted, setMounted] = useState(false);
@@ -76,7 +57,7 @@ export function PendulumSwing({
     const container = containerRef.current;
     container.innerHTML = "";
 
-    // --- Phase 1: Measure character positions using normal flow ---
+    // === Phase 1: Measure character positions via normal flow ===
     const measureDiv = document.createElement("div");
     measureDiv.style.cssText =
       "position:relative;visibility:hidden;white-space:pre-wrap;word-break:break-word;font-size:inherit;line-height:inherit;letter-spacing:inherit;";
@@ -97,7 +78,6 @@ export function PendulumSwing({
       tempSpans.push(span);
     }
 
-    // Read positions
     const containerRect = container.getBoundingClientRect();
     const charData: CharState[] = [];
 
@@ -118,7 +98,7 @@ export function PendulumSwing({
       });
     }
 
-    // --- Phase 2: Switch to absolute positioning ---
+    // === Phase 2: Absolute positioning for animation ===
     for (const c of charData) {
       c.el.style.visibility = "visible";
       c.el.style.position = "absolute";
@@ -130,65 +110,73 @@ export function PendulumSwing({
     }
     measureDiv.remove();
 
-    // --- Phase 3: Create pendulum SVG ---
+    // === Phase 3: Full-viewport fixed pendulum overlay ===
+    const overlay = document.createElement("div");
+    overlay.style.cssText =
+      "position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9998;overflow:visible;";
+    document.body.appendChild(overlay);
+
     const svgNS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(svgNS, "svg");
     svg.style.cssText =
-      "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;overflow:visible;";
-    container.appendChild(svg);
+      "position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;";
+    overlay.appendChild(svg);
 
+    // Pendulum string
     const pendLine = document.createElementNS(svgNS, "line");
-    pendLine.setAttribute("stroke", cfg.colorCool);
-    pendLine.setAttribute("stroke-width", "2");
-    pendLine.setAttribute("stroke-opacity", "0.5");
+    pendLine.setAttribute("stroke", COLOR_COOL);
+    pendLine.setAttribute("stroke-width", "1.5");
+    pendLine.setAttribute("stroke-opacity", "0.45");
     svg.appendChild(pendLine);
 
+    // Pendulum bob (weight)
     const pendBob = document.createElementNS(svgNS, "circle");
-    pendBob.setAttribute("r", "8");
-    pendBob.setAttribute("fill", cfg.colorCool);
+    pendBob.setAttribute("r", "12");
+    pendBob.setAttribute("fill", COLOR_COOL);
     pendBob.setAttribute("fill-opacity", "0.85");
+    pendBob.setAttribute("stroke", "#1e40af");
+    pendBob.setAttribute("stroke-width", "1");
+    pendBob.setAttribute("stroke-opacity", "0.3");
     svg.appendChild(pendBob);
 
+    // Pivot point
     const pendPivot = document.createElementNS(svgNS, "circle");
-    pendPivot.setAttribute("r", "4");
-    pendPivot.setAttribute("fill", "#888");
-    pendPivot.setAttribute("fill-opacity", "0.5");
+    pendPivot.setAttribute("r", "5");
+    pendPivot.setAttribute("fill", "#555");
+    pendPivot.setAttribute("fill-opacity", "0.6");
     svg.appendChild(pendPivot);
 
-    // --- Phase 4: Pendulum config ---
-    const containerWidth = container.clientWidth;
-    const containerHeight = Math.max(container.clientHeight, 300);
-    const pivotX = containerWidth / 2;
-    const pivotY = 10;
-    const length = Math.min(containerHeight * 0.85, 380);
-
+    // === Phase 4: Animation loop ===
     let time = 0;
-    let cycleStart = 0;
+    let lastTimestamp = performance.now();
 
-    const animate = () => {
-      const dt = 1 / 60;
+    const animate = (now: number) => {
+      const dt = Math.min((now - lastTimestamp) / 1000, 1 / 30);
+      lastTimestamp = now;
       time += dt;
 
-      // Re-energize pendulum when amplitude decays below threshold
-      let elapsed = time - cycleStart;
-      let amplitude = cfg.maxAngle * Math.exp(-cfg.damping * elapsed);
-      if (amplitude < cfg.maxAngle * 0.35) {
-        cycleStart = time;
-        elapsed = 0;
-        amplitude = cfg.maxAngle;
+      // Damped harmonic oscillator — re-energize when nearly stopped
+      let amplitude = PENDULUM_MAX_ANGLE * Math.exp(-PENDULUM_DAMPING * time);
+      if (amplitude < PENDULUM_MAX_ANGLE * 0.45) {
+        time = 0;
+        amplitude = PENDULUM_MAX_ANGLE;
       }
 
-      const angle = amplitude * Math.cos(cfg.angularFreq * elapsed);
+      const angle = amplitude * Math.cos(PENDULUM_OMEGA * time);
+
+      // Pivot at top-center of viewport; length spans full viewport height
+      const pivotX = window.innerWidth / 2;
+      const pivotY = 0;
+      const length = window.innerHeight;
 
       const bobX = pivotX + length * Math.sin(angle);
       const bobY = pivotY + length * Math.cos(angle);
 
-      // Angular velocity (derivative of angle)
+      // Angular velocity for push-direction calculation
       const angVel =
-        -amplitude * cfg.angularFreq * Math.sin(cfg.angularFreq * elapsed) -
-        cfg.maxAngle * cfg.damping * Math.exp(-cfg.damping * elapsed) * Math.cos(cfg.angularFreq * elapsed);
+        -PENDULUM_OMEGA * amplitude * Math.sin(PENDULUM_OMEGA * time);
 
-      // Perpendicular direction to pendulum line (for pushing text)
+      // Direction perpendicular to pendulum string
       const perpX = Math.cos(angle);
       const perpY = -Math.sin(angle);
 
@@ -202,63 +190,58 @@ export function PendulumSwing({
       pendPivot.setAttribute("cx", String(pivotX));
       pendPivot.setAttribute("cy", String(pivotY));
 
-      // Update characters
+      // Get current container position (may shift on scroll)
+      const cRect = container.getBoundingClientRect();
+
+      // Update each character — collision in viewport space
       for (const c of charData) {
-        // Use character center for distance calculation
-        const charCx = c.x + 6;
-        const charCy = c.y + 12;
+        // Character center in viewport coordinates
+        const charVx = cRect.left + c.x + 6;
+        const charVy = cRect.top + c.y + 12;
 
-        const dist = pointToSegmentDist(charCx, charCy, pivotX, pivotY, bobX, bobY);
+        const dist = pointToSegmentDist(
+          charVx, charVy,
+          pivotX, pivotY,
+          bobX, bobY
+        );
 
-        if (dist < cfg.influenceRadius) {
-          const proximity = 1 - dist / cfg.influenceRadius;
-          const swingBoost = 0.4 + 0.6 * Math.abs(angVel);
-          const force = proximity * swingBoost * cfg.pushStrength;
+        if (dist < INFLUENCE_RADIUS) {
+          const proximity = 1 - dist / INFLUENCE_RADIUS;
+          // Push proportional to angular velocity (faster swing = harder hit)
+          const swingBoost = 0.35 + 0.65 * Math.abs(angVel);
+          const force = proximity * swingBoost * PUSH_STRENGTH;
 
           c.vx += perpX * force;
           c.vy += perpY * force;
 
-          // Random scatter for chaos
-          c.vx += (Math.random() - 0.5) * force * 0.6;
-          c.vy += (Math.random() - 0.5) * force * 0.6;
+          // Random scatter for organic chaos
+          c.vx += (Math.random() - 0.5) * force * 0.7;
+          c.vy += (Math.random() - 0.5) * force * 0.7;
 
           c.phase = "hot";
           c.hotTime = time;
-        } else if (c.phase === "hot" && time - c.hotTime > 0.3) {
+        } else if (c.phase === "hot" && time - c.hotTime > 0.25) {
+          // Released — transition to cooling (blue), never back to normal
           c.phase = "cooling";
         }
 
-        // Spring return force
-        const dx = c.ox - c.x;
-        const dy = c.oy - c.y;
-        const retStr = c.phase === "normal" ? cfg.returnStrength * 1.5 : cfg.returnStrength * 0.6;
-        c.vx += dx * retStr;
-        c.vy += dy * retStr;
-
-        // Velocity damping
-        c.vx *= cfg.velocityDamping;
-        c.vy *= cfg.velocityDamping;
+        // NO spring-back force — characters don't recover
+        // Only friction to prevent infinite sliding
+        c.vx *= VELOCITY_DAMPING;
+        c.vy *= VELOCITY_DAMPING;
 
         c.x += c.vx;
         c.y += c.vy;
 
-        // Transition back to normal
-        if (c.phase === "cooling") {
-          const disp = Math.sqrt((c.x - c.ox) ** 2 + (c.y - c.oy) ** 2);
-          if (disp < 2 && time - c.hotTime > 1.5) {
-            c.phase = "normal";
-          }
+        // Apply transform
+        c.el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+
+        // Color: red when hit, blue forever after release
+        if (c.phase === "hot") {
+          c.el.style.color = COLOR_HOT;
+        } else if (c.phase === "cooling") {
+          c.el.style.color = COLOR_COOL;
         }
-
-        // Apply visual transform and color
-        const disp = Math.sqrt((c.x - c.ox) ** 2 + (c.y - c.oy) ** 2);
-        const scale = Math.min(1.6, 1 + disp * 0.004);
-        c.el.style.transform = `translate(${c.x}px, ${c.y}px) scale(${scale})`;
-
-        let color = "";
-        if (c.phase === "hot") color = cfg.colorHot;
-        else if (c.phase === "cooling") color = cfg.colorCool;
-        c.el.style.color = color;
       }
 
       rafRef.current = requestAnimationFrame(animate);
@@ -268,12 +251,10 @@ export function PendulumSwing({
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      for (const c of charData) {
-        c.el.remove();
-      }
-      svg.remove();
+      for (const c of charData) c.el.remove();
+      overlay.remove();
     };
-  }, [mounted, text, cfg.maxAngle, cfg.angularFreq, cfg.damping, cfg.influenceRadius, cfg.pushStrength, cfg.returnStrength, cfg.velocityDamping, cfg.colorHot, cfg.colorCool]);
+  }, [mounted, text]);
 
   return (
     <div
@@ -281,12 +262,12 @@ export function PendulumSwing({
       style={{
         position: "relative",
         width: "100%",
-        minHeight: "350px",
+        minHeight: "400px",
         overflow: "visible",
         userSelect: "none",
-        fontSize: "1.125rem",
-        lineHeight: "2.2",
-        padding: "1rem 0",
+        fontSize: "1.25rem",
+        lineHeight: "2.4",
+        padding: "2rem 0",
       }}
     />
   );
