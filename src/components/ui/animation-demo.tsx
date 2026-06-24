@@ -9,20 +9,20 @@ import {
 
 const samplePosts = [
   {
-    title: "Getting Started with Next.js 15",
-    excerpt: "Learn the fundamentals of Next.js 15 App Router and Server Components.",
+    title: "春日随笔",
+    excerpt: "记录春天里的所见所感，那些细小而温暖的瞬间。",
   },
   {
-    title: "Tailwind CSS v4 Deep Dive",
-    excerpt: "Explore the new features and improvements in Tailwind CSS v4.",
+    title: "读《活着》有感",
+    excerpt: "关于生命、苦难与坚韧的一些思考。",
   },
   {
-    title: "TypeScript Best Practices",
-    excerpt: "Essential TypeScript patterns for modern web development.",
+    title: "周末的咖啡馆",
+    excerpt: "在城市角落里，找到属于自己的片刻宁静。",
   },
   {
-    title: "Building with Drizzle ORM",
-    excerpt: "A comprehensive guide to using Drizzle ORM with SQLite.",
+    title: "一次短途旅行",
+    excerpt: "逃离日常，去看看远处的山与海。",
   },
 ];
 

@@ -1,14 +1,14 @@
 import type { AppLocale } from "@/lib/i18n/config";
 
-export const SITE_NAME = "Tech Blog";
+export const SITE_NAME = "Personal Blog";
 export const DEFAULT_SITE_DESCRIPTION =
-  "Practical insights on modern web engineering, frontend architecture, and production-ready full-stack development.";
+  "Recording moments of life and sharing thoughts.";
 export const LOCALIZED_SITE_NAMES: Record<AppLocale, string> = {
-  "zh-CN": "技术博客",
-  en: "Tech Blog",
+  "zh-CN": "个人博客",
+  en: "Personal Blog",
 };
 export const LOCALIZED_SITE_DESCRIPTIONS: Record<AppLocale, string> = {
-  "zh-CN": "聚焦现代 Web 工程、前端架构与可用于生产的全栈开发实践洞察。",
+  "zh-CN": "记录生活点滴，分享所思所想。",
   en: DEFAULT_SITE_DESCRIPTION,
 };
 export const LOCALE_OG_MAP: Record<AppLocale, string> = {

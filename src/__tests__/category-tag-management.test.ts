@@ -87,7 +87,7 @@ describe("category and tag management", () => {
         content: "hello",
         excerpt: "",
         categoryId: "",
-        tags: "React",
+        tags: "Life",
         coverImage: "",
         status: "published",
       },
@@ -97,7 +97,7 @@ describe("category and tag management", () => {
     const reactTag = testDb
       .select({ id: tags.id })
       .from(tags)
-      .where(eq(tags.slug, "react"))
+      .where(eq(tags.slug, "life"))
       .get();
 
     expect(reactTag).toBeDefined();

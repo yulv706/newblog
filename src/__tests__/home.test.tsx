@@ -50,8 +50,8 @@ describe("homepage data", () => {
     const [frontendCategory, backendCategory, draftOnlyCategory] = testDb
       .insert(categories)
       .values([
-        { name: "Frontend", slug: "frontend" },
-        { name: "Backend", slug: "backend" },
+        { name: "随笔", slug: "essay" },
+        { name: "读书", slug: "reading" },
         { name: "Drafts", slug: "drafts" },
       ])
       .returning()
@@ -60,8 +60,8 @@ describe("homepage data", () => {
     const [reactTag, typescriptTag] = testDb
       .insert(tags)
       .values([
-        { name: "React", slug: "react" },
-        { name: "TypeScript", slug: "typescript" },
+        { name: "生活", slug: "life" },
+        { name: "思考", slug: "thoughts" },
       ])
       .returning()
       .all();
@@ -136,18 +136,18 @@ describe("homepage data", () => {
     );
 
     expect(data.featuredPost?.slug).toBe("featured-post");
-    expect(data.featuredPost?.tags).toEqual(["React", "TypeScript"]);
+    expect(data.featuredPost?.tags).toEqual(["思考", "生活"]);
 
     expect(data.latestPosts.map((post) => post.slug)).toEqual([
       "latest-post",
       "older-post",
     ]);
-    expect(data.latestPosts[0]?.tags).toEqual(["React"]);
+    expect(data.latestPosts[0]?.tags).toEqual(["生活"]);
     expect(data.latestPosts[1]?.tags).toEqual([]);
 
     expect(data.categories).toEqual([
-      { name: "Backend", slug: "backend" },
-      { name: "Frontend", slug: "frontend" },
+      { name: "读书", slug: "reading" },
+      { name: "随笔", slug: "essay" },
     ]);
   });
 

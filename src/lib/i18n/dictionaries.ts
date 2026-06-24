@@ -320,7 +320,7 @@ export type AppDictionary = {
 const dictionaries: Record<AppLocale, AppDictionary> = {
   "zh-CN": {
     shell: {
-      siteTitle: "技术博客",
+      siteTitle: "个人博客",
       navigation: {
         links: {
           home: "首页",
@@ -348,7 +348,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         switchToDarkAriaLabel: "切换到深色模式",
       },
       footer: {
-        copyrightTemplate: "© {year} 技术博客。保留所有权利。",
+        copyrightTemplate: "© {year} 个人博客。保留所有权利。",
         socialLinksAriaLabel: "社交链接",
       },
     },
@@ -361,12 +361,12 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
       },
       home: {
         featuredEyebrow: "精选文章",
-        title: "现代 Web 工程洞察",
+        title: "记录生活，分享思考",
         description:
-          "聚焦 Next.js、TypeScript、后端架构与生产级应用实践经验。",
+          "这里记录生活中的点滴，分享所思所想。",
         featuredEmpty: "暂无已发布文章。",
         latestHeading: "最新文章",
-        latestDescription: "最新的实战技巧、深度解析与实现细节。",
+        latestDescription: "最近写下的文字与思考。",
         latestEmpty: "更多文章即将发布。",
         categoriesHeading: "浏览分类",
         categoriesEmpty: "暂无可用分类。",
@@ -387,7 +387,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         title: "搜索",
         description: "按标题或内容搜索已发布文章，支持中文和英文关键词。",
         inputLabel: "搜索文章",
-        inputPlaceholder: "试试：Next.js、React、深入理解…",
+        inputPlaceholder: "试试：生活、思考、随笔…",
         submitButton: "搜索",
         emptyTitle: "未找到文章。",
         emptyDescription: "试试其他关键词或检查拼写。",
@@ -542,7 +542,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
           tagsLabel: "标签",
           tagsHelper: "输入后按 Enter 添加",
           noTagsLabel: "暂未添加标签。",
-          tagsPlaceholder: "react, typescript, nextjs",
+          tagsPlaceholder: "生活, 思考, 随笔",
           addTagButton: "添加标签",
           removeTagAriaTemplate: "移除标签 {tag}",
           coverImageLabel: "封面图 URL",
@@ -574,7 +574,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         createHeading: "创建分类",
         createForm: {
           nameLabel: "分类名称",
-          namePlaceholder: "前端开发",
+          namePlaceholder: "生活随笔",
           autoSlugLabel: "自动生成的 Slug",
           createButton: "创建分类",
           creatingButton: "创建中...",
@@ -644,7 +644,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
   },
   en: {
     shell: {
-      siteTitle: "Tech Blog",
+      siteTitle: "Personal Blog",
       navigation: {
         links: {
           home: "Home",
@@ -672,7 +672,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         switchToDarkAriaLabel: "Switch to dark mode",
       },
       footer: {
-        copyrightTemplate: "© {year} Tech Blog. All rights reserved.",
+        copyrightTemplate: "© {year} Personal Blog. All rights reserved.",
         socialLinksAriaLabel: "Social links",
       },
     },
@@ -685,13 +685,13 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
       },
       home: {
         featuredEyebrow: "Featured",
-        title: "Insights on modern web engineering",
+        title: "Recording Life, Sharing Thoughts",
         description:
-          "Latest writing on Next.js, TypeScript, backend architecture, and practical lessons from building production apps.",
+          "Recording moments of life and sharing thoughts.",
         featuredEmpty: "No published posts yet.",
         latestHeading: "Latest Posts",
         latestDescription:
-          "Fresh articles with practical tips, deep dives, and implementation details.",
+          "Recent writings and reflections.",
         latestEmpty: "More posts are coming soon.",
         categoriesHeading: "Browse Categories",
         categoriesEmpty: "No categories available yet.",
@@ -714,7 +714,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         description:
           "Search published posts by title or content. English and Chinese keywords are supported.",
         inputLabel: "Search posts",
-        inputPlaceholder: "Try: Next.js, React, 深入理解...",
+        inputPlaceholder: "Try: life, thoughts, essay...",
         submitButton: "Search",
         emptyTitle: "No posts found.",
         emptyDescription: "Try another keyword or check your spelling.",
@@ -877,7 +877,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
           tagsLabel: "Tags",
           tagsHelper: "Type and press Enter to add",
           noTagsLabel: "No tags added yet.",
-          tagsPlaceholder: "react, typescript, nextjs",
+          tagsPlaceholder: "生活, 思考, 随笔",
           addTagButton: "Add tag",
           removeTagAriaTemplate: "Remove tag {tag}",
           coverImageLabel: "Cover Image URL",
@@ -913,7 +913,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         createHeading: "Create Category",
         createForm: {
           nameLabel: "Category name",
-          namePlaceholder: "Frontend Development",
+          namePlaceholder: "Life Notes",
           autoSlugLabel: "Auto slug",
           createButton: "Create category",
           creatingButton: "Creating...",

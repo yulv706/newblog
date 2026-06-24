@@ -124,12 +124,12 @@ describe("post-detail data", () => {
     const now = Date.now();
     const frontendCategory = testDb
       .insert(categories)
-      .values({ name: "Frontend", slug: "frontend" })
+      .values({ name: "随笔", slug: "essay" })
       .returning({ id: categories.id })
       .get();
     const reactTag = testDb
       .insert(tags)
-      .values({ name: "React", slug: "react" })
+      .values({ name: "生活", slug: "life" })
       .returning({ id: tags.id })
       .get();
 
@@ -202,8 +202,8 @@ describe("post-detail data", () => {
     >[1];
 
     const detail = await getPublishedPostDetailBySlug("middle-post", database);
-    expect(detail?.category?.slug).toBe("frontend");
-    expect(detail?.tags).toEqual([{ name: "React", slug: "react" }]);
+    expect(detail?.category?.slug).toBe("essay");
+    expect(detail?.tags).toEqual([{ name: "生活", slug: "life" }]);
 
     if (!middlePost || !firstPost || !lastPost) {
       throw new Error("Failed to set up post fixtures");

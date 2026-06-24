@@ -45,9 +45,9 @@ describe("blog search", () => {
       .insert(posts)
       .values([
         {
-          title: "Search in Next.js",
+          title: "生活的意义",
           slug: "search-nextjs",
-          content: "This post explains route segment config.",
+          content: "This post explains how to search route segment config.",
           excerpt: "Search basics",
           status: "published",
           createdAt: "2026-03-29T10:00:00.000Z",
@@ -90,16 +90,16 @@ describe("blog search", () => {
       .insert(posts)
       .values([
         {
-          title: "深入理解 React Server Components",
+          title: "深入理解生活的意义",
           slug: "rsc-deep-dive",
-          content: "本文介绍服务端渲染和流式传输的实践。",
+          content: "本文介绍关于生活的一些思考与实践。",
           status: "published",
           createdAt: "2026-03-29T10:00:00.000Z",
           updatedAt: "2026-03-29T10:00:00.000Z",
           publishedAt: "2026-03-29T10:00:00.000Z",
         },
         {
-          title: "Tailwind 新特性",
+          title: "春日见闻",
           slug: "tailwind-v4",
           content: "这里没有相关关键词。",
           status: "published",
@@ -115,7 +115,7 @@ describe("blog search", () => {
       testDb as unknown as Parameters<typeof searchPublishedPosts>[1]
     );
     const byContent = await searchPublishedPosts(
-      "服务端渲染",
+      "思考",
       testDb as unknown as Parameters<typeof searchPublishedPosts>[1]
     );
 

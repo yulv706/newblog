@@ -46,7 +46,7 @@ describe("blog listing data", () => {
   it("paginates published posts with 10 items per page", async () => {
     const frontendCategory = testDb
       .insert(categories)
-      .values({ name: "Frontend", slug: "frontend" })
+      .values({ name: "随笔", slug: "essay" })
       .returning()
       .get();
 
@@ -114,8 +114,8 @@ describe("blog listing data", () => {
     const [frontendCategory, backendCategory] = testDb
       .insert(categories)
       .values([
-        { name: "Frontend", slug: "frontend" },
-        { name: "Backend", slug: "backend" },
+        { name: "随笔", slug: "essay" },
+        { name: "读书", slug: "reading" },
       ])
       .returning()
       .all();
@@ -125,9 +125,9 @@ describe("blog listing data", () => {
       .insert(posts)
       .values([
         {
-          title: "Frontend Post",
-          slug: "frontend-post",
-          content: "frontend",
+          title: "随笔文章",
+          slug: "essay-post",
+          content: "essay",
           status: "published",
           categoryId: frontendCategory.id,
           createdAt: now,
@@ -135,9 +135,9 @@ describe("blog listing data", () => {
           publishedAt: now,
         },
         {
-          title: "Backend Post",
-          slug: "backend-post",
-          content: "backend",
+          title: "读书笔记",
+          slug: "reading-post",
+          content: "reading",
           status: "published",
           categoryId: backendCategory.id,
           createdAt: now,
@@ -148,27 +148,27 @@ describe("blog listing data", () => {
       .run();
 
     const data = await getBlogListingData(
-      { category: "frontend" },
+      { category: "essay" },
       testDb as unknown as Parameters<typeof getBlogListingData>[1]
     );
 
-    expect(data.posts.map((post) => post.slug)).toEqual(["frontend-post"]);
-    expect(data.activeCategory?.slug).toBe("frontend");
+    expect(data.posts.map((post) => post.slug)).toEqual(["essay-post"]);
+    expect(data.activeCategory?.slug).toBe("essay");
     expect(data.pagination.totalItems).toBe(1);
   });
 
   it("filters posts by tag slug", async () => {
     const [frontendCategory] = testDb
       .insert(categories)
-      .values([{ name: "Frontend", slug: "frontend" }])
+      .values([{ name: "随笔", slug: "essay" }])
       .returning()
       .all();
 
     const [reactTag, nodeTag] = testDb
       .insert(tags)
       .values([
-        { name: "React", slug: "react" },
-        { name: "Node", slug: "node" },
+        { name: "生活", slug: "life" },
+        { name: "旅行", slug: "travel" },
       ])
       .returning()
       .all();
@@ -178,9 +178,9 @@ describe("blog listing data", () => {
       .insert(posts)
       .values([
         {
-          title: "React Only",
-          slug: "react-only",
-          content: "react",
+          title: "生活随笔",
+          slug: "life-only",
+          content: "life",
           status: "published",
           categoryId: frontendCategory.id,
           createdAt: now,
@@ -188,9 +188,9 @@ describe("blog listing data", () => {
           publishedAt: now,
         },
         {
-          title: "Node Only",
-          slug: "node-only",
-          content: "node",
+          title: "旅行日记",
+          slug: "travel-only",
+          content: "travel",
           status: "published",
           categoryId: frontendCategory.id,
           createdAt: now,
@@ -222,19 +222,19 @@ describe("blog listing data", () => {
       .run();
 
     const data = await getBlogListingData(
-      { tag: "react" },
+      { tag: "life" },
       testDb as unknown as Parameters<typeof getBlogListingData>[1]
     );
 
-    expect(data.posts.map((post) => post.slug)).toEqual(["react-only", "mixed"]);
-    expect(data.activeTag?.slug).toBe("react");
+    expect(data.posts.map((post) => post.slug)).toEqual(["life-only", "mixed"]);
+    expect(data.activeTag?.slug).toBe("life");
     expect(data.pagination.totalItems).toBe(2);
   });
 
   it("returns an empty result set when no posts match filters", async () => {
     const frontendCategory = testDb
       .insert(categories)
-      .values({ name: "Frontend", slug: "frontend" })
+      .values({ name: "随笔", slug: "essay" })
       .returning()
       .get();
 
@@ -242,9 +242,9 @@ describe("blog listing data", () => {
     testDb
       .insert(posts)
       .values({
-        title: "Frontend Post",
-        slug: "frontend-post",
-        content: "frontend",
+        title: "随笔文章",
+        slug: "essay-post",
+        content: "essay",
         status: "published",
         categoryId: frontendCategory.id,
         createdAt: now,
@@ -273,7 +273,7 @@ describe("blog listing data", () => {
   it("does not show pagination controls when only one post matches", async () => {
     const frontendCategory = testDb
       .insert(categories)
-      .values({ name: "Frontend", slug: "frontend" })
+      .values({ name: "随笔", slug: "essay" })
       .returning()
       .get();
 
