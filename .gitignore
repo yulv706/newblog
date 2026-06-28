@@ -33,6 +33,7 @@ next-env.d.ts
 /data/*.db
 /data/*.db-wal
 /data/*.db-shm
+/data/*.db.bak.*
 /data/backups/
 
 # uploads (user content)
