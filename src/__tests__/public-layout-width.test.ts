@@ -38,4 +38,12 @@ describe("public layout width refinement", () => {
     expect(postPageSource).toContain("mx-auto w-full max-w-[var(--content-post-max-width)]");
     expect(postPageSource).toContain("lg:max-w-[72ch]");
   });
+
+  it("keeps inline markdown images at a comfortable reading size", () => {
+    const globalsSource = readSource("src/app/globals.css");
+
+    expect(globalsSource).toContain("max-width: min(100%, 680px)");
+    expect(globalsSource).toContain("max-height: 520px");
+    expect(globalsSource).toContain("object-fit: contain");
+  });
 });

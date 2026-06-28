@@ -167,9 +167,16 @@ textarea {
 }
 
 .markdown-prose :where(img):not(:where([class~="not-prose"] *)) {
-  max-width: 100%;
+  display: block;
+  width: auto;
+  max-width: min(100%, 680px);
+  max-height: 520px;
   height: auto;
+  object-fit: contain;
+  margin-left: auto;
+  margin-right: auto;
   border-radius: 0.75rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .markdown-prose :where(table):not(:where([class~="not-prose"] *)) {
