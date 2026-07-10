@@ -71,6 +71,17 @@ function compactString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeWereadRating(value) {
+  const rating = toInteger(value, 0);
+  if (rating <= 0) {
+    return null;
+  }
+
+  // WeRead exposes newRating on a 0-1000 scale. Persist tenths so the
+  // application can render the existing 0-5 rating contract accurately.
+  return Math.max(1, Math.min(50, Math.round(rating / 20)));
+}
+
 function hashString(value) {
   return Array.from(value).reduce((hash, char) => {
     return (hash * 31 + char.charCodeAt(0)) >>> 0;
@@ -228,7 +239,6 @@ function normalizeBook(book, notebook, detail, progress) {
   );
   const sourceId = compactString(book.bookId);
   const wordCount = toInteger(detail?.wordCount, 0);
-  const newRating = toInteger(detail?.newRating, 0);
   const finishTime = progress?.book?.finishTime;
 
   return {
@@ -240,7 +250,7 @@ function normalizeBook(book, notebook, detail, progress) {
     category: compactString(detail?.category) || compactString(book.category) || null,
     status: getShelfBookStatus(book, progress),
     progress: progressValue,
-    rating: newRating > 0 ? Math.round((newRating / 20) * 10) : null,
+    rating: normalizeWereadRating(detail?.newRating),
     pages: wordCount > 0 ? Math.max(1, Math.round(wordCount / 500)) : 0,
     year: parseYear(detail?.publishTime),
     wordCount,
@@ -381,7 +391,9 @@ function createPreparedStatements(db) {
       WHERE source IN ('weread_book', 'weread_album')
         AND archived_at IS NULL
     `),
-    clearNotes: db.prepare("DELETE FROM reading_notes"),
+    clearBookNotes: db.prepare(
+      "DELETE FROM reading_notes WHERE book_source_id = @bookSourceId"
+    ),
     upsertNote: db.prepare(`
       INSERT INTO reading_notes (
         source_id, book_source_id, type, content, abstract, chapter_title,
@@ -426,102 +438,134 @@ function createPreparedStatements(db) {
 
 async function syncHighlights(db, statements, sourceIds, syncedAt) {
   if (!getBooleanEnv("WEREAD_SYNC_HIGHLIGHTS", false)) {
-    return 0;
+    return {
+      noteCount: 0,
+      skippedBookIds: [],
+    };
   }
 
   const limit = getIntegerEnv("WEREAD_SYNC_HIGHLIGHT_BOOK_LIMIT", 10);
   const bookIds = sourceIds
     .filter((sourceId) => !sourceId.startsWith("album:"))
     .slice(0, limit);
-  let noteCount = 0;
-
-  statements.clearNotes.run();
+  const stagedBooks = [];
+  const skippedBookIds = [];
 
   for (const bookId of bookIds) {
-    let latestNote = null;
-    const response = await callGateway("/book/bookmarklist", { bookId });
-    const highlights = Array.isArray(response.updated) ? response.updated : [];
-    const sortedHighlights = highlights
-      .filter((item) => compactString(item.markText))
-      .sort((left, right) => Number(right.createTime || 0) - Number(left.createTime || 0))
-      .slice(0, 20);
-
-    for (const item of sortedHighlights) {
-      const content = compactString(item.markText);
-      if (!content) {
-        continue;
-      }
-
-      if (!latestNote) {
-        latestNote = content;
-      }
-
-      statements.upsertNote.run({
-        sourceId: `${bookId}:highlight:${compactString(item.bookmarkId)}`,
-        bookSourceId: bookId,
-        type: "highlight",
-        content,
-        abstract: null,
-        chapterTitle: null,
-        createdAt: unixToIso(item.createTime),
-        rawPayload: JSON.stringify(item),
-        syncedAt,
-      });
-      noteCount += 1;
-    }
-
-    let reviews = [];
     try {
-      reviews = await fetchBookReviews(bookId);
-    } catch (error) {
-      console.warn(
-        `WeRead review sync skipped for ${bookId}: ${error.message || String(error)}`
-      );
-    }
+      let latestNote = null;
+      const notes = [];
+      const response = await callGateway("/book/bookmarklist", { bookId });
+      const highlights = Array.isArray(response.updated) ? response.updated : [];
+      const sortedHighlights = highlights
+        .filter((item) => compactString(item.markText))
+        .sort(
+          (left, right) =>
+            Number(right.createTime || 0) - Number(left.createTime || 0)
+        )
+        .slice(0, 20);
 
-    const sortedReviews = reviews
-      .map(getReviewPayload)
-      .filter(Boolean)
-      .sort((left, right) => Number(right.createTime || 0) - Number(left.createTime || 0))
-      .slice(0, 40);
+      for (const item of sortedHighlights) {
+        const content = compactString(item.markText);
+        if (!content) {
+          continue;
+        }
 
-    for (const review of sortedReviews) {
-      const thoughtText = compactString(review.content);
-      const originalText = compactString(review.abstract);
-      if (!thoughtText && !originalText) {
-        continue;
+        if (!latestNote) {
+          latestNote = content;
+        }
+
+        notes.push({
+          sourceId: `${bookId}:highlight:${compactString(item.bookmarkId)}`,
+          bookSourceId: bookId,
+          type: "highlight",
+          content,
+          abstract: null,
+          chapterTitle: null,
+          createdAt: unixToIso(item.createTime),
+          rawPayload: JSON.stringify(item),
+          syncedAt,
+        });
       }
 
-      const content = originalText || thoughtText;
-      const abstract = originalText && thoughtText ? thoughtText : null;
-      if (!latestNote) {
-        latestNote = content;
+      const reviews = await fetchBookReviews(bookId);
+      const sortedReviews = reviews
+        .map(getReviewPayload)
+        .filter(Boolean)
+        .sort(
+          (left, right) =>
+            Number(right.createTime || 0) - Number(left.createTime || 0)
+        )
+        .slice(0, 40);
+
+      for (const review of sortedReviews) {
+        const thoughtText = compactString(review.content);
+        const originalText = compactString(review.abstract);
+        if (!thoughtText && !originalText) {
+          continue;
+        }
+
+        const content = originalText || thoughtText;
+        const abstract = originalText && thoughtText ? thoughtText : null;
+        if (!latestNote) {
+          latestNote = content;
+        }
+
+        notes.push({
+          sourceId: getReviewSourceId(bookId, review, originalText, thoughtText),
+          bookSourceId: bookId,
+          type: "review",
+          content,
+          abstract,
+          chapterTitle: compactString(review.chapterName) || null,
+          createdAt: unixToIso(review.createTime),
+          rawPayload: JSON.stringify(review),
+          syncedAt,
+        });
       }
 
-      statements.upsertNote.run({
-        sourceId: getReviewSourceId(bookId, review, originalText, thoughtText),
-        bookSourceId: bookId,
-        type: "review",
-        content,
-        abstract,
-        chapterTitle: compactString(review.chapterName) || null,
-        createdAt: unixToIso(review.createTime),
-        rawPayload: JSON.stringify(review),
-        syncedAt,
-      });
-      noteCount += 1;
-    }
-
-    if (latestNote) {
-      statements.updateLatestNote.run({
-        bookSourceId: bookId,
+      stagedBooks.push({
+        bookId,
         latestNote,
-        updatedAt: syncedAt,
+        notes,
       });
+    } catch (error) {
+      skippedBookIds.push(bookId);
+      console.warn(
+        `WeRead note sync skipped for ${bookId}; existing notes were preserved: ${
+          error.message || String(error)
+        }`
+      );
     }
   }
 
-  return noteCount;
+  if (bookIds.length > 0 && stagedBooks.length === 0) {
+    throw new Error(
+      `WeRead note sync failed for all ${bookIds.length} selected book(s); existing notes were preserved.`
+    );
+  }
+
+  const replaceBookNotes = db.transaction((books) => {
+    for (const stagedBook of books) {
+      statements.clearBookNotes.run({ bookSourceId: stagedBook.bookId });
+
+      for (const note of stagedBook.notes) {
+        statements.upsertNote.run(note);
+      }
+
+      statements.updateLatestNote.run({
+        bookSourceId: stagedBook.bookId,
+        latestNote: stagedBook.latestNote,
+        updatedAt: syncedAt,
+      });
+    }
+  });
+  replaceBookNotes(stagedBooks);
+
+  return {
+    noteCount: stagedBooks.reduce((total, book) => total + book.notes.length, 0),
+    skippedBookIds,
+  };
 }
 
 async function syncWeread() {
@@ -610,7 +654,8 @@ async function syncWeread() {
     });
     writeBooks(normalizedBooks);
 
-    const syncedNotes = await syncHighlights(db, statements, activeSourceIds, syncedAt);
+    const noteSync = await syncHighlights(db, statements, activeSourceIds, syncedAt);
+    const syncedNotes = noteSync.noteCount;
     const finishedAt = new Date().toISOString();
     const payload = {
       skillVersion: SKILL_VERSION,
@@ -620,12 +665,16 @@ async function syncWeread() {
       detailLimit,
       progressLimit,
       highlightsEnabled: getBooleanEnv("WEREAD_SYNC_HIGHLIGHTS", false),
+      skippedNoteBooks: noteSync.skippedBookIds.length,
     };
 
     statements.updateState.run({
       key: SYNC_KEY,
       status: "success",
-      message: "Sync completed.",
+      message:
+        noteSync.skippedBookIds.length > 0
+          ? `Sync completed with ${noteSync.skippedBookIds.length} note book(s) skipped; existing notes were preserved.`
+          : "Sync completed.",
       totalBooks: normalizedBooks.length,
       totalNotes: syncedNotes,
       startedAt,
@@ -682,4 +731,13 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  createPreparedStatements,
+  normalizeBook,
+  normalizeWereadRating,
+  syncHighlights,
+};

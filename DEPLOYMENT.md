@@ -77,7 +77,7 @@ The public `/books` page reads a local SQLite snapshot. To sync from WeRead:
 
 1. Open [WeRead Skills](https://weread.qq.com/r/weread-skills), sign in, and copy the `wrk-...` API Key.
 2. Add `WEREAD_API_KEY=wrk-...` to `deploy/.env.production`.
-3. Restart the app with `./deploy/update.sh` or `docker compose --env-file deploy/.env.production up -d --force-recreate`.
+3. Restart the app with `./deploy/update.sh` or `docker compose --env-file deploy/.env.production up --no-build -d --force-recreate`.
 4. Open `/admin/books` and click sync, or run:
 
 ```bash
@@ -93,16 +93,23 @@ From a clean checkout:
 ```bash
 cp deploy/.env.production.example deploy/.env.production
 # edit deploy/.env.production with secure values
+# Build on a capable machine, or load a previously exported newblog-app image.
+docker compose --env-file deploy/.env.production build app
 ./deploy/check.sh
 ./deploy/init.sh
 ./deploy/start.sh
 ```
 
+On a small production server, build the image elsewhere, transfer it with
+`docker save` / `docker load`, and then run the three deploy scripts. The
+scripts deliberately use `--no-build` so deployment cannot trigger native
+dependency compilation on the server.
+
 What these do:
 
-- `check.sh` validates prerequisites, env values, native dependencies, and persistence paths
-- `init.sh` runs `check.sh`, prepares persistence directories idempotently, and runs migrations to create/update `data/blog.db`
-- `start.sh` refuses to launch if init artifacts are missing, then starts the compose stack and waits for readiness
+- `check.sh` validates Docker, env values, and persistence paths
+- `init.sh` runs `check.sh` and executes migrations inside the prebuilt app image to create/update `data/blog.db`
+- `start.sh` refuses to launch if init artifacts are missing, then starts the prebuilt compose stack and waits for readiness
 
 No manual database creation or ad hoc migration command is required on the supported path.
 
@@ -111,11 +118,12 @@ No manual database creation or ad hoc migration command is required on the suppo
 Verify the stack with these commands:
 
 ```bash
-curl -i http://localhost:8080/healthz
-curl -i http://localhost:8080/
-curl -i http://localhost:8080/robots.txt
-curl -i http://localhost:8080/sitemap.xml
-curl -i http://localhost:8080/api/admin/session
+set -a; source deploy/.env.production; set +a
+curl -i "http://localhost:${NGINX_PORT}/healthz"
+curl -i "http://localhost:${NGINX_PORT}/"
+curl -i "http://localhost:${NGINX_PORT}/robots.txt"
+curl -i "http://localhost:${NGINX_PORT}/sitemap.xml"
+curl -i "http://localhost:${NGINX_PORT}/api/admin/session"
 docker compose --env-file deploy/.env.production ps
 docker compose --env-file deploy/.env.production logs app nginx
 ```
@@ -143,7 +151,7 @@ Common issues:
 - **Bad env values rejected**  
   `./deploy/check.sh` lists every invalid key in one run; fix them and rerun.
 - **Port conflict on the published port**  
-  Change `NGINX_PORT` to an available unprivileged port and rerun `./deploy/check.sh`.
+  Change `NGINX_PORT` to an available port and rerun `./deploy/check.sh`.
 - **Database file missing when starting**  
   Run `./deploy/init.sh` before `./deploy/start.sh`.
 - **Readiness timeout or unhealthy stack**  
@@ -159,14 +167,15 @@ Stop the stack:
 ./deploy/stop.sh
 ```
 
-Update to newer code without erasing persisted content:
+Update to a prebuilt newer image without erasing persisted content:
 
 ```bash
 git pull
+# Load the matching APP_IMAGE before this step when it was built elsewhere.
 ./deploy/update.sh
 ```
 
-`update.sh` reruns initialization and rebuilds/restarts the compose stack while preserving `./data` and `./public/uploads`.
+`update.sh` reruns initialization and restarts the compose stack with `--no-build` while preserving `./data` and `./public/uploads`.
 
 ## Backup and restore
 

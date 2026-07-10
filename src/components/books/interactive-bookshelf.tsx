@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   APPLE_EASE,
   StaggeredItem,
@@ -504,7 +504,7 @@ function AnnotationCard({
       </div>
 
       {highlight ? (
-        <blockquote className="mt-3 text-base leading-relaxed text-foreground">
+        <blockquote className="mt-3 break-words text-base leading-relaxed text-foreground">
           &ldquo;{highlight}&rdquo;
         </blockquote>
       ) : null}
@@ -538,6 +538,9 @@ function BookDetailsDialog({
 }) {
   const prefersReducedMotion = useReducedMotion();
   const [annotationPage, setAnnotationPage] = useState(0);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!book) {
@@ -545,19 +548,72 @@ function BookDetailsDialog({
     }
 
     const previousOverflow = document.body.style.overflow;
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = "hidden";
+    const focusFrame = window.requestAnimationFrame(() => {
+      closeButtonRef.current?.focus();
+    });
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        event.preventDefault();
         onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+
+      const focusableElements = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(
+        (element) =>
+          element.getAttribute("aria-hidden") !== "true" &&
+          !element.hasAttribute("disabled")
+      );
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey) {
+        if (activeElement === firstElement || !dialog.contains(activeElement)) {
+          event.preventDefault();
+          lastElement.focus();
+        }
+      } else if (activeElement === lastElement || !dialog.contains(activeElement)) {
+        event.preventDefault();
+        firstElement.focus();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
+      const previouslyFocusedElement = previouslyFocusedElementRef.current;
+      window.requestAnimationFrame(() => {
+        if (previouslyFocusedElement?.isConnected) {
+          previouslyFocusedElement.focus();
+        }
+      });
     };
   }, [book, onClose]);
 
@@ -633,7 +689,8 @@ function BookDetailsDialog({
       >
         <button
           type="button"
-          aria-label={dictionary.closeDetailsLabel}
+          aria-hidden="true"
+          tabIndex={-1}
           className="absolute inset-0 cursor-default bg-background/70 backdrop-blur-md"
           onClick={onClose}
         />
@@ -642,6 +699,8 @@ function BookDetailsDialog({
           role="dialog"
           aria-modal="true"
           aria-labelledby={`book-dialog-title-${book.id}`}
+          ref={dialogRef}
+          tabIndex={-1}
           className="relative grid h-[min(820px,calc(100vh-4rem))] w-[min(1120px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-border/80 bg-background/95 shadow-2xl md:grid-cols-[minmax(290px,0.9fr)_minmax(0,1.12fr)]"
           initial={
             prefersReducedMotion
@@ -658,6 +717,7 @@ function BookDetailsDialog({
         >
           <button
             type="button"
+            ref={closeButtonRef}
             aria-label={dictionary.closeDetailsLabel}
             onClick={onClose}
             className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background/85 text-sm font-semibold text-muted shadow-sm backdrop-blur transition hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
@@ -855,6 +915,9 @@ export function InteractiveBookshelf({
   const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORY_FILTER);
   const [categoryExpanded, setCategoryExpanded] = useState(false);
   const [shelfPage, setShelfPage] = useState(0);
+  const closeSelectedBook = useCallback(() => {
+    setSelectedBook(null);
+  }, []);
   const categoryOptions = useMemo(
     () => getCategoryFilterOptions(books, locale),
     [books, locale]
@@ -1128,7 +1191,7 @@ export function InteractiveBookshelf({
         locale={locale}
         dateLocale={dateLocale}
         dictionary={dictionary}
-        onClose={() => setSelectedBook(null)}
+        onClose={closeSelectedBook}
       />
     </>
   );

@@ -39,6 +39,7 @@ describe("docker deployment configuration", () => {
 
     expect(compose).toContain("services:");
     expect(compose).toContain("app:");
+    expect(compose).toContain('${APP_IMAGE:-newblog-app:latest}');
     expect(compose).toContain("nginx:");
     expect(compose).toContain("env_file:");
     expect(compose).toContain("./deploy/.env.production");

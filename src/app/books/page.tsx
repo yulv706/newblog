@@ -49,11 +49,11 @@ function NoteCard({
   dictionary: BooksDictionary;
 }) {
   return (
-    <article className="rounded-2xl border border-border/70 bg-card/80 p-5">
+    <article className="w-full min-w-0 rounded-2xl border border-border/70 bg-card/80 p-5">
       <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
         {dictionary.noteLabel}
       </p>
-      <blockquote className="mt-3 text-base leading-relaxed text-foreground">
+      <blockquote className="mt-3 break-words text-base leading-relaxed text-foreground">
         “{book.quote[locale]}”
       </blockquote>
       <div className="mt-4 flex items-center gap-3">
@@ -127,7 +127,7 @@ export default async function BooksPage() {
             </p>
           </div>
 
-          <StaggeredList className="grid gap-5 md:grid-cols-3">
+          <StaggeredList className="grid grid-cols-1 gap-5 md:grid-cols-3">
             {recentNotes.map((book) => (
               <StaggeredItem key={book.id}>
                 <NoteCard book={book} locale={locale} dictionary={booksDictionary} />

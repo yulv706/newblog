@@ -193,7 +193,7 @@ interface StaggeredItemProps {
  */
 export function StaggeredItem({ children, className }: StaggeredItemProps) {
   return (
-    <motion.div variants={STAGGER_ITEM_VARIANTS} className={className}>
+    <motion.div variants={STAGGER_ITEM_VARIANTS} className={cn("min-w-0", className)}>
       {children}
     </motion.div>
   );

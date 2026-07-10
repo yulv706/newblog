@@ -4,13 +4,15 @@ set -euo pipefail
 source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 "${DEPLOY_DIR}/init.sh"
+load_env_file
+ensure_runtime_env_paths
 
 require_command docker "Install Docker Engine and Docker Compose plugin before updating the compose stack."
 require_command curl "curl is required for deployment health diagnostics."
 
-print_info "Rebuilding and restarting compose stack without deleting persisted data"
+print_info "Restarting compose stack from the prebuilt ${APP_IMAGE:-newblog-app:latest} image without deleting persisted data"
 print_info "Forcing service recreation so nginx and app pick up updated runtime configuration"
-compose up --build -d --force-recreate
+compose up --no-build -d --force-recreate
 
 if ! wait_for_runtime_health; then
   print_error "Updated deployment failed to become ready."

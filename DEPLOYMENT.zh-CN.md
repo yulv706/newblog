@@ -77,7 +77,7 @@ cp deploy/.env.production.example deploy/.env.production
 
 1. 打开 [微信读书 Skill 页面](https://weread.qq.com/r/weread-skills)，登录后复制 `wrk-...` API Key。
 2. 在 `deploy/.env.production` 中加入 `WEREAD_API_KEY=wrk-...`。
-3. 使用 `./deploy/update.sh` 或 `docker compose --env-file deploy/.env.production up -d --force-recreate` 重启应用。
+3. 使用 `./deploy/update.sh` 或 `docker compose --env-file deploy/.env.production up --no-build -d --force-recreate` 重启应用。
 4. 打开 `/admin/books` 点击同步，或运行：
 
 ```bash
@@ -93,16 +93,21 @@ docker compose --env-file deploy/.env.production exec app npm run sync:weread
 ```bash
 cp deploy/.env.production.example deploy/.env.production
 # 编辑 deploy/.env.production，填入安全配置
+# 在资源充足的机器构建，或加载已经导出的 newblog-app 镜像
+docker compose --env-file deploy/.env.production build app
 ./deploy/check.sh
 ./deploy/init.sh
 ./deploy/start.sh
 ```
 
+对于配置较小的生产服务器，应在其他机器构建镜像，通过 `docker save` / `docker load`
+传输后再执行上述三个部署脚本。脚本固定使用 `--no-build`，避免服务器部署过程中触发原生依赖编译。
+
 各脚本的职责：
 
-- `check.sh`：校验前置依赖、环境变量、本地原生依赖可用性以及持久化路径
-- `init.sh`：先执行 `check.sh`，再以幂等方式准备持久化目录，并运行迁移来创建/更新 `data/blog.db`
-- `start.sh`：如果缺少初始化产物会拒绝启动，然后拉起 compose 栈并等待就绪
+- `check.sh`：校验 Docker、环境变量以及持久化路径
+- `init.sh`：先执行 `check.sh`，再在预构建应用镜像中运行迁移来创建/更新 `data/blog.db`
+- `start.sh`：如果缺少初始化产物会拒绝启动，然后从预构建镜像拉起 compose 栈并等待就绪
 
 在规范路径下，**不需要** 手动创建数据库，也不需要额外执行临时迁移命令。
 
@@ -111,11 +116,12 @@ cp deploy/.env.production.example deploy/.env.production
 使用以下命令验证部署状态：
 
 ```bash
-curl -i http://localhost:8080/healthz
-curl -i http://localhost:8080/
-curl -i http://localhost:8080/robots.txt
-curl -i http://localhost:8080/sitemap.xml
-curl -i http://localhost:8080/api/admin/session
+set -a; source deploy/.env.production; set +a
+curl -i "http://localhost:${NGINX_PORT}/healthz"
+curl -i "http://localhost:${NGINX_PORT}/"
+curl -i "http://localhost:${NGINX_PORT}/robots.txt"
+curl -i "http://localhost:${NGINX_PORT}/sitemap.xml"
+curl -i "http://localhost:${NGINX_PORT}/api/admin/session"
 docker compose --env-file deploy/.env.production ps
 docker compose --env-file deploy/.env.production logs app nginx
 ```
@@ -143,7 +149,7 @@ docker compose --env-file deploy/.env.production logs app nginx
 - **环境变量校验失败**  
   `./deploy/check.sh` 会在一次运行中列出所有无效键；修正后重新执行。
 - **对外端口冲突**  
-  将 `NGINX_PORT` 改为可用的非特权端口，再执行 `./deploy/check.sh`。
+  将 `NGINX_PORT` 改为可用端口，再执行 `./deploy/check.sh`。
 - **启动时数据库文件不存在**  
   先运行 `./deploy/init.sh`，再运行 `./deploy/start.sh`。
 - **就绪超时或栈处于不健康状态**  
@@ -159,14 +165,15 @@ docker compose --env-file deploy/.env.production logs app nginx
 ./deploy/stop.sh
 ```
 
-更新到新代码，同时保留已有持久化内容：
+更新到预构建的新镜像，同时保留已有持久化内容：
 
 ```bash
 git pull
+# 如果镜像在其他机器构建，请先加载与 APP_IMAGE 对应的镜像
 ./deploy/update.sh
 ```
 
-`update.sh` 会重新执行初始化，并重建/重启 compose 栈，同时保留 `./data` 和 `./public/uploads`。
+`update.sh` 会重新执行初始化，并使用 `--no-build` 重启 compose 栈，同时保留 `./data` 和 `./public/uploads`。
 
 ## 备份与恢复
 

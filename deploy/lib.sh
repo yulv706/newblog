@@ -16,7 +16,7 @@ DEPLOY_BACKUP_STAGING_DIR="${DEPLOY_BACKUP_STAGING_DIR:-${DEPLOY_BACKUP_DIR}/.${
 DEPLOY_BACKUP_OUTPUT="${DEPLOY_BACKUP_OUTPUT:-${DEPLOY_BACKUP_DIR}/${DEPLOY_BACKUP_BASENAME}-${DEPLOY_BACKUP_LABEL}.tar.gz}"
 DEPLOY_RESTORE_ARCHIVE="${DEPLOY_RESTORE_ARCHIVE:-}"
 DEPLOY_HEALTH_PATH="${DEPLOY_HEALTH_PATH:-/healthz}"
-DEPLOY_RUNTIME_HEALTH_URL="${DEPLOY_RUNTIME_HEALTH_URL:-http://localhost:${NGINX_PORT:-8080}${DEPLOY_HEALTH_PATH}}"
+DEPLOY_RUNTIME_HEALTH_URL="${DEPLOY_RUNTIME_HEALTH_URL:-}"
 DEPLOY_START_TIMEOUT_SECONDS="${DEPLOY_START_TIMEOUT_SECONDS:-90}"
 
 print_info() {
@@ -50,6 +50,10 @@ load_env_file() {
 }
 
 ensure_runtime_env_paths() {
+  if [[ -z "${DEPLOY_RUNTIME_HEALTH_URL}" && -n "${NGINX_PORT:-}" ]]; then
+    DEPLOY_RUNTIME_HEALTH_URL="http://localhost:${NGINX_PORT}${DEPLOY_HEALTH_PATH}"
+  fi
+
   export DEPLOY_ENV_FILE DEPLOY_DATA_DIR DEPLOY_UPLOADS_DIR DEPLOY_UPLOADS_IMAGES_DIR DEPLOY_DB_PATH DEPLOY_BACKUP_DIR DEPLOY_BACKUP_BASENAME DEPLOY_BACKUP_LABEL DEPLOY_BACKUP_STAGING_DIR DEPLOY_BACKUP_OUTPUT DEPLOY_RESTORE_ARCHIVE DEPLOY_HEALTH_PATH DEPLOY_RUNTIME_HEALTH_URL DEPLOY_START_TIMEOUT_SECONDS
 }
 
@@ -116,20 +120,7 @@ validate_env() {
   validate_tcp_port "NGINX_PORT" "${NGINX_PORT:-}"
   validate_tcp_port "NGINX_SSL_PORT" "${NGINX_SSL_PORT:-}"
 
-  if ! python3 - <<'PY' >/dev/null 2>&1
-import os, sys
-from urllib.parse import urlparse
-value = os.environ.get("NEXT_PUBLIC_SITE_URL", "").strip()
-parsed = urlparse(value)
-if parsed.scheme not in {"http", "https"}:
-    sys.exit(1)
-if not parsed.netloc:
-    sys.exit(1)
-if parsed.path not in {"", "/"}:
-    sys.exit(1)
-sys.exit(0)
-PY
-  then
+  if ! [[ "${NEXT_PUBLIC_SITE_URL:-}" =~ ^https?://[^/?#[:space:]]+/?$ ]]; then
     append_issue "NEXT_PUBLIC_SITE_URL" "must be an absolute http(s) origin without a path"
   fi
 
@@ -138,14 +129,6 @@ PY
       print_error "${issue}"
     done
     print_error "Correct the deployment environment in ${DEPLOY_ENV_FILE} and rerun ./deploy/check.sh."
-    return 1
-  fi
-}
-
-validate_native_dependencies() {
-  if ! node -e "const Database=require('better-sqlite3'); const db=new Database(':memory:'); db.close();" >/dev/null 2>&1; then
-    print_error "Native dependency better-sqlite3 is unusable with the current Node runtime."
-    print_error "Run 'npm rebuild better-sqlite3 --update-binary' (or reinstall dependencies with the supported Node version) before deployment."
     return 1
   fi
 }
@@ -205,9 +188,11 @@ run_migrations() {
     return 0
   fi
 
-  print_info "Running database migrations"
-  if ! (cd "${REPO_ROOT}" && node scripts/run-migrations.js); then
+  require_command docker "Install Docker Engine and the Docker Compose plugin before running migrations."
+  print_info "Running database migrations inside the prebuilt app image"
+  if ! compose run --rm --no-deps app node scripts/run-migrations.js; then
     print_error "Database migration step failed."
+    print_error "Load or build ${APP_IMAGE:-newblog-app:latest} before running initialization."
     return 1
   fi
 }

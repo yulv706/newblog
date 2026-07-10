@@ -52,6 +52,10 @@ describe("books page wiring", () => {
       path.join(process.cwd(), "src/lib/reading-books.ts"),
       "utf8"
     );
+    const animationsSource = fs.readFileSync(
+      path.join(process.cwd(), "src/components/ui/animations.tsx"),
+      "utf8"
+    );
     const syncSource = fs.readFileSync(
       path.join(process.cwd(), "scripts/sync-weread.js"),
       "utf8"
@@ -80,6 +84,11 @@ describe("books page wiring", () => {
     expect(interactiveShelfSource).toContain("ANNOTATIONS_PER_PAGE");
     expect(interactiveShelfSource).toContain("const ANNOTATIONS_PER_PAGE = 1");
     expect(interactiveShelfSource).toContain("data-notes-pagination");
+    expect(interactiveShelfSource).toContain("closeButtonRef.current?.focus()");
+    expect(interactiveShelfSource).toContain('event.key !== "Tab"');
+    expect(interactiveShelfSource).toContain("previouslyFocusedElement.focus()");
+    expect(animationsSource).toContain('cn("min-w-0", className)');
+    expect(pageSource).toContain('className="grid grid-cols-1 gap-5 md:grid-cols-3"');
     expect(interactiveShelfSource).not.toContain("rotateY");
     expect(interactiveShelfSource).not.toContain("perspective");
     expect(interactiveShelfSource).not.toContain("transform-style");

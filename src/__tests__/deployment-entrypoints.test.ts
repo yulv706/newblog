@@ -55,11 +55,15 @@ describe("canonical deployment entrypoints", () => {
     const compose = readFileSync(composePath, "utf8");
     const dockerfile = readFileSync(dockerfilePath, "utf8");
     const nginxConfig = readFileSync(nginxConfigPath, "utf8");
+    const deployLibrary = readFileSync(path.join(deployDir, "lib.sh"), "utf8");
+    const startScript = readFileSync(path.join(deployDir, "start.sh"), "utf8");
+    const updateScript = readFileSync(path.join(deployDir, "update.sh"), "utf8");
 
     expect(example).toContain("AUTH_SECRET=");
     expect(example).toContain("ADMIN_USERNAME=");
     expect(example).toContain("ADMIN_PASSWORD=");
     expect(example).toContain("NEXT_PUBLIC_SITE_URL=");
+    expect(example).toContain("APP_IMAGE=");
     expect(example).toContain("NGINX_PORT=");
     expect(example).toContain("NGINX_SSL_PORT=");
     expect(example).toContain("WEREAD_API_KEY=");
@@ -68,6 +72,7 @@ describe("canonical deployment entrypoints", () => {
     );
 
     expect(compose).toContain("env_file:");
+    expect(compose).toContain('${APP_IMAGE:-newblog-app:latest}');
     expect(compose).toContain("- ./deploy/.env.production");
     expect(compose).toContain("${AUTH_SECRET}");
     expect(compose).not.toContain("change-me-in-production");
@@ -76,18 +81,45 @@ describe("canonical deployment entrypoints", () => {
 
     expect(dockerfile).toContain("HEALTHCHECK");
     expect(nginxConfig).toContain("location = /healthz");
-    expect(readFileSync(path.join(deployDir, "lib.sh"), "utf8")).toContain(
-      'docker compose --env-file "${DEPLOY_ENV_FILE}"'
-    );
-    expect(readFileSync(path.join(deployDir, "start.sh"), "utf8")).toContain(
-      "wait_for_runtime_health"
-    );
+    expect(deployLibrary).toContain('docker compose --env-file "${DEPLOY_ENV_FILE}"');
+    expect(deployLibrary).toContain("compose run --rm --no-deps app");
+    expect(startScript).toContain("wait_for_runtime_health");
+    expect(startScript).toContain("compose up --no-build");
+    expect(startScript).not.toContain("compose up --build");
+    expect(updateScript).toContain("compose up --no-build");
+    expect(updateScript).not.toContain("compose up --build");
     expect(readFileSync(path.join(deployDir, "backup.sh"), "utf8")).toContain(
       "copy_sqlite_consistent_snapshot"
     );
     expect(readFileSync(path.join(deployDir, "restore.sh"), "utf8")).toContain(
       "DEPLOY_RESTORE_ARCHIVE"
     );
+  });
+
+  it("derives the readiness URL after loading the configured nginx port", () => {
+    const tempDir = makeTempDir();
+    const envFile = path.join(tempDir, "deploy", ".env.production");
+    mkdirSync(path.dirname(envFile), { recursive: true });
+    writeFileSync(envFile, "NGINX_PORT=80\n");
+
+    const result = spawnSync(
+      "bash",
+      [
+        "-c",
+        `source "${path.join(deployDir, "lib.sh")}"; load_env_file; ensure_runtime_env_paths; printf '%s' "$DEPLOY_RUNTIME_HEALTH_URL"`,
+      ],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          DEPLOY_ENV_FILE: envFile,
+        },
+        encoding: "utf8",
+      }
+    );
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toBe("http://localhost:80/healthz");
   });
 
   it("check reports every invalid env key in one run and exits before startup", () => {

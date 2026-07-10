@@ -4,6 +4,8 @@ set -euo pipefail
 source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 "${DEPLOY_DIR}/check.sh"
+load_env_file
+ensure_runtime_env_paths
 
 if [[ ! -f "${DEPLOY_DB_PATH}" ]]; then
   print_error "Database file ${DEPLOY_DB_PATH} is missing."
@@ -20,8 +22,8 @@ fi
 require_command docker "Install Docker Engine and Docker Compose plugin before starting the compose stack."
 require_command curl "curl is required for deployment health diagnostics."
 
-print_info "Starting compose stack and recreating services to pick up runtime config changes"
-compose up --build -d --force-recreate
+print_info "Starting compose stack from the prebuilt ${APP_IMAGE:-newblog-app:latest} image"
+compose up --no-build -d --force-recreate
 
 if ! wait_for_runtime_health; then
   print_error "Deployment failed to become ready."
