@@ -1,17 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">Personal Blog Open Graph Image</title>
-  <desc id="desc">Default social sharing image for Personal Blog.</desc>
+  <title id="title">读写札记 Open Graph Image</title>
+  <desc id="desc">Default social sharing image for Read / Write Notes.</desc>
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#1e293b" />
+      <stop offset="0%" stop-color="#fdfdfc" />
+      <stop offset="100%" stop-color="#f3f6fb" />
     </linearGradient>
+    <pattern id="lines" width="1200" height="44" patternUnits="userSpaceOnUse">
+      <path d="M0 43.5H1200" stroke="#dfe3ea" stroke-width="1" />
+    </pattern>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)" />
-  <g fill="#f8fafc" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
-    <text x="100" y="280" font-size="54" font-weight="700">Personal Blog</text>
-    <text x="100" y="350" font-size="30" opacity="0.9">
-      Recording moments of life and sharing thoughts
-    </text>
+  <rect x="570" width="630" height="630" fill="url(#lines)" opacity="0.72" />
+  <circle cx="1060" cy="86" r="150" fill="#0071e3" opacity="0.07" />
+  <path d="M84 86h54" stroke="#0071e3" stroke-width="4" stroke-linecap="round" />
+  <g fill="#1b1b1d" font-family="Inter, 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="84" y="158" font-size="20" font-weight="600" letter-spacing="5" fill="#0071e3">READ · WRITE · REMEMBER</text>
+    <text x="84" y="306" font-size="82" font-weight="700" letter-spacing="-5">读写札记</text>
+    <text x="88" y="378" font-size="30" fill="#6f6f76">关于阅读、写作与日常生活</text>
+  </g>
+  <g transform="translate(820 190) rotate(5)">
+    <rect width="250" height="300" rx="24" fill="#ffffff" stroke="#dedee3" stroke-width="2" />
+    <path d="M40 0v300" stroke="#0071e3" stroke-opacity="0.25" stroke-width="2" />
+    <path d="M64 88h148M64 126h122M64 164h136" stroke="#cfd3da" stroke-width="2" />
+    <text x="64" y="238" font-size="42" font-weight="700" fill="#1b1b1d" font-family="'Noto Sans SC', sans-serif">读 · 写</text>
+    <circle cx="210" cy="262" r="7" fill="#0071e3" />
   </g>
 </svg>

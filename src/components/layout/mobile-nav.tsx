@@ -115,7 +115,7 @@ export function MobileNav() {
       {isDrawerMounted && (
         <div
           className={cn(
-            "fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-[var(--duration-normal)] md:hidden",
+            "fixed left-0 top-0 z-40 h-[100dvh] w-screen bg-black/40 backdrop-blur-sm transition-opacity duration-[var(--duration-normal)] md:hidden",
             isOpen ? "opacity-100" : "opacity-0"
           )}
           onClick={close}
@@ -127,7 +127,7 @@ export function MobileNav() {
       {isDrawerMounted && (
         <div
           className={cn(
-            "fixed right-0 top-0 z-50 h-full w-[min(20rem,100vw)] max-w-full overflow-y-auto border-l border-border bg-background shadow-xl md:hidden",
+            "fixed right-0 top-0 z-50 h-[100dvh] w-[min(20rem,100vw)] max-w-full overflow-y-auto border-l border-border bg-background shadow-xl md:hidden",
             "transition-[transform,opacity] duration-[var(--duration-normal)] ease-[var(--ease-apple)]",
             isOpen
               ? "translate-x-0 opacity-100"

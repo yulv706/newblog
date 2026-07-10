@@ -1,14 +1,14 @@
 import type { AppLocale } from "@/lib/i18n/config";
 
-export const SITE_NAME = "Personal Blog";
+export const SITE_NAME = "读写札记";
 export const DEFAULT_SITE_DESCRIPTION =
-  "Recording moments of life and sharing thoughts.";
+  "Notes on reading, writing, and the quiet details of everyday life.";
 export const LOCALIZED_SITE_NAMES: Record<AppLocale, string> = {
-  "zh-CN": "个人博客",
-  en: "Personal Blog",
+  "zh-CN": "读写札记",
+  en: "Read / Write Notes",
 };
 export const LOCALIZED_SITE_DESCRIPTIONS: Record<AppLocale, string> = {
-  "zh-CN": "记录生活点滴，分享所思所想。",
+  "zh-CN": "关于阅读、写作与日常生活的个人札记。",
   en: DEFAULT_SITE_DESCRIPTION,
 };
 export const LOCALE_OG_MAP: Record<AppLocale, string> = {
@@ -174,7 +174,7 @@ export function toLastModifiedDate(value: string | null | undefined) {
 }
 
 export function buildRssFeedXml(posts: SeoPostEntry[], options: RssFeedOptions = {}) {
-  const locale = options.locale ?? "en";
+  const locale = options.locale ?? "zh-CN";
   const siteTitle = options.siteTitle ?? getLocalizedSiteName(locale);
   const siteDescription = options.siteDescription ?? getLocalizedSiteDescription(locale);
   const language = options.language ?? (locale === "zh-CN" ? "zh-CN" : "en-US");

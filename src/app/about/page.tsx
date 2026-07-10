@@ -25,17 +25,19 @@ export default async function AboutPage() {
   const html = await renderMarkdownToHtml(content);
 
   return (
-    <article className="mx-auto w-full max-w-[var(--content-wide-max-width)] space-y-6 py-12">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+    <article className="mx-auto w-full max-w-[var(--content-wide-max-width)] space-y-8 py-8 sm:space-y-10 sm:py-12">
+      <header className="relative isolate overflow-hidden rounded-[1.75rem] border border-border/55 bg-card/65 p-7 sm:p-10">
+        <div className="pointer-events-none absolute -right-16 -top-20 -z-10 h-60 w-60 rounded-full bg-primary/[0.08] blur-3xl" />
+        <p className="mb-5 font-mono text-[0.65rem] font-medium tracking-[0.2em] text-primary">ABOUT / NOTES</p>
+        <h1 className="text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">
           {aboutDictionary.title}
         </h1>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
+        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
           {aboutDictionary.description}
         </p>
       </header>
       <section
-        className="prose max-w-none prose-neutral dark:prose-invert"
+        className="prose max-w-none rounded-[1.75rem] border border-border/55 bg-card/45 p-6 prose-neutral sm:p-10 lg:p-12 dark:prose-invert"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </article>

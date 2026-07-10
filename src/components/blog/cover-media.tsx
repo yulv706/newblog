@@ -118,8 +118,9 @@ export function CoverMedia({
       <Image
         src={renderableSrc}
         alt={alt}
-        className="h-full w-full object-cover"
-        loading={loading}
+        className="h-full w-full object-cover transition-transform duration-700 ease-[var(--ease-apple)] group-hover:scale-[1.025]"
+        loading={loading === "eager" ? undefined : "lazy"}
+        priority={loading === "eager"}
         fill
         unoptimized={isRemote}
         sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 800px"

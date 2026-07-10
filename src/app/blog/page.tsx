@@ -115,18 +115,22 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   const currentPage = pagination.currentPage;
 
   return (
-    <div className="mx-auto w-full max-w-[var(--content-wide-max-width)] space-y-10 py-10 sm:py-14">
-      <FadeIn className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          {blogDictionary.title}
-        </h1>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
+    <div className="mx-auto w-full max-w-[var(--content-wide-max-width)] space-y-10 py-8 sm:py-12">
+      <FadeIn className="relative isolate grid gap-8 overflow-hidden rounded-[1.75rem] border border-border/55 bg-card/65 p-7 sm:p-10 md:grid-cols-[minmax(0,0.9fr)_minmax(20rem,1.1fr)] md:items-end">
+        <div className="pointer-events-none absolute -left-20 -top-24 -z-10 h-56 w-56 rounded-full bg-primary/[0.08] blur-3xl" />
+        <div className="space-y-3">
+          <p className="font-mono text-[0.65rem] font-medium tracking-[0.2em] text-primary">ARCHIVE / NOTES</p>
+          <h1 className="text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">
+            {blogDictionary.title}
+          </h1>
+        </div>
+        <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base md:justify-self-end">
           {blogDictionary.description}
         </p>
       </FadeIn>
 
-      <section className="grid gap-8 lg:grid-cols-[260px_1fr] lg:items-start">
-        <FadeIn className="space-y-5 rounded-2xl border border-border/60 bg-card/80 p-5 lg:sticky lg:top-24">
+      <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
+        <FadeIn className="min-w-0 space-y-6 rounded-[1.5rem] border border-border/60 bg-card/65 p-6 shadow-xs lg:sticky lg:top-24">
           <div className="space-y-3">
             <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted">
               {blogDictionary.categoriesHeading}
@@ -178,7 +182,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
           </div>
         </FadeIn>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {posts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card/70 p-8 text-center">
               <p className="text-base font-medium text-foreground">
@@ -197,9 +201,9 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
               )}
             </div>
           ) : (
-            <StaggeredList className="grid gap-6 sm:grid-cols-2">
+            <StaggeredList className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 sm:grid-cols-2">
               {posts.map((post) => (
-                <StaggeredItem key={post.id}>
+                <StaggeredItem key={post.id} className="min-w-0">
                   <HomePostCard
                     post={post}
                     locale={locale}

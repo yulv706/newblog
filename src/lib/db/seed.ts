@@ -37,7 +37,7 @@ async function seed() {
         key: "about_content",
         value: `# 关于
 
-你好，欢迎来到我的个人博客。
+你好，欢迎来到读写札记。
 
 这里记录生活中的点滴，分享所思所想。
 

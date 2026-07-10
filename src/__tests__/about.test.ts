@@ -13,6 +13,7 @@ import {
   DEFAULT_ABOUT_CONTENT_PLACEHOLDER,
   getAboutContent,
   getAboutContentForPublic,
+  normalizeLegacyAboutBranding,
   saveAboutContent,
 } from "@/lib/site-settings";
 
@@ -91,5 +92,13 @@ describe("about content settings", () => {
     expect(aboutSettingRows).toHaveLength(1);
     expect(aboutSettingRows[0].value).toBe("## Updated version");
     expect(publicContent).toBe("## Updated version");
+  });
+
+  it("updates the legacy default site name without changing surrounding content", () => {
+    expect(
+      normalizeLegacyAboutBranding(
+        "# 关于\n\n你好，欢迎来到我的个人博客。\n\n保留这段自定义介绍。"
+      )
+    ).toBe("# 关于\n\n你好，欢迎来到读写札记。\n\n保留这段自定义介绍。");
   });
 });

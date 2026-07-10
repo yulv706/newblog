@@ -114,7 +114,7 @@ export default async function RootLayout({
             <main className="w-full flex-1 px-[var(--spacing-page)]">
               {children}
             </main>
-            <Footer dictionary={dictionary.shell.footer} />
+            <Footer dictionary={dictionary.shell} />
           </LocaleProvider>
         </ThemeProvider>
       </body>

@@ -25,6 +25,7 @@ export type AppDictionary = {
     footer: {
       copyrightTemplate: string;
       socialLinksAriaLabel: string;
+      tagline: string;
     };
   };
   public: {
@@ -35,15 +36,33 @@ export type AppDictionary = {
       dateFallbackLabel: string;
     };
     home: {
+      heroKicker: string;
       featuredEyebrow: string;
       title: string;
       description: string;
+      primaryAction: string;
+      secondaryAction: string;
+      postCountLabel: string;
+      categoryCountLabel: string;
       featuredEmpty: string;
+      featuredCta: string;
       latestHeading: string;
       latestDescription: string;
       latestEmpty: string;
+      latestCta: string;
       categoriesHeading: string;
+      categoriesDescription: string;
       categoriesEmpty: string;
+      exploreHeading: string;
+      exploreDescription: string;
+      paths: {
+        blogTitle: string;
+        blogDescription: string;
+        booksTitle: string;
+        booksDescription: string;
+        aboutTitle: string;
+        aboutDescription: string;
+      };
     };
     blog: {
       title: string;
@@ -414,7 +433,7 @@ export type AppDictionary = {
 const dictionaries: Record<AppLocale, AppDictionary> = {
   "zh-CN": {
     shell: {
-      siteTitle: "个人博客",
+      siteTitle: "读写札记",
       navigation: {
         links: {
           home: "首页",
@@ -443,8 +462,9 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         switchToDarkAriaLabel: "切换到深色模式",
       },
       footer: {
-        copyrightTemplate: "© {year} 个人博客。保留所有权利。",
-        socialLinksAriaLabel: "社交链接",
+        copyrightTemplate: "© {year} 读写札记。",
+        socialLinksAriaLabel: "页脚导航",
+        tagline: "读一点，写一点，把日子慢慢存下来。",
       },
     },
     public: {
@@ -455,16 +475,34 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         dateFallbackLabel: "—",
       },
       home: {
-        featuredEyebrow: "精选文章",
-        title: "记录生活，分享思考",
+        heroKicker: "READ · WRITE · REMEMBER",
+        featuredEyebrow: "本期札记",
+        title: "在阅读与写作之间，收藏生活的回声。",
         description:
-          "这里记录生活中的点滴，分享所思所想。",
+          "关于书、生活与那些值得停下来想一想的事。慢一点写，也认真一点记住。",
+        primaryAction: "开始阅读",
+        secondaryAction: "看看书架",
+        postCountLabel: "篇札记",
+        categoryCountLabel: "个主题",
         featuredEmpty: "暂无已发布文章。",
-        latestHeading: "最新文章",
-        latestDescription: "最近写下的文字与思考。",
-        latestEmpty: "更多文章即将发布。",
-        categoriesHeading: "浏览分类",
+        featuredCta: "继续阅读",
+        latestHeading: "最近写下",
+        latestDescription: "不追赶更新频率，只留下值得回看的文字。",
+        latestEmpty: "下一篇札记正在酝酿。",
+        latestCta: "查看全部文章",
+        categoriesHeading: "主题索引",
+        categoriesDescription: "沿着感兴趣的词，翻到下一页。",
         categoriesEmpty: "暂无可用分类。",
+        exploreHeading: "随意逛逛",
+        exploreDescription: "从文字、阅读或关于我开始，都可以。",
+        paths: {
+          blogTitle: "全部文章",
+          blogDescription: "按主题与标签，找到想读的那一篇。",
+          booksTitle: "阅读书架",
+          booksDescription: "正在读、读过，以及准备翻开的书。",
+          aboutTitle: "关于本站",
+          aboutDescription: "了解这些文字背后的人与念头。",
+        },
       },
       blog: {
         title: "博客",
@@ -835,7 +873,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
   },
   en: {
     shell: {
-      siteTitle: "Personal Blog",
+      siteTitle: "Read / Write Notes",
       navigation: {
         links: {
           home: "Home",
@@ -864,8 +902,9 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         switchToDarkAriaLabel: "Switch to dark mode",
       },
       footer: {
-        copyrightTemplate: "© {year} Personal Blog. All rights reserved.",
-        socialLinksAriaLabel: "Social links",
+        copyrightTemplate: "© {year} Read / Write Notes.",
+        socialLinksAriaLabel: "Footer navigation",
+        tagline: "Read a little, write a little, keep the days close.",
       },
     },
     public: {
@@ -876,17 +915,35 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         dateFallbackLabel: "—",
       },
       home: {
-        featuredEyebrow: "Featured",
-        title: "Recording Life, Sharing Thoughts",
+        heroKicker: "READ · WRITE · REMEMBER",
+        featuredEyebrow: "Selected note",
+        title: "Collecting life's echoes between reading and writing.",
         description:
-          "Recording moments of life and sharing thoughts.",
+          "Notes on books, ordinary days, and ideas worth pausing for. Written slowly, kept carefully.",
+        primaryAction: "Start reading",
+        secondaryAction: "Open the shelf",
+        postCountLabel: "notes",
+        categoryCountLabel: "topics",
         featuredEmpty: "No published posts yet.",
-        latestHeading: "Latest Posts",
+        featuredCta: "Keep reading",
+        latestHeading: "Recently written",
         latestDescription:
-          "Recent writings and reflections.",
-        latestEmpty: "More posts are coming soon.",
-        categoriesHeading: "Browse Categories",
+          "No publishing treadmill—only words worth returning to.",
+        latestEmpty: "The next note is taking shape.",
+        latestCta: "View all posts",
+        categoriesHeading: "Topic index",
+        categoriesDescription: "Follow an interesting word to the next page.",
         categoriesEmpty: "No categories available yet.",
+        exploreHeading: "Take a look around",
+        exploreDescription: "Start with the writing, the bookshelf, or the story behind this site.",
+        paths: {
+          blogTitle: "All writing",
+          blogDescription: "Browse by topic and tag to find the right note.",
+          booksTitle: "Reading shelf",
+          booksDescription: "Books in progress, finished, and waiting to be opened.",
+          aboutTitle: "About this site",
+          aboutDescription: "Meet the person and ideas behind these pages.",
+        },
       },
       blog: {
         title: "Blog",

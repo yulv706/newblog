@@ -37,6 +37,7 @@ export type HomepagePostCard = {
 export type HomepageData = {
   featuredPost: HomepagePostCard | null;
   latestPosts: HomepagePostCard[];
+  totalPosts: number;
   categories: Array<{
     name: string;
     slug: string;
@@ -895,6 +896,7 @@ export async function getHomepageData(
   return {
     featuredPost,
     latestPosts,
+    totalPosts: homepagePosts.length,
     categories: categoriesForHome,
   };
 }

@@ -142,6 +142,7 @@ describe("homepage data", () => {
       "latest-post",
       "older-post",
     ]);
+    expect(data.totalPosts).toBe(3);
     expect(data.latestPosts[0]?.tags).toEqual(["生活"]);
     expect(data.latestPosts[1]?.tags).toEqual([]);
 
@@ -158,6 +159,7 @@ describe("homepage data", () => {
 
     expect(data.featuredPost).toBeNull();
     expect(data.latestPosts).toEqual([]);
+    expect(data.totalPosts).toBe(0);
     expect(data.categories).toEqual([]);
   });
 

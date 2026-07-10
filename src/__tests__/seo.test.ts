@@ -224,13 +224,13 @@ describe("seo feeds and structured data", () => {
     expect(zh.openGraph.locale).toBe("zh_CN");
     expect(zh.openGraph.title).toBe("首页");
     expect(zh.title).toEqual({
-      absolute: "首页 | 个人博客",
+      absolute: "首页 | 读写札记",
     });
 
     expect(en.openGraph.locale).toBe("en_US");
     expect(en.openGraph.title).toBe("Home");
     expect(en.title).toEqual({
-      absolute: "Home | Personal Blog",
+      absolute: "Home | Read / Write Notes",
     });
 
     expect(alternates.languages).toEqual({
@@ -243,22 +243,22 @@ describe("seo feeds and structured data", () => {
   it("localizes rss feed channel metadata for zh-CN and en", () => {
     const zhXml = buildRssFeedXml([], {
       locale: "zh-CN",
-      siteTitle: "个人博客",
+      siteTitle: "读写札记",
       siteDescription: "中文站点描述",
       language: "zh-CN",
     });
     const enXml = buildRssFeedXml([], {
       locale: "en",
-      siteTitle: "Personal Blog",
+      siteTitle: "Read / Write Notes",
       siteDescription: "English site description",
       language: "en-US",
     });
 
-    expect(zhXml).toContain("<title>个人博客</title>");
+    expect(zhXml).toContain("<title>读写札记</title>");
     expect(zhXml).toContain("<description>中文站点描述</description>");
     expect(zhXml).toContain("<language>zh-CN</language>");
 
-    expect(enXml).toContain("<title>Personal Blog</title>");
+    expect(enXml).toContain("<title>Read / Write Notes</title>");
     expect(enXml).toContain("<description>English site description</description>");
     expect(enXml).toContain("<language>en-US</language>");
   });

@@ -53,6 +53,12 @@ export async function getAboutContent(database: SiteSettingsDatabase = db) {
   return getSiteSettingValue(ABOUT_CONTENT_KEY, database);
 }
 
+export function normalizeLegacyAboutBranding(content: string) {
+  return content
+    .replaceAll("欢迎来到我的个人博客", "欢迎来到读写札记")
+    .replace(/welcome to my personal blog/gi, "welcome to Read / Write Notes");
+}
+
 export async function getAboutContentForPublic(
   database: SiteSettingsDatabase = db
 ) {
@@ -61,7 +67,7 @@ export async function getAboutContentForPublic(
     return DEFAULT_ABOUT_CONTENT_PLACEHOLDER;
   }
 
-  return content;
+  return normalizeLegacyAboutBranding(content);
 }
 
 export async function saveAboutContent(
