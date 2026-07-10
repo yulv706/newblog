@@ -21,6 +21,7 @@
     "drizzle-orm": "^0.41.0",
     "github-slugger": "^2.0.0",
     "gray-matter": "^4.0.3",
+    "lucide-react": "^0.468.0",
     "mdast-util-to-string": "^4.0.0",
     "motion": "^12.7.3",
     "next": "^15.3.1",

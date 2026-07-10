@@ -93,6 +93,12 @@ export type AppDictionary = {
       eyebrow: string;
       title: string;
       description: string;
+      currentStageLabel: string;
+      previousCurrentBookLabel: string;
+      nextCurrentBookLabel: string;
+      viewReadingFileLabel: string;
+      libraryLabel: string;
+      notesArchiveLabel: string;
       stats: {
         totalLabel: string;
         readingLabel: string;
@@ -125,6 +131,19 @@ export type AppDictionary = {
       categoryFilterEmptyLabel: string;
       categoryFilterExpandTemplate: string;
       categoryFilterCollapseLabel: string;
+      allStatusesLabel: string;
+      searchBooksLabel: string;
+      searchBooksPlaceholder: string;
+      clearSearchLabel: string;
+      statusFilterLabel: string;
+      sortLabel: string;
+      sortOptions: {
+        recent: string;
+        title: string;
+        rating: string;
+        progress: string;
+      };
+      shelfPaginationLabel: string;
       takeawayLabel: string;
       noteLabel: string;
       openInWereadLabel: string;
@@ -478,8 +497,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         heroKicker: "READ · WRITE · REMEMBER",
         featuredEyebrow: "本期札记",
         title: "在阅读与写作之间，收藏生活的回声。",
-        description:
-          "关于书、生活与那些值得停下来想一想的事。慢一点写，也认真一点记住。",
+        description: "关于书、生活与那些值得停下来想一想的事。慢一点写，也认真一点记住。",
         primaryAction: "开始阅读",
         secondaryAction: "看看书架",
         postCountLabel: "篇札记",
@@ -533,21 +551,27 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         eyebrow: "阅读记录",
         title: "书与札记",
         description:
-          "把正在读、读完和准备读的书放在同一个安静的空间里，留下简短判断、进度和可回看的摘记。",
+          "这里不是一份完成清单，而是一张持续生长的阅读地图：正在推进的书、留下判断的书，以及值得重新打开的句子。",
+        currentStageLabel: "阅读现场",
+        previousCurrentBookLabel: "上一本正在读的书",
+        nextCurrentBookLabel: "下一本正在读的书",
+        viewReadingFileLabel: "查看阅读档案",
+        libraryLabel: "个人藏书",
+        notesArchiveLabel: "重读片段",
         stats: {
           totalLabel: "收录书籍",
           readingLabel: "正在阅读",
           finishedLabel: "已读完",
           queuedLabel: "待读",
-          notesLabel: "阅读摘记",
+          notesLabel: "有摘记",
         },
         sections: {
-          currentHeading: "正在读",
+          currentHeading: "正在发生的阅读",
           currentDescription: "近期投入时间最多的几本书。",
-          shelfHeading: "完整书架",
-          shelfDescription: "按主题、状态和阅读感受快速扫一遍。",
-          notesHeading: "近期摘记",
-          notesDescription: "留下真正影响判断或行动的句子。",
+          shelfHeading: "全部藏书",
+          shelfDescription: "搜索标题与作者，或按状态、主题和阅读进度重新组织这座书架。",
+          notesHeading: "值得再读一次",
+          notesDescription: "从摘记里走回那些曾经改变判断的句子。",
         },
         status: {
           reading: "在读",
@@ -566,6 +590,19 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         categoryFilterEmptyLabel: "这个主题下暂时没有公开书籍。",
         categoryFilterExpandTemplate: "展开 {count} 个主题",
         categoryFilterCollapseLabel: "收起",
+        allStatusesLabel: "全部",
+        searchBooksLabel: "搜索书籍",
+        searchBooksPlaceholder: "搜索书名、作者或主题",
+        clearSearchLabel: "清空搜索",
+        statusFilterLabel: "按阅读状态筛选",
+        sortLabel: "书架排序",
+        sortOptions: {
+          recent: "最近更新",
+          title: "书名顺序",
+          rating: "评分最高",
+          progress: "阅读进度",
+        },
+        shelfPaginationLabel: "书架分页",
         takeawayLabel: "读后判断",
         noteLabel: "摘记",
         openInWereadLabel: "打开微信读书",
@@ -749,7 +786,8 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
           noImageReferencesDetected: "当前 Markdown 内容中未检测到本地图片引用。",
           noReferencesRewritten: "没有匹配到可重写的本地图片引用。",
           rewroteAllReferencesTemplate: "已上传并重写 {count} 个图片引用。",
-          rewrotePartialReferencesTemplate: "已上传并重写 {replaced} 个图片引用，仍有 {unmatched} 个引用未匹配。",
+          rewrotePartialReferencesTemplate:
+            "已上传并重写 {replaced} 个图片引用，仍有 {unmatched} 个引用未匹配。",
           contentLabel: "内容（Markdown）",
           previewHeading: "预览",
           previewError: "无法渲染 Markdown 预览。",
@@ -927,8 +965,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         featuredEmpty: "No published posts yet.",
         featuredCta: "Keep reading",
         latestHeading: "Recently written",
-        latestDescription:
-          "No publishing treadmill—only words worth returning to.",
+        latestDescription: "No publishing treadmill—only words worth returning to.",
         latestEmpty: "The next note is taking shape.",
         latestCta: "View all posts",
         categoriesHeading: "Topic index",
@@ -947,8 +984,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
       },
       blog: {
         title: "Blog",
-        description:
-          "Browse all published posts, then narrow results by category or tag.",
+        description: "Browse all published posts, then narrow results by category or tag.",
         categoriesHeading: "Categories",
         tagsHeading: "Tags",
         emptyTitle: "No posts found.",
@@ -969,30 +1005,35 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         emptyDescription: "Try another keyword or check your spelling.",
         enterKeywordPrompt: "Enter a keyword to search post titles and content.",
         recentPostsHeading: "Recent Posts",
-        resultSummarySingularTemplate:
-          "Found {count} result for “{query}”.",
-        resultSummaryPluralTemplate:
-          "Found {count} results for “{query}”.",
+        resultSummarySingularTemplate: "Found {count} result for “{query}”.",
+        resultSummaryPluralTemplate: "Found {count} results for “{query}”.",
       },
       books: {
         eyebrow: "Reading log",
         title: "Books & Notes",
         description:
-          "A quiet shelf for books in progress, finished reads, and the few notes worth returning to later.",
+          "Not a completion list, but a living map of books in motion, judgments retained, and lines worth opening again.",
+        currentStageLabel: "Reading now",
+        previousCurrentBookLabel: "Previous current book",
+        nextCurrentBookLabel: "Next current book",
+        viewReadingFileLabel: "View reading file",
+        libraryLabel: "Personal library",
+        notesArchiveLabel: "Resurface",
         stats: {
           totalLabel: "Books logged",
           readingLabel: "Reading now",
           finishedLabel: "Finished",
           queuedLabel: "Queued",
-          notesLabel: "Notes saved",
+          notesLabel: "Books noted",
         },
         sections: {
-          currentHeading: "Reading Now",
+          currentHeading: "Reading in Progress",
           currentDescription: "The books getting the most attention lately.",
-          shelfHeading: "Full Shelf",
-          shelfDescription: "Scan by theme, status, and the short judgment each book left behind.",
-          notesHeading: "Recent Notes",
-          notesDescription: "Lines and ideas that changed a decision or sharpened a question.",
+          shelfHeading: "The Library",
+          shelfDescription:
+            "Search by title or author, then reorganize the shelf by status, theme, or reading progress.",
+          notesHeading: "Worth Reading Again",
+          notesDescription: "A few lines that once changed a judgment or sharpened a question.",
         },
         status: {
           reading: "Reading",
@@ -1011,6 +1052,19 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         categoryFilterEmptyLabel: "No public books in this theme yet.",
         categoryFilterExpandTemplate: "Show {count} more",
         categoryFilterCollapseLabel: "Collapse",
+        allStatusesLabel: "All",
+        searchBooksLabel: "Search books",
+        searchBooksPlaceholder: "Search title, author, or theme",
+        clearSearchLabel: "Clear search",
+        statusFilterLabel: "Filter by reading status",
+        sortLabel: "Sort library",
+        sortOptions: {
+          recent: "Recently updated",
+          title: "Title",
+          rating: "Highest rated",
+          progress: "Reading progress",
+        },
+        shelfPaginationLabel: "Library pages",
         takeawayLabel: "Takeaway",
         noteLabel: "Note",
         openInWereadLabel: "Open in WeRead",
@@ -1035,8 +1089,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
       },
       about: {
         title: "About",
-        description:
-          "Learn more about the author behind this blog and current writing focus.",
+        description: "Learn more about the author behind this blog and current writing focus.",
       },
       post: {
         coverImageAltTemplate: "{title} cover image",
@@ -1080,8 +1133,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
               emailRequired: "Email is required.",
               emailInvalid: "Please enter a valid email address.",
               bodyRequired: "Comment body is required.",
-              bodyTooLongTemplate:
-                "Comment must be {max} characters or fewer.",
+              bodyTooLongTemplate: "Comment must be {max} characters or fewer.",
             },
           },
         },
@@ -1166,16 +1218,13 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
           newDescription: "Write and preview your markdown before publishing.",
           editDescription: "Update this post and save your changes.",
           markdownUploadHeading: "Markdown Upload",
-          markdownUploadDescription:
-            "Drag and drop a `.md` file here, or choose one manually.",
+          markdownUploadDescription: "Drag and drop a `.md` file here, or choose one manually.",
           parsingLabel: "Parsing markdown…",
           onlyMarkdownFiles: "Only .md files are supported.",
           unableToReadFile: "Unable to read markdown file.",
           loadedMarkdownTemplate: "Loaded markdown from {fileName}.",
-          detectedLocalImageReferencesTemplate:
-            "Detected {count} local image reference(s).",
-          noLocalImageReferencesDetected:
-            "No local image references were detected.",
+          detectedLocalImageReferencesTemplate: "Detected {count} local image reference(s).",
+          noLocalImageReferencesDetected: "No local image references were detected.",
           titleLabel: "Title",
           slugLabel: "Slug",
           categoryLabel: "Category",
@@ -1200,10 +1249,8 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
           uploadMarkdownFirst: "Please upload a markdown file first.",
           noImageReferencesDetected:
             "No local image references were detected in this markdown content.",
-          noReferencesRewritten:
-            "No matching local image references were rewritten.",
-          rewroteAllReferencesTemplate:
-            "Uploaded and rewrote {count} image reference(s).",
+          noReferencesRewritten: "No matching local image references were rewritten.",
+          rewroteAllReferencesTemplate: "Uploaded and rewrote {count} image reference(s).",
           rewrotePartialReferencesTemplate:
             "Uploaded and rewrote {replaced} image reference(s). {unmatched} reference(s) still unmatched.",
           contentLabel: "Content (Markdown)",
@@ -1252,19 +1299,16 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
       },
       comments: {
         title: "Comments",
-        description:
-          "Review pending comments and decide what appears on the public post pages.",
+        description: "Review pending comments and decide what appears on the public post pages.",
         pendingQueueTemplate: "Pending queue: {count}",
         emptyPendingTitle: "All caught up",
-        emptyPendingDescription:
-          "There are no pending comments to moderate right now.",
+        emptyPendingDescription: "There are no pending comments to moderate right now.",
         onPostLabel: "On",
         submittedTemplate: "Submitted {date}",
         approveButton: "Approve",
         deleteButton: "Delete",
         approvedHeading: "Approved comments",
-        approvedDescription:
-          "Delete any approved comment to remove it from the public post page.",
+        approvedDescription: "Delete any approved comment to remove it from the public post page.",
         emptyApproved: "No approved comments yet.",
         approvedCommentTemplate: "Approved comment • {date}",
       },

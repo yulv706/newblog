@@ -26,13 +26,13 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-type BooksDictionary = Awaited<ReturnType<typeof getRequestI18n>>["dictionary"]["public"]["books"];
-
-function StatTile({ label, value }: { label: string; value: number }) {
+function StatItem({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card/80 p-4">
-      <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums text-foreground">
+    <div className="border-border/70 min-w-0 border-l pl-4 first:border-l-0 first:pl-0 sm:pl-6">
+      <p className="text-muted font-mono text-[0.68rem] font-medium tracking-[0.12em] uppercase">
+        {label}
+      </p>
+      <p className="text-foreground mt-1.5 text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
         {value}
       </p>
     </div>
@@ -41,32 +41,23 @@ function StatTile({ label, value }: { label: string; value: number }) {
 
 function NoteCard({
   book,
+  index,
   locale,
-  dictionary,
 }: {
   book: ReadingBook;
+  index: number;
   locale: "zh-CN" | "en";
-  dictionary: BooksDictionary;
 }) {
   return (
-    <article className="w-full min-w-0 rounded-2xl border border-border/70 bg-card/80 p-5">
-      <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-        {dictionary.noteLabel}
-      </p>
-      <blockquote className="mt-3 break-words text-base leading-relaxed text-foreground">
+    <article className="border-border/70 h-full w-full min-w-0 border-t pt-5">
+      <div className="text-muted flex items-center justify-between gap-3 font-mono text-[0.68rem] tracking-[0.12em] uppercase">
+        <span>{String(index + 1).padStart(2, "0")}</span>
+        <span className="truncate">{book.title}</span>
+      </div>
+      <blockquote className="text-foreground mt-5 text-base leading-[1.85] break-words">
         “{book.quote[locale]}”
       </blockquote>
-      <div className="mt-4 flex items-center gap-3">
-        <div
-          className="h-10 w-7 rounded-md border border-white/40 shadow-sm"
-          style={{ background: book.cover.background }}
-          aria-hidden="true"
-        />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">{book.title}</p>
-          <p className="truncate text-xs text-muted">{book.author}</p>
-        </div>
-      </div>
+      <p className="text-muted mt-4 truncate text-xs">{book.author}</p>
     </article>
   );
 }
@@ -77,35 +68,34 @@ export default async function BooksPage() {
   const dateLocale = getDateLocale(locale);
   const books = await getPublicReadingBooks();
   const stats = getReadingStats(books);
-  const currentBooks = getBooksByStatus("reading", books).slice(0, 6);
+  const currentBooks = getBooksByStatus("reading", books).slice(0, 8);
   const recentNotes = getRecentBookNotes(books);
 
   return (
-    <div className="mx-auto w-full max-w-[var(--content-wide-max-width)] space-y-14 pt-8 pb-12 sm:pt-10 sm:pb-14">
-      <FadeIn className="space-y-8">
-        <section className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-          <div className="space-y-4">
-            <p className="text-sm font-medium uppercase tracking-[0.18em] text-primary/80">
+    <div className="mx-auto w-full max-w-[var(--content-wide-max-width)] space-y-16 pt-6 pb-14 sm:space-y-20 sm:pt-9 sm:pb-16">
+      <FadeIn>
+        <section className="border-border/70 grid gap-8 border-b pb-9 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.72fr)] lg:items-end lg:pb-11">
+          <div className="space-y-5">
+            <p className="text-primary/80 text-xs font-semibold tracking-[0.18em] uppercase">
               {booksDictionary.eyebrow}
             </p>
-            <div className="max-w-3xl space-y-3">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            <div className="max-w-3xl space-y-4">
+              <h1 className="text-foreground text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
                 {booksDictionary.title}
               </h1>
-              <p className="text-base leading-relaxed text-muted">
+              <p className="text-muted max-w-2xl text-base leading-relaxed sm:text-lg">
                 {booksDictionary.description}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <StatTile label={booksDictionary.stats.totalLabel} value={stats.total} />
-            <StatTile label={booksDictionary.stats.readingLabel} value={stats.reading} />
-            <StatTile label={booksDictionary.stats.finishedLabel} value={stats.finished} />
-            <StatTile label={booksDictionary.stats.queuedLabel} value={stats.queued} />
+          <div className="border-border/70 grid grid-cols-4 gap-3 border-y py-4 lg:border-t lg:border-b-0 lg:pt-5 lg:pb-0">
+            <StatItem label={booksDictionary.stats.totalLabel} value={stats.total} />
+            <StatItem label={booksDictionary.stats.readingLabel} value={stats.reading} />
+            <StatItem label={booksDictionary.stats.finishedLabel} value={stats.finished} />
+            <StatItem label={booksDictionary.stats.notesLabel} value={stats.notes} />
           </div>
         </section>
-
       </FadeIn>
 
       <InteractiveBookshelf
@@ -117,20 +107,25 @@ export default async function BooksPage() {
       />
 
       {recentNotes.length > 0 ? (
-        <section className="space-y-5">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              {booksDictionary.sections.notesHeading}
-            </h2>
-            <p className="text-sm text-muted">
+        <section className="space-y-6">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(280px,0.5fr)] sm:items-end">
+            <div className="space-y-2">
+              <p className="text-primary/80 text-xs font-semibold tracking-[0.16em] uppercase">
+                {booksDictionary.notesArchiveLabel}
+              </p>
+              <h2 className="text-foreground text-2xl font-semibold tracking-tight sm:text-3xl">
+                {booksDictionary.sections.notesHeading}
+              </h2>
+            </div>
+            <p className="text-muted text-sm leading-relaxed sm:text-right">
               {booksDictionary.sections.notesDescription}
             </p>
           </div>
 
-          <StaggeredList className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            {recentNotes.map((book) => (
+          <StaggeredList className="grid grid-cols-1 gap-7 md:grid-cols-3">
+            {recentNotes.map((book, index) => (
               <StaggeredItem key={book.id}>
-                <NoteCard book={book} locale={locale} dictionary={booksDictionary} />
+                <NoteCard book={book} index={index} locale={locale} />
               </StaggeredItem>
             ))}
           </StaggeredList>

@@ -21,10 +21,7 @@ describe("reading bookshelf data", () => {
     expect(stats.queued).toBe(1);
     expect(stats.notes).toBe(READING_BOOKS.length);
 
-    expect(getBooksByStatus("reading").map((book) => book.status)).toEqual([
-      "reading",
-      "reading",
-    ]);
+    expect(getBooksByStatus("reading").map((book) => book.status)).toEqual(["reading", "reading"]);
     expect(getBookCategories("zh-CN")).toContain("系统设计");
     expect(getBookCategories("en")).toContain("Systems");
   });
@@ -40,10 +37,7 @@ describe("reading bookshelf data", () => {
 
 describe("books page wiring", () => {
   it("uses localized dictionaries, metadata, and the shared reading data", () => {
-    const pageSource = fs.readFileSync(
-      path.join(process.cwd(), "src/app/books/page.tsx"),
-      "utf8"
-    );
+    const pageSource = fs.readFileSync(path.join(process.cwd(), "src/app/books/page.tsx"), "utf8");
     const interactiveShelfSource = fs.readFileSync(
       path.join(process.cwd(), "src/components/books/interactive-bookshelf.tsx"),
       "utf8"
@@ -56,10 +50,7 @@ describe("books page wiring", () => {
       path.join(process.cwd(), "src/components/ui/animations.tsx"),
       "utf8"
     );
-    const syncSource = fs.readFileSync(
-      path.join(process.cwd(), "scripts/sync-weread.js"),
-      "utf8"
-    );
+    const syncSource = fs.readFileSync(path.join(process.cwd(), "scripts/sync-weread.js"), "utf8");
     const zh = getDictionary("zh-CN");
     const en = getDictionary("en");
 
@@ -76,6 +67,10 @@ describe("books page wiring", () => {
     expect(interactiveShelfSource).toContain("data-shelf-category-option");
     expect(interactiveShelfSource).toContain("data-shelf-category-toggle");
     expect(interactiveShelfSource).toContain("data-shelf-result-summary");
+    expect(interactiveShelfSource).toContain("data-shelf-controls");
+    expect(interactiveShelfSource).toContain("data-shelf-search");
+    expect(interactiveShelfSource).toContain("data-shelf-status-filter");
+    expect(interactiveShelfSource).toContain("data-shelf-sort");
     expect(interactiveShelfSource).toContain("data-shelf-pagination");
     expect(interactiveShelfSource).toContain("SHELF_BOOKS_PER_PAGE");
     expect(interactiveShelfSource).toContain("COLLAPSED_CATEGORY_LIMIT");
@@ -88,7 +83,10 @@ describe("books page wiring", () => {
     expect(interactiveShelfSource).toContain('event.key !== "Tab"');
     expect(interactiveShelfSource).toContain("previouslyFocusedElement.focus()");
     expect(animationsSource).toContain('cn("min-w-0", className)');
-    expect(pageSource).toContain('className="grid grid-cols-1 gap-5 md:grid-cols-3"');
+    expect(pageSource).toContain('className="grid grid-cols-1 gap-7 md:grid-cols-3"');
+    expect(interactiveShelfSource).toContain("CurrentReadingStage");
+    expect(interactiveShelfSource).toContain("getPaginationItems");
+    expect(interactiveShelfSource).toContain("lucide-react");
     expect(interactiveShelfSource).not.toContain("rotateY");
     expect(interactiveShelfSource).not.toContain("perspective");
     expect(interactiveShelfSource).not.toContain("transform-style");
@@ -106,5 +104,7 @@ describe("books page wiring", () => {
     expect(en.public.books.detailsHeading).toBe("Reading Details");
     expect(en.public.books.categoryFilterHeading).toBe("Filter by theme");
     expect(en.public.books.nextNotesPageLabel).toBe("Next");
+    expect(zh.public.books.searchBooksPlaceholder).toBe("搜索书名、作者或主题");
+    expect(en.public.books.sortOptions.rating).toBe("Highest rated");
   });
 });
