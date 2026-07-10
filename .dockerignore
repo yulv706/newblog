@@ -4,9 +4,9 @@ node_modules
 npm-debug.log*
 .env*.local
 
-data/*.db
-data/*.db-shm
-data/*.db-wal
+/data/
+/deploy/.env.production
+/certs/
 
 public/uploads/images/*
 !public/uploads/images/.gitkeep

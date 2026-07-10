@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const repoRoot = process.cwd();
 const dockerfilePath = join(repoRoot, "Dockerfile");
+const dockerignorePath = join(repoRoot, ".dockerignore");
 const composePath = join(repoRoot, "docker-compose.yml");
 const nginxConfigPath = join(repoRoot, "nginx", "default.conf");
 
@@ -21,6 +22,14 @@ describe("docker deployment configuration", () => {
     expect(dockerfile).toContain("COPY --from=builder /app/.next ./.next");
     expect(dockerfile).toContain("COPY --from=builder /app/public ./public");
     expect(dockerfile).toContain("HEALTHCHECK");
+  });
+
+  it("keeps runtime secrets and persistence data out of the Docker build context", () => {
+    const dockerignore = readFileSync(dockerignorePath, "utf8");
+
+    expect(dockerignore).toContain("/deploy/.env.production");
+    expect(dockerignore).toContain("/certs/");
+    expect(dockerignore).toContain("/data/");
   });
 
   it("defines app and nginx services with persistence volumes in docker-compose", () => {
