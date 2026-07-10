@@ -94,6 +94,9 @@ describe("database", () => {
     expect(tableNames).toContain("post_tags");
     expect(tableNames).toContain("comments");
     expect(tableNames).toContain("site_settings");
+    expect(tableNames).toContain("reading_books");
+    expect(tableNames).toContain("reading_notes");
+    expect(tableNames).toContain("reading_sync_state");
     expect(testDbPath).not.toBe(path.join(process.cwd(), "data", "blog.db"));
   });
 

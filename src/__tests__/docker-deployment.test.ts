@@ -40,6 +40,8 @@ describe("docker deployment configuration", () => {
     expect(compose).toContain("ADMIN_PASSWORD");
     expect(compose).toContain("NEXT_PUBLIC_SITE_URL");
     expect(compose).toContain("condition: service_healthy");
+    expect(compose).toContain("${NGINX_SSL_PORT}:443");
+    expect(compose).toContain("./certs:/etc/nginx/certs:ro");
   });
 
   it("configures nginx proxying and static file handling", () => {
@@ -47,7 +49,11 @@ describe("docker deployment configuration", () => {
 
     const nginxConfig = readFileSync(nginxConfigPath, "utf8");
 
-    expect(nginxConfig).toContain("proxy_pass http://app:3000");
+    expect(nginxConfig).toContain("upstream next_app");
+    expect(nginxConfig).toContain("server app:3000");
+    expect(nginxConfig).toContain("proxy_pass http://next_app");
+    expect(nginxConfig).toContain("listen 443 ssl");
+    expect(nginxConfig).toContain("ssl_certificate /etc/nginx/certs/cloudflare-origin.pem");
     expect(nginxConfig).toContain("location /uploads/");
     expect(nginxConfig).toContain("location = /healthz");
     expect(nginxConfig).toContain("X-Forwarded-For");

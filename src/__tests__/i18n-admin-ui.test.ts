@@ -22,6 +22,7 @@ describe("admin i18n dictionaries", () => {
       "posts",
       "categories",
       "comments",
+      "books",
       "about",
       "messages",
     ]) {
@@ -44,6 +45,7 @@ describe("admin i18n route and component wiring", () => {
       "(protected)/posts/page.tsx",
       "(protected)/categories/page.tsx",
       "(protected)/comments/page.tsx",
+      "(protected)/books/page.tsx",
     ];
 
     for (const relativePath of serverFiles) {
@@ -60,6 +62,7 @@ describe("admin i18n route and component wiring", () => {
       "post-editor-form.tsx",
       "category-create-form.tsx",
       "about-editor-form.tsx",
+      "weread-sync-form.tsx",
       "delete-post-button.tsx",
     ];
 
@@ -75,6 +78,7 @@ describe("admin i18n route and component wiring", () => {
       "posts.ts",
       "categories-tags.ts",
       "about.ts",
+      "reading.ts",
     ];
 
     for (const relativePath of localizedActionFiles) {

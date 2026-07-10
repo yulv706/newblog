@@ -2,10 +2,11 @@ import { describe, it, expect } from "vitest";
 import { NAV_LINKS } from "@/components/layout/nav-links";
 
 describe("Navigation links", () => {
-  it("contains Home, Blog, and About links", () => {
+  it("contains Home, Blog, Books, and About links", () => {
     const labels = NAV_LINKS.map((link) => link.label);
     expect(labels).toContain("Home");
     expect(labels).toContain("Blog");
+    expect(labels).toContain("Books");
     expect(labels).toContain("About");
   });
 
@@ -21,6 +22,12 @@ describe("Navigation links", () => {
     expect(blogLink!.href).toBe("/blog");
   });
 
+  it("Books link points to /books", () => {
+    const booksLink = NAV_LINKS.find((link) => link.label === "Books");
+    expect(booksLink).toBeDefined();
+    expect(booksLink!.href).toBe("/books");
+  });
+
   it("About link points to /about", () => {
     const aboutLink = NAV_LINKS.find((link) => link.label === "About");
     expect(aboutLink).toBeDefined();
@@ -28,7 +35,7 @@ describe("Navigation links", () => {
   });
 
   it("has correct number of links", () => {
-    expect(NAV_LINKS).toHaveLength(3);
+    expect(NAV_LINKS).toHaveLength(4);
   });
 });
 

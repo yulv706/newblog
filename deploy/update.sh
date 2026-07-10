@@ -5,6 +5,9 @@ source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 "${DEPLOY_DIR}/init.sh"
 
+require_command docker "Install Docker Engine and Docker Compose plugin before updating the compose stack."
+require_command curl "curl is required for deployment health diagnostics."
+
 print_info "Rebuilding and restarting compose stack without deleting persisted data"
 print_info "Forcing service recreation so nginx and app pick up updated runtime configuration"
 compose up --build -d --force-recreate

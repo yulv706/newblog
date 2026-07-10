@@ -61,6 +61,11 @@ describe("canonical deployment entrypoints", () => {
     expect(example).toContain("ADMIN_PASSWORD=");
     expect(example).toContain("NEXT_PUBLIC_SITE_URL=");
     expect(example).toContain("NGINX_PORT=");
+    expect(example).toContain("NGINX_SSL_PORT=");
+    expect(example).toContain("WEREAD_API_KEY=");
+    expect(readFileSync(path.join(repoRoot, "package.json"), "utf8")).toContain(
+      "\"sync:weread\""
+    );
 
     expect(compose).toContain("env_file:");
     expect(compose).toContain("- ./deploy/.env.production");
@@ -96,6 +101,7 @@ describe("canonical deployment entrypoints", () => {
         "ADMIN_PASSWORD=admin123",
         "NEXT_PUBLIC_SITE_URL=localhost:8080",
         "NGINX_PORT=70000",
+        "NGINX_SSL_PORT=not-a-port",
       ].join("\n")
     );
 
@@ -115,6 +121,7 @@ describe("canonical deployment entrypoints", () => {
     expect(result.stderr).toContain("ADMIN_PASSWORD");
     expect(result.stderr).toContain("NEXT_PUBLIC_SITE_URL");
     expect(result.stderr).toContain("NGINX_PORT");
+    expect(result.stderr).toContain("NGINX_SSL_PORT");
     expect(result.stderr).toContain("Correct the deployment environment");
   });
 
@@ -132,6 +139,7 @@ describe("canonical deployment entrypoints", () => {
         "ADMIN_PASSWORD=StrongerPassword!234",
         "NEXT_PUBLIC_SITE_URL=http://example.com",
         "NGINX_PORT=8080",
+        "NGINX_SSL_PORT=8443",
       ].join("\n")
     );
 
@@ -185,6 +193,7 @@ describe("canonical deployment entrypoints", () => {
         "ADMIN_PASSWORD=StrongerPassword!234",
         "NEXT_PUBLIC_SITE_URL=http://example.com",
         "NGINX_PORT=8080",
+        "NGINX_SSL_PORT=8443",
       ].join("\n")
     );
 
@@ -281,6 +290,7 @@ describe("canonical deployment entrypoints", () => {
         "ADMIN_PASSWORD=StrongerPassword!234",
         "NEXT_PUBLIC_SITE_URL=http://example.com",
         "NGINX_PORT=8080",
+        "NGINX_SSL_PORT=8443",
       ].join("\n")
     );
     writeFileSync(path.join(archiveDir, "backup-manifest.txt"), "ok");
@@ -325,6 +335,7 @@ describe("canonical deployment entrypoints", () => {
         "ADMIN_PASSWORD=StrongerPassword!234",
         "NEXT_PUBLIC_SITE_URL=http://example.com",
         "NGINX_PORT=8080",
+        "NGINX_SSL_PORT=8443",
       ].join("\n")
     );
     writeFileSync(path.join(archiveDir, "backup-manifest.txt"), "ok");

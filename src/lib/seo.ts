@@ -220,7 +220,7 @@ export function buildRssFeedXml(posts: SeoPostEntry[], options: RssFeedOptions =
 
 export function buildSitemapXml(posts: SeoPostEntry[]) {
   const generatedAt = new Date().toISOString();
-  const staticEntries = ["/", "/about"];
+  const staticEntries = ["/", "/books", "/about"];
   const staticXml = staticEntries
     .map((pathname) =>
       [

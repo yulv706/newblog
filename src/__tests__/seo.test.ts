@@ -139,6 +139,7 @@ describe("seo feeds and structured data", () => {
 
     expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/")}</loc>`);
+    expect(xml).toContain(`<loc>${getAbsoluteUrl("/books")}</loc>`);
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/about")}</loc>`);
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/blog/published-post")}</loc>`);
     expect(xml).toContain("<lastmod>");

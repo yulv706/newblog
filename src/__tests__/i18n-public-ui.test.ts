@@ -21,13 +21,20 @@ describe("public i18n route wiring", () => {
   it("wires server pages to request locale dictionaries", () => {
     const homepageSource = fs.readFileSync(path.join(appRoot, "page.tsx"), "utf8");
     const blogSource = fs.readFileSync(path.join(appRoot, "blog/page.tsx"), "utf8");
+    const booksSource = fs.readFileSync(path.join(appRoot, "books/page.tsx"), "utf8");
     const searchSource = fs.readFileSync(path.join(appRoot, "search/page.tsx"), "utf8");
     const postDetailSource = fs.readFileSync(
       path.join(appRoot, "blog/[slug]/page.tsx"),
       "utf8"
     );
 
-    for (const source of [homepageSource, blogSource, searchSource, postDetailSource]) {
+    for (const source of [
+      homepageSource,
+      blogSource,
+      booksSource,
+      searchSource,
+      postDetailSource,
+    ]) {
       expect(source).toContain("getRequestI18n");
       expect(source).toContain("dictionary.public");
     }

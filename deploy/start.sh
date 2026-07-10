@@ -17,6 +17,9 @@ if [[ ! -w "${DEPLOY_DATA_DIR}" || ! -w "${DEPLOY_UPLOADS_DIR}" ]]; then
   exit 1
 fi
 
+require_command docker "Install Docker Engine and Docker Compose plugin before starting the compose stack."
+require_command curl "curl is required for deployment health diagnostics."
+
 print_info "Starting compose stack and recreating services to pick up runtime config changes"
 compose up --build -d --force-recreate
 

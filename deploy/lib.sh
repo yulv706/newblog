@@ -59,6 +59,16 @@ append_issue() {
   VALIDATION_ERRORS+=("${key}: ${message}")
 }
 
+validate_tcp_port() {
+  local key="$1"
+  local value="$2"
+  if ! [[ "${value}" =~ ^[0-9]+$ ]]; then
+    append_issue "${key}" "must be a numeric TCP port"
+  elif (( value < 1 || value > 65535 )); then
+    append_issue "${key}" "must be between 1 and 65535"
+  fi
+}
+
 validate_env() {
   VALIDATION_ERRORS=()
 
@@ -67,6 +77,7 @@ validate_env() {
   [[ -n "${ADMIN_PASSWORD:-}" ]] || append_issue "ADMIN_PASSWORD" "is required"
   [[ -n "${NEXT_PUBLIC_SITE_URL:-}" ]] || append_issue "NEXT_PUBLIC_SITE_URL" "is required"
   [[ -n "${NGINX_PORT:-}" ]] || append_issue "NGINX_PORT" "is required"
+  [[ -n "${NGINX_SSL_PORT:-}" ]] || append_issue "NGINX_SSL_PORT" "is required"
 
   case "${AUTH_SECRET:-}" in
     change-me-in-production|development-auth-secret|test-auth-secret|"")
@@ -102,11 +113,8 @@ validate_env() {
     append_issue "ADMIN_PASSWORD" "must be at least 12 characters long"
   fi
 
-  if ! [[ "${NGINX_PORT:-}" =~ ^[0-9]+$ ]]; then
-    append_issue "NGINX_PORT" "must be a numeric TCP port"
-  elif (( NGINX_PORT < 1024 || NGINX_PORT > 65535 )); then
-    append_issue "NGINX_PORT" "must be between 1024 and 65535"
-  fi
+  validate_tcp_port "NGINX_PORT" "${NGINX_PORT:-}"
+  validate_tcp_port "NGINX_SSL_PORT" "${NGINX_SSL_PORT:-}"
 
   if ! python3 - <<'PY' >/dev/null 2>&1
 import os, sys

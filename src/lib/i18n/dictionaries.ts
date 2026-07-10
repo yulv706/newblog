@@ -70,6 +70,63 @@ export type AppDictionary = {
       resultSummarySingularTemplate: string;
       resultSummaryPluralTemplate: string;
     };
+    books: {
+      eyebrow: string;
+      title: string;
+      description: string;
+      stats: {
+        totalLabel: string;
+        readingLabel: string;
+        finishedLabel: string;
+        queuedLabel: string;
+        notesLabel: string;
+      };
+      sections: {
+        currentHeading: string;
+        currentDescription: string;
+        shelfHeading: string;
+        shelfDescription: string;
+        notesHeading: string;
+        notesDescription: string;
+      };
+      status: {
+        reading: string;
+        finished: string;
+        queued: string;
+      };
+      progressTemplate: string;
+      pagesTemplate: string;
+      wordsTemplate: string;
+      ratingTemplate: string;
+      finishedTemplate: string;
+      categoryLabel: string;
+      categoryFilterAllLabel: string;
+      categoryFilterHeading: string;
+      categoryFilterSummaryTemplate: string;
+      categoryFilterEmptyLabel: string;
+      categoryFilterExpandTemplate: string;
+      categoryFilterCollapseLabel: string;
+      takeawayLabel: string;
+      noteLabel: string;
+      openInWereadLabel: string;
+      openBookTemplate: string;
+      closeDetailsLabel: string;
+      detailsHeading: string;
+      readingTimeLabel: string;
+      notesCountLabel: string;
+      highlightHeading: string;
+      noHighlightLabel: string;
+      syncedAtTemplate: string;
+      updatedAtTemplate: string;
+      detailFallbackLabel: string;
+      notesCountTemplate: string;
+      highlightLabel: string;
+      thoughtLabel: string;
+      reviewLabel: string;
+      annotationPageTemplate: string;
+      previousNotesPageLabel: string;
+      nextNotesPageLabel: string;
+    };
     about: {
       title: string;
       description: string;
@@ -290,6 +347,43 @@ export type AppDictionary = {
       emptyApproved: string;
       approvedCommentTemplate: string;
     };
+    books: {
+      title: string;
+      description: string;
+      stats: {
+        totalLabel: string;
+        visibleLabel: string;
+        readingLabel: string;
+        notesLabel: string;
+      };
+      status: {
+        heading: string;
+        apiKeyLabel: string;
+        apiKeyConfigured: string;
+        apiKeyMissing: string;
+        lastSyncLabel: string;
+        neverSynced: string;
+        lastStatusLabel: string;
+        notRunLabel: string;
+        messageLabel: string;
+      };
+      command: {
+        heading: string;
+        description: string;
+        dockerCommand: string;
+      };
+      sync: {
+        heading: string;
+        description: string;
+        syncButton: string;
+        syncingButton: string;
+      };
+      messages: {
+        missingApiKey: string;
+        syncSuccessTemplate: string;
+        syncFailed: string;
+      };
+    };
     about: {
       title: string;
       description: string;
@@ -325,6 +419,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         links: {
           home: "首页",
           blog: "博客",
+          books: "书架",
           about: "关于",
         },
         mainAriaLabel: "主导航",
@@ -395,6 +490,64 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         recentPostsHeading: "最新文章",
         resultSummarySingularTemplate: "找到 {count} 条与“{query}”相关的结果。",
         resultSummaryPluralTemplate: "找到 {count} 条与“{query}”相关的结果。",
+      },
+      books: {
+        eyebrow: "阅读记录",
+        title: "书与札记",
+        description:
+          "把正在读、读完和准备读的书放在同一个安静的空间里，留下简短判断、进度和可回看的摘记。",
+        stats: {
+          totalLabel: "收录书籍",
+          readingLabel: "正在阅读",
+          finishedLabel: "已读完",
+          queuedLabel: "待读",
+          notesLabel: "阅读摘记",
+        },
+        sections: {
+          currentHeading: "正在读",
+          currentDescription: "近期投入时间最多的几本书。",
+          shelfHeading: "完整书架",
+          shelfDescription: "按主题、状态和阅读感受快速扫一遍。",
+          notesHeading: "近期摘记",
+          notesDescription: "留下真正影响判断或行动的句子。",
+        },
+        status: {
+          reading: "在读",
+          finished: "已读",
+          queued: "待读",
+        },
+        progressTemplate: "进度 {progress}%",
+        pagesTemplate: "{pages} 页",
+        wordsTemplate: "{words} 字",
+        ratingTemplate: "{rating}/5",
+        finishedTemplate: "完成于 {date}",
+        categoryLabel: "主题",
+        categoryFilterAllLabel: "全部",
+        categoryFilterHeading: "按主题筛选",
+        categoryFilterSummaryTemplate: "显示 {visible} / {total} 本",
+        categoryFilterEmptyLabel: "这个主题下暂时没有公开书籍。",
+        categoryFilterExpandTemplate: "展开 {count} 个主题",
+        categoryFilterCollapseLabel: "收起",
+        takeawayLabel: "读后判断",
+        noteLabel: "摘记",
+        openInWereadLabel: "打开微信读书",
+        openBookTemplate: "打开《{title}》",
+        closeDetailsLabel: "关闭详情",
+        detailsHeading: "阅读细节",
+        readingTimeLabel: "阅读时长",
+        notesCountLabel: "笔记/划线",
+        highlightHeading: "划线与摘记",
+        noHighlightLabel: "还没有同步到具体划线，先展示阅读进度和笔记统计。",
+        syncedAtTemplate: "同步于 {date}",
+        updatedAtTemplate: "更新于 {date}",
+        detailFallbackLabel: "暂无记录",
+        notesCountTemplate: "{count} 条",
+        highlightLabel: "划线",
+        thoughtLabel: "感想",
+        reviewLabel: "短评",
+        annotationPageTemplate: "{current} / {total}",
+        previousNotesPageLabel: "上一页",
+        nextNotesPageLabel: "下一页",
       },
       about: {
         title: "关于",
@@ -616,6 +769,44 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         emptyApproved: "暂无已审核评论。",
         approvedCommentTemplate: "已审核评论 · {date}",
       },
+      books: {
+        title: "书架同步",
+        description: "从微信读书同步书架、阅读进度和笔记统计，并更新前台阅读书架。",
+        stats: {
+          totalLabel: "同步条目",
+          visibleLabel: "公开展示",
+          readingLabel: "正在阅读",
+          notesLabel: "笔记统计",
+        },
+        status: {
+          heading: "同步状态",
+          apiKeyLabel: "API Key",
+          apiKeyConfigured: "已配置",
+          apiKeyMissing: "未配置",
+          lastSyncLabel: "上次同步",
+          neverSynced: "尚未同步",
+          lastStatusLabel: "状态",
+          notRunLabel: "未运行",
+          messageLabel: "消息",
+        },
+        command: {
+          heading: "命令行同步",
+          description: "适合放到宿主机定时任务里运行，容器会先执行数据库迁移再同步。",
+          dockerCommand:
+            "docker compose --env-file deploy/.env.production exec app npm run sync:weread",
+        },
+        sync: {
+          heading: "立即同步",
+          description: "手动拉取微信读书最新书架、进度和笔记统计。",
+          syncButton: "同步微信读书",
+          syncingButton: "同步中...",
+        },
+        messages: {
+          missingApiKey: "请先在 deploy/.env.production 中配置 WEREAD_API_KEY。",
+          syncSuccessTemplate: "同步完成：{books} 个书架条目，{notes} 条摘记内容。",
+          syncFailed: "微信读书同步失败，请稍后重试。",
+        },
+      },
       about: {
         title: "关于页",
         description: "使用 Markdown 编辑公开的关于页内容。",
@@ -649,6 +840,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         links: {
           home: "Home",
           blog: "Blog",
+          books: "Books",
           about: "About",
         },
         mainAriaLabel: "Main navigation",
@@ -724,6 +916,65 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
           "Found {count} result for “{query}”.",
         resultSummaryPluralTemplate:
           "Found {count} results for “{query}”.",
+      },
+      books: {
+        eyebrow: "Reading log",
+        title: "Books & Notes",
+        description:
+          "A quiet shelf for books in progress, finished reads, and the few notes worth returning to later.",
+        stats: {
+          totalLabel: "Books logged",
+          readingLabel: "Reading now",
+          finishedLabel: "Finished",
+          queuedLabel: "Queued",
+          notesLabel: "Notes saved",
+        },
+        sections: {
+          currentHeading: "Reading Now",
+          currentDescription: "The books getting the most attention lately.",
+          shelfHeading: "Full Shelf",
+          shelfDescription: "Scan by theme, status, and the short judgment each book left behind.",
+          notesHeading: "Recent Notes",
+          notesDescription: "Lines and ideas that changed a decision or sharpened a question.",
+        },
+        status: {
+          reading: "Reading",
+          finished: "Finished",
+          queued: "Queued",
+        },
+        progressTemplate: "{progress}% complete",
+        pagesTemplate: "{pages} pages",
+        wordsTemplate: "{words} words",
+        ratingTemplate: "{rating}/5",
+        finishedTemplate: "Finished {date}",
+        categoryLabel: "Theme",
+        categoryFilterAllLabel: "All",
+        categoryFilterHeading: "Filter by theme",
+        categoryFilterSummaryTemplate: "Showing {visible} / {total}",
+        categoryFilterEmptyLabel: "No public books in this theme yet.",
+        categoryFilterExpandTemplate: "Show {count} more",
+        categoryFilterCollapseLabel: "Collapse",
+        takeawayLabel: "Takeaway",
+        noteLabel: "Note",
+        openInWereadLabel: "Open in WeRead",
+        openBookTemplate: "Open {title}",
+        closeDetailsLabel: "Close details",
+        detailsHeading: "Reading Details",
+        readingTimeLabel: "Reading Time",
+        notesCountLabel: "Notes / Highlights",
+        highlightHeading: "Highlights & Notes",
+        noHighlightLabel:
+          "No synced highlight text yet, so this view shows progress and note statistics first.",
+        syncedAtTemplate: "Synced {date}",
+        updatedAtTemplate: "Updated {date}",
+        detailFallbackLabel: "Not recorded",
+        notesCountTemplate: "{count} item(s)",
+        highlightLabel: "Highlight",
+        thoughtLabel: "Thought",
+        reviewLabel: "Review",
+        annotationPageTemplate: "{current} / {total}",
+        previousNotesPageLabel: "Previous",
+        nextNotesPageLabel: "Next",
       },
       about: {
         title: "About",
@@ -959,6 +1210,46 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
           "Delete any approved comment to remove it from the public post page.",
         emptyApproved: "No approved comments yet.",
         approvedCommentTemplate: "Approved comment • {date}",
+      },
+      books: {
+        title: "Books Sync",
+        description:
+          "Sync your WeRead shelf, reading progress, and note counts into the public bookshelf.",
+        stats: {
+          totalLabel: "Synced Items",
+          visibleLabel: "Public Items",
+          readingLabel: "Reading Now",
+          notesLabel: "Note Count",
+        },
+        status: {
+          heading: "Sync Status",
+          apiKeyLabel: "API Key",
+          apiKeyConfigured: "Configured",
+          apiKeyMissing: "Missing",
+          lastSyncLabel: "Last Sync",
+          neverSynced: "Never synced",
+          lastStatusLabel: "Status",
+          notRunLabel: "Not run",
+          messageLabel: "Message",
+        },
+        command: {
+          heading: "Command Line Sync",
+          description:
+            "Use this from a host scheduler. The container runs migrations before syncing.",
+          dockerCommand:
+            "docker compose --env-file deploy/.env.production exec app npm run sync:weread",
+        },
+        sync: {
+          heading: "Sync Now",
+          description: "Pull the latest WeRead shelf, progress, and note counts.",
+          syncButton: "Sync WeRead",
+          syncingButton: "Syncing...",
+        },
+        messages: {
+          missingApiKey: "Configure WEREAD_API_KEY in deploy/.env.production first.",
+          syncSuccessTemplate: "Sync complete: {books} shelf item(s), {notes} note item(s).",
+          syncFailed: "WeRead sync failed. Please try again later.",
+        },
       },
       about: {
         title: "About Page",

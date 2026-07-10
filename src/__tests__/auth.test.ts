@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { middleware } from "@/middleware";
 import {
@@ -7,6 +7,7 @@ import {
   verifySessionToken,
 } from "@/lib/auth";
 
+const originalCryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
 const originalCrypto = globalThis.crypto;
 const nodeCrypto = process.versions.node
   ? // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -20,7 +21,26 @@ function installTestCrypto() {
     throw new Error("Test runtime does not provide Web Crypto.");
   }
 
-  globalThis.crypto = cryptoImpl;
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: cryptoImpl,
+  });
+}
+
+function uninstallTestCrypto() {
+  if (originalCryptoDescriptor) {
+    Object.defineProperty(globalThis, "crypto", originalCryptoDescriptor);
+    return;
+  }
+
+  Reflect.deleteProperty(globalThis, "crypto");
+}
+
+function removeTestCrypto() {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: undefined,
+  });
 }
 
 function createRequest(path: string, cookie?: string) {
@@ -38,6 +58,10 @@ describe("auth JWT session token", () => {
   beforeEach(() => {
     process.env.AUTH_SECRET = "test-auth-secret";
     installTestCrypto();
+  });
+
+  afterEach(() => {
+    uninstallTestCrypto();
   });
 
   it("signs and verifies a valid session token", async () => {
@@ -82,8 +106,12 @@ describe("auth runtime requirements", () => {
     installTestCrypto();
   });
 
+  afterEach(() => {
+    uninstallTestCrypto();
+  });
+
   it("fails clearly when Web Crypto is unavailable", async () => {
-    globalThis.crypto = undefined as unknown as typeof globalThis.crypto;
+    removeTestCrypto();
 
     await expect(signSessionToken("admin")).rejects.toThrow(
       "A Web Crypto implementation is unavailable in this runtime."
@@ -95,6 +123,10 @@ describe("admin middleware protection", () => {
   beforeEach(() => {
     process.env.AUTH_SECRET = "test-auth-secret";
     installTestCrypto();
+  });
+
+  afterEach(() => {
+    uninstallTestCrypto();
   });
 
   it("redirects /admin to /admin/login when auth cookie is missing", async () => {

@@ -72,3 +72,68 @@ export const siteSettings = sqliteTable("site_settings", {
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
+
+export const readingBooks = sqliteTable("reading_books", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  source: text("source").notNull().default("manual"),
+  sourceId: text("source_id").notNull().unique(),
+  title: text("title").notNull(),
+  author: text("author").notNull().default(""),
+  cover: text("cover"),
+  category: text("category"),
+  status: text("status", { enum: ["reading", "finished", "queued"] })
+    .notNull()
+    .default("queued"),
+  progress: integer("progress").notNull().default(0),
+  rating: integer("rating"),
+  pages: integer("pages").notNull().default(0),
+  year: integer("year"),
+  wordCount: integer("word_count").notNull().default(0),
+  noteCount: integer("note_count").notNull().default(0),
+  reviewCount: integer("review_count").notNull().default(0),
+  bookmarkCount: integer("bookmark_count").notNull().default(0),
+  readingSeconds: integer("reading_seconds").notNull().default(0),
+  latestNote: text("latest_note"),
+  deepLink: text("deep_link"),
+  isPrivate: integer("is_private", { mode: "boolean" }).notNull().default(false),
+  isTop: integer("is_top", { mode: "boolean" }).notNull().default(false),
+  readUpdatedAt: text("read_updated_at"),
+  finishedAt: text("finished_at"),
+  archivedAt: text("archived_at"),
+  rawPayload: text("raw_payload"),
+  syncedAt: text("synced_at"),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+export const readingNotes = sqliteTable("reading_notes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  sourceId: text("source_id").notNull().unique(),
+  bookSourceId: text("book_source_id")
+    .notNull()
+    .references(() => readingBooks.sourceId, { onDelete: "cascade" }),
+  type: text("type", { enum: ["highlight", "review"] }).notNull(),
+  content: text("content").notNull(),
+  abstract: text("abstract"),
+  chapterTitle: text("chapter_title"),
+  createdAt: text("created_at"),
+  rawPayload: text("raw_payload"),
+  syncedAt: text("synced_at").notNull(),
+});
+
+export const readingSyncState = sqliteTable("reading_sync_state", {
+  key: text("key").primaryKey(),
+  status: text("status", { enum: ["success", "error", "running"] })
+    .notNull()
+    .default("success"),
+  message: text("message"),
+  totalBooks: integer("total_books").notNull().default(0),
+  totalNotes: integer("total_notes").notNull().default(0),
+  startedAt: text("started_at"),
+  finishedAt: text("finished_at"),
+  payload: text("payload"),
+});

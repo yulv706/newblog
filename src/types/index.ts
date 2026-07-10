@@ -6,6 +6,9 @@ import type {
   postTags,
   comments,
   siteSettings,
+  readingBooks,
+  readingNotes,
+  readingSyncState,
 } from "@/lib/db/schema";
 
 export type Post = InferSelectModel<typeof posts>;
@@ -25,3 +28,12 @@ export type NewComment = InferInsertModel<typeof comments>;
 
 export type SiteSetting = InferSelectModel<typeof siteSettings>;
 export type NewSiteSetting = InferInsertModel<typeof siteSettings>;
+
+export type ReadingBookRecord = InferSelectModel<typeof readingBooks>;
+export type NewReadingBookRecord = InferInsertModel<typeof readingBooks>;
+
+export type ReadingNoteRecord = InferSelectModel<typeof readingNotes>;
+export type NewReadingNoteRecord = InferInsertModel<typeof readingNotes>;
+
+export type ReadingSyncState = InferSelectModel<typeof readingSyncState>;
+export type NewReadingSyncState = InferInsertModel<typeof readingSyncState>;

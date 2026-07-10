@@ -6,7 +6,7 @@ export const DEFAULT_LOCALE: AppLocale = "zh-CN";
 export const LOCALE_COOKIE_NAME = "locale";
 export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
-export type NavLinkKey = "home" | "blog" | "about";
+export type NavLinkKey = "home" | "blog" | "books" | "about";
 
 export function isSupportedLocale(value: string): value is AppLocale {
   return (SUPPORTED_LOCALES as readonly string[]).includes(value);

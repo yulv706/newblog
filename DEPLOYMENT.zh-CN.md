@@ -59,6 +59,10 @@ cp deploy/.env.production.example deploy/.env.production
 | `ADMIN_PASSWORD` | 是 | 首次运行时的管理员密码种子 | 必须足够强；仅在数据库里还没有保存密码哈希时才会生效 |
 | `NEXT_PUBLIC_SITE_URL` | 是 | 站点公开访问地址 | 必须是没有路径的绝对 `http(s)` 来源 |
 | `NGINX_PORT` | 否 | 对外发布的 HTTP 端口 | 默认 `8080`；本任务验证也使用 `8080` |
+| `WEREAD_API_KEY` | 否 | 微信读书官方 Skill API Key | 可选；配置后启用 `/admin/books` 和 `npm run sync:weread` 同步 |
+| `WEREAD_SYNC_PROGRESS_LIMIT` | 否 | 每次同步查询阅读进度的书籍上限 | 默认 `80` |
+| `WEREAD_SYNC_DETAIL_LIMIT` | 否 | 每次同步查询书籍详情的书籍上限 | 默认 `80` |
+| `WEREAD_SYNC_HIGHLIGHTS` | 否 | 是否同步划线文本内容 | 默认 `0`；只想同步进度和笔记数量时保持关闭 |
 
 `./deploy/check.sh` 会强制执行这些生产安全约束：
 
@@ -66,6 +70,21 @@ cp deploy/.env.production.example deploy/.env.production
 - 拒绝弱 `ADMIN_USERNAME` / `ADMIN_PASSWORD`
 - 拒绝格式错误的 `NEXT_PUBLIC_SITE_URL`
 - 拒绝非法或特权 `NGINX_PORT`
+
+## 微信读书书架同步
+
+前台 `/books` 页面读取本地 SQLite 快照。同步微信读书时：
+
+1. 打开 [微信读书 Skill 页面](https://weread.qq.com/r/weread-skills)，登录后复制 `wrk-...` API Key。
+2. 在 `deploy/.env.production` 中加入 `WEREAD_API_KEY=wrk-...`。
+3. 使用 `./deploy/update.sh` 或 `docker compose --env-file deploy/.env.production up -d --force-recreate` 重启应用。
+4. 打开 `/admin/books` 点击同步，或运行：
+
+```bash
+docker compose --env-file deploy/.env.production exec app npm run sync:weread
+```
+
+微信读书里的私密条目会带私密标记保存，并从公开书架中过滤。默认不同步划线正文；只有设置 `WEREAD_SYNC_HIGHLIGHTS=1` 时才会同步摘记文本。
 
 ## 在新 Linux 主机上首次部署
 

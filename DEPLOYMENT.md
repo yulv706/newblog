@@ -59,6 +59,10 @@ Set these values:
 | `ADMIN_PASSWORD` | Yes | First-run admin password seed | Must be strong; only seeds when no stored hash exists |
 | `NEXT_PUBLIC_SITE_URL` | Yes | Public site origin | Must be an absolute `http(s)` origin with no path |
 | `NGINX_PORT` | No | Published HTTP port | Defaults to `8080`; mission validation uses `8080` |
+| `WEREAD_API_KEY` | No | Official WeRead Skill API key | Optional; enables `/admin/books` and `npm run sync:weread` sync |
+| `WEREAD_SYNC_PROGRESS_LIMIT` | No | Per-sync progress lookup limit | Defaults to `80` |
+| `WEREAD_SYNC_DETAIL_LIMIT` | No | Per-sync book detail lookup limit | Defaults to `80` |
+| `WEREAD_SYNC_HIGHLIGHTS` | No | Sync highlight text content | Defaults to `0`; keep disabled if you only want progress and note counts |
 
 Production safety constraints enforced by `./deploy/check.sh`:
 
@@ -66,6 +70,21 @@ Production safety constraints enforced by `./deploy/check.sh`:
 - weak `ADMIN_USERNAME` / `ADMIN_PASSWORD` values are rejected
 - malformed `NEXT_PUBLIC_SITE_URL` values are rejected
 - invalid or privileged `NGINX_PORT` values are rejected
+
+## WeRead bookshelf sync
+
+The public `/books` page reads a local SQLite snapshot. To sync from WeRead:
+
+1. Open [WeRead Skills](https://weread.qq.com/r/weread-skills), sign in, and copy the `wrk-...` API Key.
+2. Add `WEREAD_API_KEY=wrk-...` to `deploy/.env.production`.
+3. Restart the app with `./deploy/update.sh` or `docker compose --env-file deploy/.env.production up -d --force-recreate`.
+4. Open `/admin/books` and click sync, or run:
+
+```bash
+docker compose --env-file deploy/.env.production exec app npm run sync:weread
+```
+
+Private WeRead entries are stored with a private flag and excluded from the public bookshelf. Highlight text is not synced unless `WEREAD_SYNC_HIGHLIGHTS=1`.
 
 ## First deploy on a new Linux host
 

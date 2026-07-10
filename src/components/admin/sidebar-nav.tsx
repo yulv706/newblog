@@ -16,6 +16,7 @@ export function AdminSidebarNav() {
     Posts: sidebarDictionary.posts.title,
     "Categories/Tags": sidebarDictionary.categories.title,
     Comments: sidebarDictionary.comments.title,
+    Books: sidebarDictionary.books.title,
     About: sidebarDictionary.about.title,
   } as const;
 
