@@ -37,7 +37,7 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
     <form
       ref={formRef}
       action={formAction}
-      className="space-y-4 rounded-2xl border border-border/70 bg-card/70 p-4 sm:p-5"
+      className="space-y-4 rounded-lg border border-border/70 bg-card/55 p-4 sm:p-5"
     >
       <input type="hidden" name="postId" value={postId} />
       <input type="hidden" name="postSlug" value={postSlug} />
@@ -53,7 +53,7 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
             required
             maxLength={60}
             autoComplete="name"
-            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
           {state.errors.nickname ? (
             <p className="text-xs text-destructive">{state.errors.nickname}</p>
@@ -69,7 +69,7 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
             name="email"
             required
             autoComplete="email"
-            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
           {state.errors.email ? (
             <p className="text-xs text-destructive">{state.errors.email}</p>
@@ -83,7 +83,7 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
           name="body"
           required
           rows={5}
-          className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm leading-6 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm leading-6 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
         {state.errors.body ? (
           <p className="text-xs text-destructive">{state.errors.body}</p>
@@ -94,8 +94,8 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
         <p
           className={
             state.status === "success"
-              ? "rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-200"
-              : "rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              ? "rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-200"
+              : "rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           }
         >
           {state.message}
@@ -105,7 +105,7 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
       <button
         type="submit"
         disabled={isPending}
-        className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isPending
           ? formDictionary.submittingButton

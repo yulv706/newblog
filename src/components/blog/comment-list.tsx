@@ -22,21 +22,21 @@ export function CommentList({
 }: CommentListProps) {
   if (comments.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-border bg-secondary/40 px-4 py-5 text-sm text-muted">
+      <p className="rounded-lg border border-dashed border-border bg-secondary/35 px-4 py-5 text-sm text-muted">
         {emptyStateLabel}
       </p>
     );
   }
 
   return (
-    <ul className="space-y-4">
+    <ul className="divide-y divide-border/70 border-y border-border/70">
       {comments.map((comment) => {
         const avatar = getCommentAvatarPlaceholder(comment.nickname);
 
         return (
           <li
             key={comment.id}
-            className="rounded-2xl border border-border/70 bg-card/70 p-4 sm:p-5"
+            className="py-5 sm:py-6"
           >
             <div className="flex items-start gap-3">
               <div

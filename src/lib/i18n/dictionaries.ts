@@ -65,8 +65,21 @@ export type AppDictionary = {
       };
     };
     blog: {
+      eyebrow: string;
       title: string;
       description: string;
+      totalPostsTemplate: string;
+      totalTopicsTemplate: string;
+      featuredLabel: string;
+      archiveHeading: string;
+      archiveDescription: string;
+      resultsTemplate: string;
+      filterHeading: string;
+      tagsDisclosureTemplate: string;
+      noMorePostsLabel: string;
+      readingTimeTemplate: string;
+      featuredActionLabel: string;
+      readArticleLabel: string;
       categoriesHeading: string;
       tagsHeading: string;
       emptyTitle: string;
@@ -173,6 +186,15 @@ export type AppDictionary = {
       coverImageAltTemplate: string;
       commentsCountSingularTemplate: string;
       commentsCountPluralTemplate: string;
+      backToBlogLabel: string;
+      articleEyebrow: string;
+      readingTimeTemplate: string;
+      readingProgressLabel: string;
+      readerControlsLabel: string;
+      decreaseTextSizeLabel: string;
+      increaseTextSizeLabel: string;
+      copyLinkLabel: string;
+      copiedLinkLabel: string;
       tableOfContents: {
         title: string;
         ariaLabel: string;
@@ -523,8 +545,21 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         },
       },
       blog: {
-        title: "博客",
-        description: "浏览所有已发布文章，并按分类或标签筛选。",
+        eyebrow: "写作札记",
+        title: "文字之间",
+        description: "关于关系、成长与日常判断的持续记录。按时间归档，也沿主题重访。",
+        totalPostsTemplate: "{count} 篇文章",
+        totalTopicsTemplate: "{count} 个主题",
+        featuredLabel: "最新写下",
+        archiveHeading: "全部文字",
+        archiveDescription: "按发布时间整理的完整文集。",
+        resultsTemplate: "共 {count} 篇",
+        filterHeading: "按分类浏览",
+        tagsDisclosureTemplate: "展开标签 · {count}",
+        noMorePostsLabel: "更多文字正在慢慢写成。",
+        readingTimeTemplate: "约 {minutes} 分钟",
+        featuredActionLabel: "开始阅读",
+        readArticleLabel: "阅读文章",
         categoriesHeading: "分类",
         tagsHeading: "标签",
         emptyTitle: "未找到文章。",
@@ -632,6 +667,15 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         coverImageAltTemplate: "{title} 封面图",
         commentsCountSingularTemplate: "{count} 条评论",
         commentsCountPluralTemplate: "{count} 条评论",
+        backToBlogLabel: "返回全部文字",
+        articleEyebrow: "一篇札记",
+        readingTimeTemplate: "预计阅读 {minutes} 分钟",
+        readingProgressLabel: "文章阅读进度",
+        readerControlsLabel: "阅读设置",
+        decreaseTextSizeLabel: "减小正文字号",
+        increaseTextSizeLabel: "增大正文字号",
+        copyLinkLabel: "复制链接",
+        copiedLinkLabel: "已复制",
         tableOfContents: {
           title: "目录",
           ariaLabel: "文章目录",
@@ -983,8 +1027,22 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         },
       },
       blog: {
-        title: "Blog",
-        description: "Browse all published posts, then narrow results by category or tag.",
+        eyebrow: "Writing archive",
+        title: "Between the Lines",
+        description:
+          "Ongoing notes on relationships, growth, and everyday judgment, arranged by time and revisited by theme.",
+        totalPostsTemplate: "{count} essays",
+        totalTopicsTemplate: "{count} topics",
+        featuredLabel: "Just published",
+        archiveHeading: "All writing",
+        archiveDescription: "The complete collection, ordered by publication date.",
+        resultsTemplate: "{count} essays",
+        filterHeading: "Browse by category",
+        tagsDisclosureTemplate: "Open tags · {count}",
+        noMorePostsLabel: "More writing is taking shape.",
+        readingTimeTemplate: "About {minutes} min",
+        featuredActionLabel: "Start reading",
+        readArticleLabel: "Read article",
         categoriesHeading: "Categories",
         tagsHeading: "Tags",
         emptyTitle: "No posts found.",
@@ -1095,6 +1153,15 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         coverImageAltTemplate: "{title} cover image",
         commentsCountSingularTemplate: "{count} comment",
         commentsCountPluralTemplate: "{count} comments",
+        backToBlogLabel: "Back to all writing",
+        articleEyebrow: "An essay",
+        readingTimeTemplate: "{minutes} min read",
+        readingProgressLabel: "Article reading progress",
+        readerControlsLabel: "Reading settings",
+        decreaseTextSizeLabel: "Decrease text size",
+        increaseTextSizeLabel: "Increase text size",
+        copyLinkLabel: "Copy link",
+        copiedLinkLabel: "Copied",
         tableOfContents: {
           title: "Table of Contents",
           ariaLabel: "Table of contents",

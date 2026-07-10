@@ -93,7 +93,9 @@ describe("blog listing data", () => {
 
     expect(pageOne.posts).toHaveLength(10);
     expect(pageOne.posts[0]?.slug).toBe("post-1");
+    expect(pageOne.posts[0]?.readingMinutes).toBe(1);
     expect(pageOne.posts[9]?.slug).toBe("post-10");
+    expect(pageOne.totalPublished).toBe(12);
     expect(pageOne.pagination).toEqual({
       currentPage: 1,
       totalPages: 2,

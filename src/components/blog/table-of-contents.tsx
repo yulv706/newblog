@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { useLocaleContext } from "@/components/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 import type { TableOfContentsItem } from "@/lib/markdown";
@@ -21,6 +22,7 @@ export function TableOfContents({
   const { dictionary } = useLocaleContext();
   const tocDictionary = dictionary.public.post.tableOfContents;
   const resolvedTitle = title ?? tocDictionary.title;
+  const listId = useId();
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(
     headings[0]?.id ?? null
   );
@@ -70,12 +72,14 @@ export function TableOfContents({
     <nav
       aria-label={tocDictionary.ariaLabel}
       className={cn(
-        "rounded-2xl border border-border/60 bg-card/80 p-4 shadow-xs",
+        collapsible
+          ? "rounded-lg border border-border/70 bg-card/60 p-4"
+          : "border-l border-border/70 pl-5",
         className
       )}
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+        <h2 className="text-xs font-semibold text-muted">
           {resolvedTitle}
         </h2>
         {collapsible ? (
@@ -83,17 +87,29 @@ export function TableOfContents({
             type="button"
             onClick={() => setIsOpen((open) => !open)}
             aria-expanded={isOpen}
-            aria-controls="post-detail-toc-list"
-            className="rounded-md border border-border/60 px-2.5 py-1 text-xs font-medium text-muted transition hover:bg-secondary hover:text-foreground"
+            aria-controls={listId}
+            aria-label={isOpen ? tocDictionary.hideButton : tocDictionary.showButton}
+            title={isOpen ? tocDictionary.hideButton : tocDictionary.showButton}
+            className="grid h-8 w-8 place-items-center rounded-md text-muted outline-none transition-colors hover:bg-secondary hover:text-foreground focus-visible:bg-secondary focus-visible:text-foreground"
           >
-            {isOpen ? tocDictionary.hideButton : tocDictionary.showButton}
+            <ChevronDown
+              aria-hidden="true"
+              className={cn(
+                "h-4 w-4 transition-transform duration-300 ease-[var(--ease-apple)]",
+                isOpen && "rotate-180"
+              )}
+              strokeWidth={1.8}
+            />
           </button>
         ) : null}
       </div>
 
       <ul
-        id="post-detail-toc-list"
-        className={cn("mt-3 space-y-1.5", collapsible && !isOpen && "hidden")}
+        id={listId}
+        className={cn(
+          "mt-4 max-h-[calc(100vh-11rem)] space-y-1 overflow-y-auto pr-2",
+          collapsible && !isOpen && "hidden"
+        )}
       >
         {headings.map((heading) => {
           const isActive = activeHeadingId === heading.id;
@@ -101,12 +117,13 @@ export function TableOfContents({
             <li key={heading.id}>
               <a
                 href={`#${heading.id}`}
+                aria-current={isActive ? "location" : undefined}
                 className={cn(
-                  "block rounded-md py-1 text-sm transition",
-                  heading.depth === 3 ? "pl-4" : "pl-0",
+                  "relative block py-1.5 text-sm leading-5 outline-none transition-colors before:absolute before:-left-[1.32rem] before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:bg-transparent before:transition-colors",
+                  heading.depth === 3 ? "pl-3" : "pl-0",
                   isActive
-                    ? "font-medium text-primary"
-                    : "text-muted hover:text-foreground"
+                    ? "font-medium text-foreground before:bg-primary"
+                    : "text-muted hover:text-foreground focus-visible:text-foreground"
                 )}
               >
                 {heading.text}

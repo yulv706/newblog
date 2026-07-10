@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type PostPaginationNavProps = {
   previous: {
@@ -30,14 +32,29 @@ function PostNavLink({
   return (
     <Link
       href={href}
-      className="group rounded-xl border border-border/70 bg-card/70 p-4 transition hover:border-primary/50 hover:bg-card"
+      className={cn(
+        "group flex min-h-28 flex-col justify-center border-border/70 py-6 outline-none transition-colors hover:text-primary focus-visible:text-primary",
+        align === "right" ? "items-end border-l pl-6 text-right" : "items-start pr-6"
+      )}
     >
-      <p className="text-xs uppercase tracking-[0.14em] text-muted">{label}</p>
-      <p
-        className={`mt-2 text-sm font-medium text-foreground transition group-hover:text-primary ${
-          align === "right" ? "text-right" : "text-left"
-        }`}
-      >
+      <p className="inline-flex items-center gap-2 text-xs font-medium text-muted">
+        {align === "left" ? (
+          <ArrowLeft
+            aria-hidden="true"
+            className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-x-1"
+            strokeWidth={1.8}
+          />
+        ) : null}
+        {label}
+        {align === "right" ? (
+          <ArrowRight
+            aria-hidden="true"
+            className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
+            strokeWidth={1.8}
+          />
+        ) : null}
+      </p>
+      <p className="mt-2 max-w-sm text-sm font-semibold leading-6 text-foreground transition-colors group-hover:text-primary group-focus-visible:text-primary sm:text-base">
         {title}
       </p>
     </Link>
@@ -56,7 +73,7 @@ export function PostPaginationNav({
   return (
     <nav
       aria-label={dictionary.ariaLabel}
-      className="grid gap-3 border-t border-border/60 pt-8 sm:grid-cols-2"
+      className="grid border-y border-border/70 sm:grid-cols-2"
     >
       {previous ? (
         <PostNavLink

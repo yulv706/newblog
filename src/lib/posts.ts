@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { categories, comments, postTags, posts, tags } from "@/lib/db/schema";
+import { getReadingMetrics } from "@/lib/reading";
 import { createSlug } from "@/lib/slug";
 
 type PostDatabase = Pick<
@@ -32,6 +33,10 @@ export type HomepagePostCard = {
   categoryName: string | null;
   categorySlug: string | null;
   tags: string[];
+};
+
+export type BlogListingPost = HomepagePostCard & {
+  readingMinutes: number;
 };
 
 export type HomepageData = {
@@ -67,11 +72,12 @@ export type BlogListingPagination = {
 };
 
 export type BlogListingData = {
-  posts: HomepagePostCard[];
+  posts: BlogListingPost[];
   categories: BlogListingFilterOption[];
   tags: BlogListingFilterOption[];
   activeCategory: BlogListingFilterOption | null;
   activeTag: BlogListingFilterOption | null;
+  totalPublished: number;
   pagination: BlogListingPagination;
 };
 
@@ -922,6 +928,7 @@ export async function getBlogListingData(
       id: posts.id,
       title: posts.title,
       slug: posts.slug,
+      content: posts.content,
       excerpt: posts.excerpt,
       coverImage: posts.coverImage,
       createdAt: posts.createdAt,
@@ -1018,12 +1025,14 @@ export async function getBlogListingData(
       categoryName: post.categoryName,
       categorySlug: post.categorySlug,
       tags: post.tags.map((tag) => tag.name),
+      readingMinutes: getReadingMetrics(post.content).minutes,
     })),
     categories: categoryOptions,
     tags: tagOptions,
     activeCategory:
       categoryFilter ? categoryOptions.find((category) => category.slug === categoryFilter) ?? null : null,
     activeTag: tagFilter ? tagOptions.find((tag) => tag.slug === tagFilter) ?? null : null,
+    totalPublished: listingRows.length,
     pagination: {
       currentPage,
       totalPages,
