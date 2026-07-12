@@ -262,4 +262,15 @@ describe("seo feeds and structured data", () => {
     expect(enXml).toContain("<description>English site description</description>");
     expect(enXml).toContain("<language>en-US</language>");
   });
+
+  it("renders a stable RSS discovery link from the root layout", () => {
+    const layoutSource = fs.readFileSync(
+      path.join(process.cwd(), "src/app/layout.tsx"),
+      "utf8"
+    );
+
+    expect(layoutSource).toContain('<link\n          rel="alternate"');
+    expect(layoutSource).toContain('type="application/rss+xml"');
+    expect(layoutSource).toContain('href={getAbsoluteUrl("/feed.xml")}');
+  });
 });

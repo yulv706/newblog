@@ -9,6 +9,7 @@ import { getRequestI18n } from "@/lib/i18n/server";
 import {
   buildLocalizedMetadataAlternates,
   getAbsoluteUrl,
+  getLocalizedSiteName,
   getSiteUrl,
 } from "@/lib/seo";
 import "./globals.css";
@@ -70,12 +71,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: new URL(getSiteUrl()),
-    alternates: {
-      ...buildLocalizedMetadataAlternates("/"),
-      types: {
-        "application/rss+xml": getAbsoluteUrl("/feed.xml"),
-      },
-    },
+    alternates: buildLocalizedMetadataAlternates("/"),
   };
 }
 
@@ -102,6 +98,14 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title={getLocalizedSiteName(locale)}
+          href={getAbsoluteUrl("/feed.xml")}
+        />
+      </head>
       <body
         className={`${inter.variable} ${notoSansSc.variable} ${jetBrainsMono.variable} flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground antialiased`}
       >
