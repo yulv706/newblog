@@ -37,7 +37,7 @@ export default async function AboutPage() {
         </p>
       </header>
       <section
-        className="prose max-w-none rounded-[1.75rem] border border-border/55 bg-card/45 p-6 prose-neutral sm:p-10 lg:p-12 dark:prose-invert"
+        className="about-prose prose markdown-prose mx-auto w-full max-w-[78ch] rounded-[1.75rem] border border-border/55 bg-card/45 p-6 prose-neutral sm:p-10 lg:p-12 dark:prose-invert"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </article>

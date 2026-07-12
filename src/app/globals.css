@@ -332,6 +332,34 @@ textarea {
   box-shadow: var(--shadow-sm);
 }
 
+.about-prose :where(img[src*="/about-avatar"]):not(
+    :where([class~="not-prose"] *)
+  ) {
+  width: clamp(8.5rem, 18vw, 10.5rem);
+  aspect-ratio: 1;
+  margin: 0;
+  border: 1px solid color-mix(in oklab, var(--color-border) 78%, transparent);
+  border-radius: 1.5rem;
+  object-fit: cover;
+  box-shadow: var(--shadow-soft);
+}
+
+.about-prose
+  > :where(p:has(img[src*="/about-avatar"])):not(
+    :where([class~="not-prose"] *)
+  ) {
+  margin-bottom: 0.7rem;
+}
+
+.about-prose
+  > :where(p:has(img[src*="/about-avatar"]) + p):not(
+    :where([class~="not-prose"] *)
+  ) {
+  margin-top: 0;
+  color: var(--color-muted);
+  font-size: 0.88em;
+}
+
 .article-prose :where(hr):not(:where([class~="not-prose"] *)) {
   margin-block: 3.5em;
 }

@@ -661,7 +661,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
       },
       about: {
         title: "关于",
-        description: "了解作者背景、关注领域与写作方向。",
+        description: "一个普通人的自我介绍，以及这个网站为何存在。",
       },
       post: {
         coverImageAltTemplate: "{title} 封面图",
@@ -1147,7 +1147,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
       },
       about: {
         title: "About",
-        description: "Learn more about the author behind this blog and current writing focus.",
+        description: "A brief introduction to an ordinary person, and why this site exists.",
       },
       post: {
         coverImageAltTemplate: "{title} cover image",
