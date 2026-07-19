@@ -43,6 +43,20 @@ ENV NODE_OPTIONS=--require=/app/scripts/node-runtime-setup.cjs
 
 RUN mkdir -p data public/uploads/images
 
+ARG APP_VERSION=0.0.0-dev
+ARG GIT_COMMIT=unknown
+ARG BUILD_DATE=unknown
+
+ENV APP_VERSION=${APP_VERSION}
+ENV GIT_COMMIT=${GIT_COMMIT}
+ENV BUILD_DATE=${BUILD_DATE}
+
+LABEL org.opencontainers.image.title="personal-blog" \
+      org.opencontainers.image.version="${APP_VERSION}" \
+      org.opencontainers.image.revision="${GIT_COMMIT}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.source="https://github.com/yulv706/newblog"
+
 EXPOSE 3000
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=6 \

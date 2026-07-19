@@ -22,7 +22,7 @@ fi
 require_command docker "Install Docker Engine and Docker Compose plugin before starting the compose stack."
 require_command curl "curl is required for deployment health diagnostics."
 
-print_info "Starting compose stack from the prebuilt ${APP_IMAGE:-newblog-app:latest} image"
+print_info "Starting compose stack from the prebuilt ${APP_IMAGE:-newblog-app:local} image"
 compose up --no-build -d --force-recreate
 
 if ! wait_for_runtime_health; then

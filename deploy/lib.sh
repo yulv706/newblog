@@ -192,7 +192,7 @@ run_migrations() {
   print_info "Running database migrations inside the prebuilt app image"
   if ! compose run --rm --no-deps app node scripts/run-migrations.js; then
     print_error "Database migration step failed."
-    print_error "Load or build ${APP_IMAGE:-newblog-app:latest} before running initialization."
+    print_error "Load or build ${APP_IMAGE:-newblog-app:local} before running initialization."
     return 1
   fi
 }

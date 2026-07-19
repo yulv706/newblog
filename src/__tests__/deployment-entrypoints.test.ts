@@ -72,7 +72,7 @@ describe("canonical deployment entrypoints", () => {
     );
 
     expect(compose).toContain("env_file:");
-    expect(compose).toContain('${APP_IMAGE:-newblog-app:latest}');
+    expect(compose).toContain('${APP_IMAGE:-newblog-app:local}');
     expect(compose).toContain("- ./deploy/.env.production");
     expect(compose).toContain("${AUTH_SECRET}");
     expect(compose).not.toContain("change-me-in-production");

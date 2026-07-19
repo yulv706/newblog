@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { getAppVersionInfo, type AppVersionInfo } from "@/lib/app-version";
 import { db } from "@/lib/db";
 
 const DB_PATH = path.join(process.cwd(), "data", "blog.db");
@@ -11,12 +12,15 @@ export type RuntimeHealthResult = {
     database: "ok" | "error";
     persistence: "ok" | "error";
   };
+  release: AppVersionInfo;
   databasePath: string;
   timestamp: string;
   reason?: string;
 };
 
 export function getRuntimeHealth(): RuntimeHealthResult {
+  const release = getAppVersionInfo();
+
   try {
     db.run("SELECT 1");
 
@@ -29,6 +33,7 @@ export function getRuntimeHealth(): RuntimeHealthResult {
           database: "error",
           persistence: "error",
         },
+        release,
         databasePath: DB_PATH,
         timestamp: new Date().toISOString(),
         reason: `Database file is missing at ${DB_PATH}`,
@@ -42,6 +47,7 @@ export function getRuntimeHealth(): RuntimeHealthResult {
         database: "ok",
         persistence: "ok",
       },
+      release,
       databasePath: DB_PATH,
       timestamp: new Date().toISOString(),
     };
@@ -55,6 +61,7 @@ export function getRuntimeHealth(): RuntimeHealthResult {
         database: "error",
         persistence: "error",
       },
+      release,
       databasePath: DB_PATH,
       timestamp: new Date().toISOString(),
       reason: message,

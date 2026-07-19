@@ -22,6 +22,9 @@ describe("docker deployment configuration", () => {
     expect(dockerfile).toContain("COPY --from=builder /app/.next ./.next");
     expect(dockerfile).toContain("COPY --from=builder /app/public ./public");
     expect(dockerfile).toContain("HEALTHCHECK");
+    expect(dockerfile).toContain("org.opencontainers.image.version");
+    expect(dockerfile).toContain("org.opencontainers.image.revision");
+    expect(dockerfile).toContain("org.opencontainers.image.created");
   });
 
   it("keeps runtime secrets and persistence data out of the Docker build context", () => {
@@ -39,7 +42,10 @@ describe("docker deployment configuration", () => {
 
     expect(compose).toContain("services:");
     expect(compose).toContain("app:");
-    expect(compose).toContain('${APP_IMAGE:-newblog-app:latest}');
+    expect(compose).toContain('${APP_IMAGE:-newblog-app:local}');
+    expect(compose).toContain("APP_VERSION");
+    expect(compose).toContain("GIT_COMMIT");
+    expect(compose).toContain("BUILD_DATE");
     expect(compose).toContain("nginx:");
     expect(compose).toContain("env_file:");
     expect(compose).toContain("./deploy/.env.production");

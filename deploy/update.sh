@@ -10,7 +10,7 @@ ensure_runtime_env_paths
 require_command docker "Install Docker Engine and Docker Compose plugin before updating the compose stack."
 require_command curl "curl is required for deployment health diagnostics."
 
-print_info "Restarting compose stack from the prebuilt ${APP_IMAGE:-newblog-app:latest} image without deleting persisted data"
+print_info "Restarting compose stack from the prebuilt ${APP_IMAGE:-newblog-app:local} image without deleting persisted data"
 print_info "Forcing service recreation so nginx and app pick up updated runtime configuration"
 compose up --no-build -d --force-recreate
 

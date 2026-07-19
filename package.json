@@ -1,6 +1,6 @@
 {
   "name": "personal-blog",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,6 +9,11 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:release": "vitest run src/__tests__/app-version.test.ts src/__tests__/runtime-health.test.ts src/__tests__/docker-deployment.test.ts src/__tests__/layout.test.ts src/__tests__/public-layout-width.test.ts",
+    "version:check": "node scripts/check-version.mjs",
+    "image:build": "node scripts/build-versioned-image.mjs",
+    "preversion": "npm run version:check && npm run typecheck && npm run test:release",
+    "version": "npm run version:check",
     "sync:weread": "node scripts/run-migrations.js && node scripts/sync-weread.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

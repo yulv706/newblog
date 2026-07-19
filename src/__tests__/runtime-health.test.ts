@@ -36,7 +36,10 @@ describe("runtime health", () => {
       database: "ok",
       persistence: "ok",
     });
-    expect(result.databasePath).toContain("data/blog.db");
+    expect(result.databasePath.replaceAll("\\", "/")).toContain("data/blog.db");
+    expect(result.release.version).toBe("1.0.0");
+    expect(result.release).toHaveProperty("revision");
+    expect(result.release).toHaveProperty("builtAt");
   });
 
   it("reports an unhealthy result when the database file is missing", async () => {

@@ -1,9 +1,13 @@
 services:
   app:
-    image: "${APP_IMAGE:-newblog-app:latest}"
+    image: "${APP_IMAGE:-newblog-app:local}"
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        APP_VERSION: "${APP_VERSION:-0.0.0-dev}"
+        GIT_COMMIT: "${GIT_COMMIT:-unknown}"
+        BUILD_DATE: "${BUILD_DATE:-unknown}"
     container_name: blog-app
     restart: unless-stopped
     env_file:
