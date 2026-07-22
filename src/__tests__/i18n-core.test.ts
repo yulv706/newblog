@@ -49,8 +49,8 @@ describe("i18n dictionaries", () => {
     const zhLabels = NAV_LINKS.map((link) => zh.shell.navigation.links[link.key]);
     const enLabels = NAV_LINKS.map((link) => en.shell.navigation.links[link.key]);
 
-    expect(zhLabels).toEqual(["首页", "博客", "书架", "关于"]);
-    expect(enLabels).toEqual(["Home", "Blog", "Books", "About"]);
+    expect(zhLabels).toEqual(["首页", "博客", "日常", "书架", "关于"]);
+    expect(enLabels).toEqual(["Home", "Blog", "Daily", "Books", "About"]);
     expect(zh.shell.siteTitle).not.toBe(en.shell.siteTitle);
   });
 });

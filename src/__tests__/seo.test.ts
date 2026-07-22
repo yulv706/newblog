@@ -10,6 +10,7 @@ import { comments, postTags, posts, tags } from "@/lib/db/schema";
 import { getPublishedPosts, updatePost } from "@/lib/posts";
 import {
   SITE_NAME,
+  buildDailyPostingJsonLd,
   buildLocalizedMetadataAlternates,
   buildLocalizedMetadataFields,
   buildBlogPostingJsonLd,
@@ -86,7 +87,7 @@ describe("seo feeds and structured data", () => {
     const xml = buildRssFeedXml(published);
 
     expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
-    expect(xml).toContain("<rss version=\"2.0\">");
+    expect(xml).toContain('<rss version="2.0">');
     expect(xml).toContain(`<link>${getAbsoluteUrl("/blog/published-post")}</link>`);
     expect(xml).not.toContain("draft-post");
 
@@ -139,11 +140,20 @@ describe("seo feeds and structured data", () => {
 
     expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/")}</loc>`);
+    expect(xml).toContain(`<loc>${getAbsoluteUrl("/blog")}</loc>`);
+    expect(xml).toContain(`<loc>${getAbsoluteUrl("/daily")}</loc>`);
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/books")}</loc>`);
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/about")}</loc>`);
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/blog/published-post")}</loc>`);
     expect(xml).toContain("<lastmod>");
     expect(xml).not.toContain("draft-post");
+  });
+
+  it("seo sitemap xml includes published daily detail urls", () => {
+    const xml = buildSitemapXml([], [{ id: 42, updatedAt: "2026-07-22T08:00:00.000Z" }]);
+
+    expect(xml).toContain(`<loc>${getAbsoluteUrl("/daily/42")}</loc>`);
+    expect(xml).toContain("2026-07-22T08:00:00.000Z");
   });
 
   it("seo slug updates remove old url references from rss and sitemap", async () => {
@@ -208,6 +218,21 @@ describe("seo feeds and structured data", () => {
     expect(jsonLd.author.name).toBe(SITE_NAME);
   });
 
+  it("seo daily structured data describes a social posting", () => {
+    const jsonLd = buildDailyPostingJsonLd({
+      id: 7,
+      content: "傍晚沿湖散步。",
+      images: ["/uploads/daily/example.jpg"],
+      occurredAt: "2026-07-22T10:00:00.000Z",
+      updatedAt: "2026-07-22T10:30:00.000Z",
+    });
+
+    expect(jsonLd["@type"]).toBe("SocialMediaPosting");
+    expect(jsonLd.articleBody).toBe("傍晚沿湖散步。");
+    expect(jsonLd.url).toBe(getAbsoluteUrl("/daily/7"));
+    expect(jsonLd.image).toEqual([getAbsoluteUrl("/uploads/daily/example.jpg")]);
+  });
+
   it("localizes metadata fields and alternates for zh-CN and en", () => {
     const zh = buildLocalizedMetadataFields("zh-CN", {
       title: "首页",
@@ -264,10 +289,7 @@ describe("seo feeds and structured data", () => {
   });
 
   it("renders a stable RSS discovery link from the root layout", () => {
-    const layoutSource = fs.readFileSync(
-      path.join(process.cwd(), "src/app/layout.tsx"),
-      "utf8"
-    );
+    const layoutSource = fs.readFileSync(path.join(process.cwd(), "src/app/layout.tsx"), "utf8");
 
     expect(layoutSource).toContain('<link\n          rel="alternate"');
     expect(layoutSource).toContain('type="application/rss+xml"');

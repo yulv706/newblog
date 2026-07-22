@@ -130,6 +130,7 @@ describe("admin dashboard navigation config", () => {
       "Posts",
       "Categories/Tags",
       "Comments",
+      "Daily",
       "Books",
       "About",
     ]);
@@ -138,6 +139,7 @@ describe("admin dashboard navigation config", () => {
     expect(isAdminPathActive("/admin/posts", "/admin")).toBe(false);
     expect(isAdminPathActive("/admin/posts/new", "/admin/posts")).toBe(true);
     expect(isAdminPathActive("/admin/comments", "/admin/comments")).toBe(true);
+    expect(isAdminPathActive("/admin/daily/1/edit", "/admin/daily")).toBe(true);
     expect(isAdminPathActive("/admin/books", "/admin/books")).toBe(true);
   });
 });

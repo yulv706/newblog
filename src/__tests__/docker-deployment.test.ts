@@ -15,10 +15,10 @@ describe("docker deployment configuration", () => {
     const dockerfile = readFileSync(dockerfilePath, "utf8");
 
     expect(dockerfile).toContain("AS builder");
-    expect(dockerfile).toContain("RUN npm install");
+    expect(dockerfile).toContain("RUN npm ci");
     expect(dockerfile).toContain("RUN npm run build");
     expect(dockerfile).toContain("AS production");
-    expect(dockerfile).toContain("npm install --omit=dev");
+    expect(dockerfile).toContain("npm ci --omit=dev");
     expect(dockerfile).toContain("COPY --from=builder /app/.next ./.next");
     expect(dockerfile).toContain("COPY --from=builder /app/public ./public");
     expect(dockerfile).toContain("HEALTHCHECK");

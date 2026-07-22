@@ -4,11 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLocaleContext } from "@/components/i18n/locale-provider";
 import { ADMIN_SIDEBAR_LINKS, isAdminPathActive } from "@/lib/admin/navigation";
+import { getDailyCopy } from "@/lib/daily-copy";
 import { cn } from "@/lib/utils";
 
 export function AdminSidebarNav() {
   const pathname = usePathname();
-  const { dictionary } = useLocaleContext();
+  const { dictionary, locale } = useLocaleContext();
   const sidebarDictionary = dictionary.admin;
 
   const localizedLabels = {
@@ -16,6 +17,7 @@ export function AdminSidebarNav() {
     Posts: sidebarDictionary.posts.title,
     "Categories/Tags": sidebarDictionary.categories.title,
     Comments: sidebarDictionary.comments.title,
+    Daily: getDailyCopy(locale).admin.title,
     Books: sidebarDictionary.books.title,
     About: sidebarDictionary.about.title,
   } as const;
@@ -33,17 +35,15 @@ export function AdminSidebarNav() {
             className={cn(
               "group flex items-center justify-between rounded-xl px-3 py-2 text-sm transition",
               isActive
-                ? "bg-secondary text-foreground shadow-xs ring-1 ring-border/70"
+                ? "bg-secondary text-foreground ring-border/70 shadow-xs ring-1"
                 : "text-muted hover:bg-secondary hover:text-foreground"
             )}
           >
-            <span className="font-medium">
-              {localizedLabels[link.label] ?? link.label}
-            </span>
+            <span className="font-medium">{localizedLabels[link.label] ?? link.label}</span>
             <span
               aria-hidden="true"
               className={cn(
-                "h-1.5 w-1.5 rounded-full bg-primary transition-opacity",
+                "bg-primary h-1.5 w-1.5 rounded-full transition-opacity",
                 isActive ? "opacity-100" : "opacity-0 group-hover:opacity-60"
               )}
             />

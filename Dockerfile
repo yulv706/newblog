@@ -12,7 +12,7 @@ FROM base AS builder
 
 COPY package.json package-lock.json ./
 RUN npm config set registry https://registry.npmmirror.com
-RUN npm install
+RUN npm ci
 
 COPY . .
 RUN node scripts/run-migrations.js
@@ -25,7 +25,7 @@ ENV PORT=3000
 
 COPY package.json package-lock.json ./
 RUN npm config set registry https://registry.npmmirror.com
-RUN npm install --omit=dev && npm install --no-save typescript && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl \
   && rm -rf /var/lib/apt/lists/*

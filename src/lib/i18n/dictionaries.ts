@@ -479,6 +479,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         links: {
           home: "首页",
           blog: "博客",
+          daily: "日常",
           books: "书架",
           about: "关于",
         },
@@ -960,6 +961,7 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
         links: {
           home: "Home",
           blog: "Blog",
+          daily: "Daily",
           books: "Books",
           about: "About",
         },

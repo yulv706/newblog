@@ -28,6 +28,17 @@ export type SeoPostEntry = {
   coverImage?: string | null;
 };
 
+export type SeoDailyEntry = {
+  id: number;
+  updatedAt: string;
+};
+
+type SeoDailyPostingEntry = SeoDailyEntry & {
+  content: string;
+  images: string[];
+  occurredAt: string;
+};
+
 type LocalizedMetadataInput = {
   title: string;
   description: string;
@@ -77,10 +88,7 @@ export function buildLocalizedMetadataAlternates(pathname: string) {
   };
 }
 
-export function buildLocalizedMetadataFields(
-  locale: AppLocale,
-  input: LocalizedMetadataInput
-) {
+export function buildLocalizedMetadataFields(locale: AppLocale, input: LocalizedMetadataInput) {
   const siteName = getLocalizedSiteName(locale);
   const url = getAbsoluteUrl(input.path);
 
@@ -218,9 +226,9 @@ export function buildRssFeedXml(posts: SeoPostEntry[], options: RssFeedOptions =
   ].join("");
 }
 
-export function buildSitemapXml(posts: SeoPostEntry[]) {
+export function buildSitemapXml(posts: SeoPostEntry[], dailyEntries: SeoDailyEntry[] = []) {
   const generatedAt = new Date().toISOString();
-  const staticEntries = ["/", "/books", "/about"];
+  const staticEntries = ["/", "/blog", "/daily", "/books", "/about"];
   const staticXml = staticEntries
     .map((pathname) =>
       [
@@ -243,11 +251,23 @@ export function buildSitemapXml(posts: SeoPostEntry[]) {
     )
     .join("");
 
+  const dailyXml = dailyEntries
+    .map((entry) =>
+      [
+        "<url>",
+        `<loc>${escapeXml(getAbsoluteUrl(`/daily/${entry.id}`))}</loc>`,
+        `<lastmod>${escapeXml(toLastModifiedDate(entry.updatedAt))}</lastmod>`,
+        "</url>",
+      ].join("")
+    )
+    .join("");
+
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     staticXml,
     postXml,
+    dailyXml,
     "</urlset>",
   ].join("");
 }
@@ -284,6 +304,33 @@ export function buildBlogPostingJsonLd(
       "@id": url,
     },
     image: resolveOgImageUrl(post.coverImage),
+    url,
+  };
+}
+
+export function buildDailyPostingJsonLd(
+  entry: SeoDailyPostingEntry,
+  options?: { authorName?: string }
+) {
+  const authorName = options?.authorName?.trim() || SITE_NAME;
+  const url = getAbsoluteUrl(`/daily/${entry.id}`);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "SocialMediaPosting",
+    headline: buildMetaDescription(entry.content, "Daily", 80),
+    articleBody: entry.content,
+    datePublished: entry.occurredAt,
+    dateModified: entry.updatedAt,
+    author: {
+      "@type": "Person",
+      name: authorName,
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": url,
+    },
+    image: entry.images.map(resolveOgImageUrl),
     url,
   };
 }

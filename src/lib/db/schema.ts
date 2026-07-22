@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { index, sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
 export const posts = sqliteTable("posts", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -137,3 +137,30 @@ export const readingSyncState = sqliteTable("reading_sync_state", {
   finishedAt: text("finished_at"),
   payload: text("payload"),
 });
+
+export const dailyEntries = sqliteTable(
+  "daily_entries",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    content: text("content").notNull(),
+    images: text("images").notNull().default("[]"),
+    location: text("location"),
+    status: text("status", { enum: ["draft", "published"] })
+      .notNull()
+      .default("draft"),
+    isPinned: integer("is_pinned", { mode: "boolean" }).notNull().default(false),
+    occurredAt: text("occurred_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text("updated_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    publishedAt: text("published_at"),
+  },
+  (table) => [
+    index("daily_entries_public_timeline_idx").on(table.status, table.isPinned, table.occurredAt),
+  ]
+);

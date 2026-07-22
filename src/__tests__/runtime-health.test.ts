@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import packageMetadata from "../../package.json";
 
 const mockDbRun = vi.fn();
 const mockExistsSync = vi.fn();
@@ -37,7 +38,7 @@ describe("runtime health", () => {
       persistence: "ok",
     });
     expect(result.databasePath.replaceAll("\\", "/")).toContain("data/blog.db");
-    expect(result.release.version).toBe("1.0.0");
+    expect(result.release.version).toBe(packageMetadata.version);
     expect(result.release).toHaveProperty("revision");
     expect(result.release).toHaveProperty("builtAt");
   });
