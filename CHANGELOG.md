@@ -7,6 +7,15 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-07-23
+
+### Fixed
+
+- Render Daily content as sanitized, compact Markdown so entries created through
+  Hermes display emphasis, headings, lists, quotes, links, and code correctly.
+- Preserve clickable Daily topic filters and stop bare links at common Chinese
+  punctuation without rewriting linked text or inline code.
+
 ## [1.2.1] - 2026-07-22
 
 ### Fixed
@@ -59,7 +68,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added traceable application version, source revision, and build time metadata.
 - Added immutable version and revision Docker image tags.
 
-[Unreleased]: https://github.com/yulv706/newblog/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/yulv706/newblog/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/yulv706/newblog/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/yulv706/newblog/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/yulv706/newblog/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/yulv706/newblog/compare/v1.0.0...v1.1.0

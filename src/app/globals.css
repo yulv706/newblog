@@ -249,6 +249,98 @@ textarea {
   line-height: 1.8;
 }
 
+.daily-markdown {
+  overflow-wrap: anywhere;
+}
+
+.daily-markdown > :first-child {
+  margin-top: 0;
+}
+
+.daily-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.daily-markdown :where(p):not(:where([class~="not-prose"] *)) {
+  margin-block: 0.8em;
+  white-space: pre-wrap;
+}
+
+.daily-markdown :where(h1, h2, h3, h4):not(:where([class~="not-prose"] *)) {
+  margin-top: 1.35em;
+  margin-bottom: 0.65em;
+  color: var(--color-foreground);
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.daily-markdown :where(h1):not(:where([class~="not-prose"] *)) {
+  font-size: 1.3em;
+}
+
+.daily-markdown :where(h2):not(:where([class~="not-prose"] *)) {
+  font-size: 1.2em;
+}
+
+.daily-markdown :where(h3, h4):not(:where([class~="not-prose"] *)) {
+  font-size: 1.08em;
+}
+
+.daily-markdown :where(strong):not(:where([class~="not-prose"] *)) {
+  color: var(--color-foreground);
+  font-weight: 650;
+}
+
+.daily-markdown :where(a):not(:where([class~="not-prose"] *)) {
+  color: var(--color-primary);
+  font-weight: 500;
+  text-decoration-color: color-mix(in oklab, var(--color-primary) 35%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  transition:
+    color var(--duration-fast) var(--ease-apple),
+    text-decoration-color var(--duration-fast) var(--ease-apple);
+}
+
+.daily-markdown :where(a:hover, a:focus-visible):not(:where([class~="not-prose"] *)) {
+  color: var(--color-accent);
+  text-decoration-color: currentColor;
+}
+
+.daily-markdown :where(ul, ol):not(:where([class~="not-prose"] *)) {
+  margin-block: 0.85em;
+  padding-left: 1.4em;
+}
+
+.daily-markdown :where(li):not(:where([class~="not-prose"] *)) {
+  margin-block: 0.25em;
+}
+
+.daily-markdown :where(blockquote):not(:where([class~="not-prose"] *)) {
+  margin-block: 1em;
+  border-left: 2px solid color-mix(in oklab, var(--color-primary) 55%, transparent);
+  padding: 0.05rem 0 0.05rem 1rem;
+  color: var(--color-muted);
+  font-style: normal;
+}
+
+.daily-markdown :where(pre):not(:where([class~="not-prose"] *)) {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid color-mix(in oklab, var(--color-border) 75%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in oklab, var(--color-secondary) 88%, transparent);
+}
+
+.daily-markdown :where(code):not(:where([class~="not-prose"] *)) {
+  font-size: 0.88em;
+}
+
+.daily-markdown :where(code)::before,
+.daily-markdown :where(code)::after {
+  content: none;
+}
+
 .article-prose {
   font-size: 1.075rem;
   line-height: 1.95;

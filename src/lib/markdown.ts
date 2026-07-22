@@ -10,7 +10,7 @@ import rehypePrettyCode from "rehype-pretty-code";
 import { toString } from "mdast-util-to-string";
 import { visit } from "unist-util-visit";
 import GithubSlugger from "github-slugger";
-import type { Element, Root as HastRoot } from "hast";
+import type { Element, ElementContent, Root as HastRoot, RootContent } from "hast";
 import type { Heading, PhrasingContent, Root as MdastRoot, Text } from "mdast";
 import type { Plugin } from "unified";
 
@@ -100,6 +100,128 @@ const remarkObsidianWikiImages: Plugin<[], MdastRoot> = () => {
   };
 };
 
+const DAILY_HASHTAG_PATTERN = /#[\p{L}\p{N}_-]{1,40}/gu;
+const DAILY_HASHTAG_BLOCKED_ELEMENTS = new Set(["a", "code", "pre"]);
+const DAILY_AUTOLINK_BOUNDARY_PATTERN = /[，。！？；：、）】》”’]/u;
+
+function buildDailyHashtagNodes(value: string): ElementContent[] | null {
+  const matches = Array.from(value.matchAll(DAILY_HASHTAG_PATTERN));
+  if (matches.length === 0) {
+    return null;
+  }
+
+  const children: ElementContent[] = [];
+  let cursor = 0;
+
+  for (const match of matches) {
+    const token = match[0];
+    const startIndex = match.index ?? -1;
+    if (!token || startIndex < 0) {
+      continue;
+    }
+
+    const leadingText = value.slice(cursor, startIndex);
+    if (leadingText) {
+      children.push({ type: "text", value: leadingText });
+    }
+
+    children.push({
+      type: "element",
+      tagName: "a",
+      properties: {
+        href: `/daily?tag=${encodeURIComponent(token.slice(1))}`,
+      },
+      children: [{ type: "text", value: token }],
+    });
+    cursor = startIndex + token.length;
+  }
+
+  const trailingText = value.slice(cursor);
+  if (trailingText) {
+    children.push({ type: "text", value: trailingText });
+  }
+
+  return children;
+}
+
+function linkDailyHashtags(parent: HastRoot | Element, blocked = false) {
+  const children = parent.children as RootContent[];
+
+  for (let index = 0; index < children.length; index += 1) {
+    const child = children[index];
+    if (child.type === "element") {
+      linkDailyHashtags(child, blocked || DAILY_HASHTAG_BLOCKED_ELEMENTS.has(child.tagName));
+      continue;
+    }
+
+    if (blocked || child.type !== "text") {
+      continue;
+    }
+
+    const rewritten = buildDailyHashtagNodes(child.value);
+    if (!rewritten) {
+      continue;
+    }
+
+    children.splice(index, 1, ...rewritten);
+    index += rewritten.length - 1;
+  }
+}
+
+const rehypeLinkDailyHashtags: Plugin<[], HastRoot> = () => {
+  return (tree) => linkDailyHashtags(tree);
+};
+
+function configureDailyLinks(parent: HastRoot | Element) {
+  const children = parent.children as RootContent[];
+
+  for (let index = 0; index < children.length; index += 1) {
+    const child = children[index];
+    if (child.type !== "element") {
+      continue;
+    }
+
+    if (child.tagName !== "a") {
+      configureDailyLinks(child);
+      continue;
+    }
+
+    const href = child.properties.href;
+    if (typeof href !== "string") {
+      continue;
+    }
+
+    if (href.startsWith("/daily?tag=")) {
+      child.properties.className = ["daily-topic-link"];
+      continue;
+    }
+
+    if (!/^https?:\/\//i.test(href)) {
+      continue;
+    }
+
+    const textChild = child.children.length === 1 ? child.children[0] : null;
+    if (textChild?.type === "text") {
+      const boundaryIndex = textChild.value.search(DAILY_AUTOLINK_BOUNDARY_PATTERN);
+      if (boundaryIndex > 0) {
+        const trailingText = textChild.value.slice(boundaryIndex);
+        const normalizedUrl = textChild.value.slice(0, boundaryIndex);
+        textChild.value = normalizedUrl;
+        child.properties.href = normalizedUrl;
+        children.splice(index + 1, 0, { type: "text", value: trailingText });
+        index += 1;
+      }
+    }
+
+    child.properties.target = "_blank";
+    child.properties.rel = ["noreferrer", "noopener"];
+  }
+}
+
+const rehypeConfigureDailyLinks: Plugin<[], HastRoot> = () => {
+  return (tree) => configureDailyLinks(tree);
+};
+
 export type TableOfContentsItem = {
   id: string;
   text: string;
@@ -113,6 +235,20 @@ export async function renderMarkdownToHtml(markdown: string) {
     .use(remarkGfm)
     .use(remarkRehype)
     .use(rehypeSanitize)
+    .use(rehypeStringify)
+    .process(markdown || "");
+
+  return String(file);
+}
+
+export async function renderDailyMarkdownToHtml(markdown: string) {
+  const file = await unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkRehype)
+    .use(rehypeLinkDailyHashtags)
+    .use(rehypeSanitize)
+    .use(rehypeConfigureDailyLinks)
     .use(rehypeStringify)
     .process(markdown || "");
 
