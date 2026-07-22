@@ -63,6 +63,7 @@ describe("canonical deployment entrypoints", () => {
     expect(example).toContain("ADMIN_USERNAME=");
     expect(example).toContain("ADMIN_PASSWORD=");
     expect(example).toContain("NEXT_PUBLIC_SITE_URL=");
+    expect(example).toContain("BLOG_MANAGEMENT_API_TOKEN=");
     expect(example).toContain("APP_IMAGE=");
     expect(example).toContain("NGINX_PORT=");
     expect(example).toContain("NGINX_SSL_PORT=");
@@ -81,6 +82,7 @@ describe("canonical deployment entrypoints", () => {
 
     expect(dockerfile).toContain("HEALTHCHECK");
     expect(nginxConfig).toContain("location = /healthz");
+    expect(nginxConfig).toContain("location ^~ /api/management/");
     expect(deployLibrary).toContain('docker compose --env-file "${DEPLOY_ENV_FILE}"');
     expect(deployLibrary).toContain("compose run --rm --no-deps app");
     expect(startScript).toContain("wait_for_runtime_health");

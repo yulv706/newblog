@@ -398,6 +398,7 @@ export async function getPostForEdit(postId: number, database: PostDatabase = db
       status: posts.status,
       categoryId: posts.categoryId,
       createdAt: posts.createdAt,
+      updatedAt: posts.updatedAt,
       publishedAt: posts.publishedAt,
     })
     .from(posts)

@@ -172,6 +172,43 @@ describe("WeRead synchronization", () => {
       { source_id: "book-1:highlight:new-note", content: "new content" },
     ]);
   });
+
+  it("preserves manual management notes during a successful upstream refresh", async () => {
+    const database = createReadingDatabase();
+    const now = new Date().toISOString();
+    database
+      .prepare(
+        `INSERT INTO reading_notes (
+          source_id, book_source_id, type, content, synced_at
+        ) VALUES (?, ?, ?, ?, ?)`
+      )
+      .run("manual:note-1", "book-1", "review", "my reflection", now);
+    process.env.WEREAD_API_KEY = "test-key";
+    process.env.WEREAD_SYNC_HIGHLIGHTS = "1";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        const request = JSON.parse(String(init?.body));
+        if (request.api_name === "/book/bookmarklist") {
+          return Response.json({ data: { updated: [], chapters: [] } });
+        }
+        return Response.json({ data: { reviews: [], hasMore: false } });
+      })
+    );
+
+    await syncHighlights(
+      database,
+      createPreparedStatements(database),
+      ["book-1"],
+      now
+    );
+    const notes = database
+      .prepare("SELECT source_id, content FROM reading_notes ORDER BY source_id")
+      .all();
+    database.close();
+
+    expect(notes).toEqual([{ source_id: "manual:note-1", content: "my reflection" }]);
+  });
 });
 
 describe("WeRead rating migration", () => {

@@ -7,6 +7,26 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-22
+
+### Added
+
+- Added an internal, versioned management API for posts, Daily entries, media, About,
+  taxonomy, comments, books, manual reading notes, WeRead sync, audit history, and
+  consistent SQLite snapshots.
+- Added a typed Hermes MCP bridge and operating skill for managing the blog from
+  Weixin without granting host shell or Docker access.
+- Added bearer authentication, bounded rate limiting, mutation audit logs,
+  idempotency keys, optimistic concurrency, and explicit deletion confirmation.
+
+### Changed
+
+- Blocked the management API at public Nginx so it is only reachable from the private
+  Docker network.
+- Protected every legacy admin Server Action with an explicit authenticated session
+  check.
+- Preserved manually added reading notes across subsequent WeRead synchronizations.
+
 ## [1.1.0] - 2026-07-22
 
 ### Added
@@ -31,6 +51,7 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added traceable application version, source revision, and build time metadata.
 - Added immutable version and revision Docker image tags.
 
-[Unreleased]: https://github.com/yulv706/newblog/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/yulv706/newblog/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/yulv706/newblog/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/yulv706/newblog/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/yulv706/newblog/releases/tag/v1.0.0

@@ -164,3 +164,45 @@ export const dailyEntries = sqliteTable(
     index("daily_entries_public_timeline_idx").on(table.status, table.isPinned, table.occurredAt),
   ]
 );
+
+export const managementAuditLogs = sqliteTable(
+  "management_audit_logs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    requestId: text("request_id").notNull(),
+    actor: text("actor").notNull(),
+    action: text("action").notNull(),
+    resourceType: text("resource_type").notNull(),
+    resourceId: text("resource_id"),
+    status: text("status", { enum: ["success", "error"] }).notNull(),
+    summary: text("summary").notNull().default("{}"),
+    error: text("error"),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    index("management_audit_logs_created_at_idx").on(table.createdAt),
+    index("management_audit_logs_resource_idx").on(
+      table.resourceType,
+      table.resourceId
+    ),
+  ]
+);
+
+export const managementApiRequests = sqliteTable(
+  "management_api_requests",
+  {
+    id: text("id").primaryKey(),
+    actor: text("actor").notNull(),
+    method: text("method").notNull(),
+    path: text("path").notNull(),
+    requestHash: text("request_hash").notNull(),
+    statusCode: integer("status_code").notNull(),
+    responseBody: text("response_body").notNull(),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [index("management_api_requests_created_at_idx").on(table.createdAt)]
+);

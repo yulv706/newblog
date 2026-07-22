@@ -392,7 +392,7 @@ function createPreparedStatements(db) {
         AND archived_at IS NULL
     `),
     clearBookNotes: db.prepare(
-      "DELETE FROM reading_notes WHERE book_source_id = @bookSourceId"
+      "DELETE FROM reading_notes WHERE book_source_id = @bookSourceId AND source_id NOT LIKE 'manual:%'"
     ),
     upsertNote: db.prepare(`
       INSERT INTO reading_notes (

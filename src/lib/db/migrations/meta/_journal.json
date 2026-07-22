@@ -29,6 +29,13 @@
       "when": 1784722929050,
       "tag": "0003_past_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1784732748587,
+      "tag": "0004_regular_the_santerians",
+      "breakpoints": true
     }
   ]
 }

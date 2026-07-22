@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireAdminSession } from "@/lib/admin-session";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { saveAboutContent } from "@/lib/site-settings";
 
@@ -18,6 +19,7 @@ export async function saveAboutContentAction(
   _previousState: AboutEditorActionState = DEFAULT_STATE,
   formData: FormData
 ): Promise<AboutEditorActionState> {
+  await requireAdminSession();
   const { dictionary } = await getRequestI18n();
   const aboutDictionary = dictionary.admin.about;
   const content = formData.get("content");

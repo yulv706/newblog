@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireAdminSession } from "@/lib/admin-session";
 import {
   createCategory,
   deleteCategoryById,
@@ -39,6 +40,7 @@ export async function createCategoryAction(
   _previousState: CategoryFormActionState = INITIAL_CATEGORY_FORM_STATE,
   formData: FormData
 ): Promise<CategoryFormActionState> {
+  await requireAdminSession();
   const { dictionary } = await getRequestI18n();
   const categoryDictionary = dictionary.admin.categories;
   const nameValue = formData.get("name");
@@ -75,6 +77,7 @@ export async function createCategoryAction(
 }
 
 export async function deleteCategoryAction(formData: FormData) {
+  await requireAdminSession();
   const categoryId = getFormIdValue(formData, "categoryId");
   if (!categoryId) {
     return;
@@ -85,6 +88,7 @@ export async function deleteCategoryAction(formData: FormData) {
 }
 
 export async function deleteTagAction(formData: FormData) {
+  await requireAdminSession();
   const tagId = getFormIdValue(formData, "tagId");
   if (!tagId) {
     return;

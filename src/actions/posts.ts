@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdminSession } from "@/lib/admin-session";
 import {
   createPost,
   deletePost,
@@ -156,6 +157,7 @@ async function getUniqueUploadFileName(
 export async function parseMarkdownUploadAction(
   markdownSource: string
 ): Promise<ParseMarkdownUploadActionResult> {
+  await requireAdminSession();
   const { dictionary } = await getRequestI18n();
   try {
     const parsed = parseMarkdownUpload(markdownSource);
@@ -191,6 +193,7 @@ export type UploadMarkdownImagesActionResult = {
 export async function uploadMarkdownImagesAction(
   formData: FormData
 ): Promise<UploadMarkdownImagesActionResult> {
+  await requireAdminSession();
   const { dictionary } = await getRequestI18n();
   const adminMessages = dictionary.admin.messages;
   const markdownContent = getFieldValue(formData, "markdownContent");
@@ -268,6 +271,7 @@ export async function createPostAction(
   _previousState: PostFormActionState = DEFAULT_STATE,
   formData: FormData
 ): Promise<PostFormActionState> {
+  await requireAdminSession();
   const { dictionary } = await getRequestI18n();
   const input = readPostFormData(formData);
   const validationError = getValidationErrorMessage(input, dictionary.admin.messages);
@@ -299,6 +303,7 @@ export async function updatePostAction(
   _previousState: PostFormActionState = DEFAULT_STATE,
   formData: FormData
 ): Promise<PostFormActionState> {
+  await requireAdminSession();
   const { dictionary } = await getRequestI18n();
   const postId = getPostId(formData);
   if (!postId) {
@@ -340,6 +345,7 @@ export async function updatePostAction(
 }
 
 export async function deletePostAction(formData: FormData) {
+  await requireAdminSession();
   const postId = getPostId(formData);
   if (!postId) {
     return;
@@ -350,6 +356,7 @@ export async function deletePostAction(formData: FormData) {
 }
 
 export async function togglePostStatusAction(formData: FormData) {
+  await requireAdminSession();
   const postId = getPostId(formData);
   if (!postId) {
     return;

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireAdminSession } from "@/lib/admin-session";
 import {
   approveComment,
   createPendingComment,
@@ -99,6 +100,7 @@ export async function submitCommentAction(
 }
 
 export async function approveCommentAction(formData: FormData) {
+  await requireAdminSession();
   const commentId = parseIntegerField(formData, "commentId");
   const postSlug = parseStringField(formData, "postSlug").trim();
   if (!commentId) {
@@ -110,6 +112,7 @@ export async function approveCommentAction(formData: FormData) {
 }
 
 export async function deleteCommentAction(formData: FormData) {
+  await requireAdminSession();
   const commentId = parseIntegerField(formData, "commentId");
   const postSlug = parseStringField(formData, "postSlug").trim();
   if (!commentId) {
