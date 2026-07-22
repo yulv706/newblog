@@ -226,6 +226,7 @@ copy_sqlite_consistent_snapshot() {
   python3 - "${source_db_path}" "${destination_db_path}" <<'PY'
 import sqlite3
 import sys
+import os
 from pathlib import Path
 
 source = Path(sys.argv[1])
@@ -236,15 +237,38 @@ if not source.exists():
     print(f"source database missing: {source}", file=sys.stderr)
     raise SystemExit(1)
 
+if destination.exists():
+    destination.unlink()
+
 src_conn = sqlite3.connect(str(source))
 try:
-    dest_conn = sqlite3.connect(str(destination))
-    try:
-        src_conn.backup(dest_conn)
-    finally:
-        dest_conn.close()
+    if hasattr(src_conn, "backup") and os.environ.get("DEPLOY_FORCE_SQLITE_DUMP") != "1":
+        dest_conn = sqlite3.connect(str(destination))
+        try:
+            src_conn.backup(dest_conn)
+        finally:
+            dest_conn.close()
+    else:
+        # Python 3.6 lacks Connection.backup(). Hold a read transaction so
+        # iterdump observes one WAL snapshot while rebuilding the destination.
+        src_conn.execute("BEGIN")
+        dest_conn = sqlite3.connect(str(destination))
+        try:
+            for statement in src_conn.iterdump():
+                dest_conn.execute(statement)
+        finally:
+            dest_conn.close()
+            src_conn.rollback()
 finally:
     src_conn.close()
+
+check_conn = sqlite3.connect(str(destination))
+try:
+    result = check_conn.execute("PRAGMA integrity_check").fetchone()
+    if not result or result[0] != "ok":
+        raise RuntimeError("SQLite snapshot integrity check failed")
+finally:
+    check_conn.close()
 PY
 }
 

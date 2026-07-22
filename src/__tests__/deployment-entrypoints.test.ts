@@ -246,6 +246,7 @@ describe("canonical deployment entrypoints", () => {
       DEPLOY_DATA_DIR: dataDir,
       DEPLOY_UPLOADS_DIR: uploadsDir,
       DEPLOY_BACKUP_DIR: backupDir,
+      DEPLOY_FORCE_SQLITE_DUMP: "1",
     });
 
     expect(backup.status).toBe(0);

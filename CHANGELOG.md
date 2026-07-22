@@ -7,6 +7,14 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-07-22
+
+### Fixed
+
+- Added a transactionally consistent SQLite dump fallback for Python 3.6 hosts
+  where `sqlite3.Connection.backup()` is unavailable, and verify every snapshot
+  with `PRAGMA integrity_check`.
+
 ## [1.2.0] - 2026-07-22
 
 ### Added
@@ -51,7 +59,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added traceable application version, source revision, and build time metadata.
 - Added immutable version and revision Docker image tags.
 
-[Unreleased]: https://github.com/yulv706/newblog/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/yulv706/newblog/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/yulv706/newblog/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/yulv706/newblog/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/yulv706/newblog/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/yulv706/newblog/releases/tag/v1.0.0
