@@ -50,19 +50,115 @@ export const postTags = sqliteTable("post_tags", {
     .references(() => tags.id, { onDelete: "cascade" }),
 });
 
-export const comments = sqliteTable("comments", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  postId: integer("post_id")
-    .notNull()
-    .references(() => posts.id, { onDelete: "cascade" }),
-  nickname: text("nickname").notNull(),
-  email: text("email").notNull(),
-  body: text("body").notNull(),
-  approved: integer("approved", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-});
+export const users = sqliteTable(
+  "users",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    email: text("email").notNull().unique(),
+    displayName: text("display_name").notNull(),
+    role: text("role", { enum: ["reader", "admin"] })
+      .notNull()
+      .default("reader"),
+    status: text("status", { enum: ["active", "disabled"] })
+      .notNull()
+      .default("active"),
+    emailVerifiedAt: text("email_verified_at").notNull(),
+    lastLoginAt: text("last_login_at"),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text("updated_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    index("users_status_idx").on(table.status),
+    index("users_role_idx").on(table.role),
+    index("users_created_at_idx").on(table.createdAt),
+  ]
+);
+
+export const emailAuthChallenges = sqliteTable(
+  "email_auth_challenges",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    displayName: text("display_name"),
+    codeHash: text("code_hash").notNull(),
+    requestIpHash: text("request_ip_hash").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    expiresAt: text("expires_at").notNull(),
+    consumedAt: text("consumed_at"),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    index("email_auth_challenges_email_created_idx").on(
+      table.email,
+      table.createdAt
+    ),
+    index("email_auth_challenges_ip_created_idx").on(
+      table.requestIpHash,
+      table.createdAt
+    ),
+    index("email_auth_challenges_expires_idx").on(table.expiresAt),
+  ]
+);
+
+export const userRegistrationNotifications = sqliteTable(
+  "user_registration_notifications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" })
+      .unique(),
+    email: text("email").notNull(),
+    displayName: text("display_name").notNull(),
+    status: text("status", {
+      enum: ["pending", "processing", "retry", "sent"],
+    })
+      .notNull()
+      .default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: text("next_attempt_at").notNull(),
+    claimedAt: text("claimed_at"),
+    sentAt: text("sent_at"),
+    lastError: text("last_error"),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    index("user_registration_notifications_dispatch_idx").on(
+      table.status,
+      table.nextAttemptAt
+    ),
+    index("user_registration_notifications_created_at_idx").on(table.createdAt),
+  ]
+);
+
+export const comments = sqliteTable(
+  "comments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    postId: integer("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    userId: integer("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    nickname: text("nickname").notNull(),
+    email: text("email").notNull(),
+    body: text("body").notNull(),
+    approved: integer("approved", { mode: "boolean" }).notNull().default(false),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [index("comments_user_id_idx").on(table.userId)]
+);
 
 export const siteSettings = sqliteTable("site_settings", {
   id: integer("id").primaryKey({ autoIncrement: true }),

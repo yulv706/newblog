@@ -1,7 +1,13 @@
 import { count, eq } from "drizzle-orm";
 import { getAppVersionInfo } from "@/lib/app-version";
 import { db } from "@/lib/db";
-import { comments, dailyEntries, posts, readingBooks } from "@/lib/db/schema";
+import {
+  comments,
+  dailyEntries,
+  posts,
+  readingBooks,
+  users,
+} from "@/lib/db/schema";
 
 function toNumber(value: unknown) {
   return typeof value === "number" ? value : Number(value ?? 0);
@@ -16,6 +22,17 @@ export async function getManagementStatus() {
     .where(eq(comments.approved, false))
     .get();
   const bookCount = db.select({ value: count() }).from(readingBooks).get();
+  const userCount = db.select({ value: count() }).from(users).get();
+  const activeUserCount = db
+    .select({ value: count() })
+    .from(users)
+    .where(eq(users.status, "active"))
+    .get();
+  const adminUserCount = db
+    .select({ value: count() })
+    .from(users)
+    .where(eq(users.role, "admin"))
+    .get();
 
   return {
     service: "personal-blog-management-api",
@@ -26,6 +43,9 @@ export async function getManagementStatus() {
       dailyEntries: toNumber(dailyCount?.value),
       pendingComments: toNumber(pendingCommentCount?.value),
       books: toNumber(bookCount?.value),
+      users: toNumber(userCount?.value),
+      activeUsers: toNumber(activeUserCount?.value),
+      administrators: toNumber(adminUserCount?.value),
     },
     capabilities: [
       "posts:read-write-publish-delete",
@@ -34,6 +54,7 @@ export async function getManagementStatus() {
       "about:read-write",
       "taxonomy:read-write-delete",
       "comments:moderate-delete",
+      "users:read-update-access",
       "books:read-write-sync-notes",
       "backups:create-list",
       "audit:read",

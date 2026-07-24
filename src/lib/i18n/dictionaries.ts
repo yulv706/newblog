@@ -240,20 +240,6 @@ export type AppDictionary = {
     };
   };
   admin: {
-    login: {
-      title: string;
-      description: string;
-      usernameLabel: string;
-      passwordLabel: string;
-      submitButton: string;
-      submittingButton: string;
-      errors: {
-        requiredCredentials: string;
-        usernameRequired: string;
-        passwordRequired: string;
-        invalidCredentials: string;
-      };
-    };
     sidebar: {
       title: string;
       logoutButton: string;
@@ -722,20 +708,6 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
       },
     },
     admin: {
-      login: {
-        title: "后台登录",
-        description: "登录以访问管理后台。",
-        usernameLabel: "用户名",
-        passwordLabel: "密码",
-        submitButton: "登录",
-        submittingButton: "登录中...",
-        errors: {
-          requiredCredentials: "请输入用户名和密码。",
-          usernameRequired: "请输入用户名。",
-          passwordRequired: "请输入密码。",
-          invalidCredentials: "用户名或密码错误。",
-        },
-      },
       sidebar: {
         title: "后台",
         logoutButton: "退出登录",
@@ -1209,20 +1181,6 @@ const dictionaries: Record<AppLocale, AppDictionary> = {
       },
     },
     admin: {
-      login: {
-        title: "Admin Login",
-        description: "Sign in to access your admin dashboard.",
-        usernameLabel: "Username",
-        passwordLabel: "Password",
-        submitButton: "Sign in",
-        submittingButton: "Signing in...",
-        errors: {
-          requiredCredentials: "Username and password are required.",
-          usernameRequired: "Username is required.",
-          passwordRequired: "Password is required.",
-          invalidCredentials: "Invalid credentials",
-        },
-      },
       sidebar: {
         title: "Admin",
         logoutButton: "Logout",

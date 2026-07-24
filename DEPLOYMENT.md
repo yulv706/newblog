@@ -52,24 +52,46 @@ cp deploy/.env.production.example deploy/.env.production
 
 Set these values:
 
-| Variable | Required | Purpose | Notes |
-| --- | --- | --- | --- |
-| `AUTH_SECRET` | Yes | Session signing secret | Must be non-placeholder and at least 32 chars |
-| `ADMIN_USERNAME` | Yes | Admin login username | Avoid weak defaults like `admin` |
-| `ADMIN_PASSWORD` | Yes | First-run admin password seed | Must be strong; only seeds when no stored hash exists |
-| `NEXT_PUBLIC_SITE_URL` | Yes | Public site origin | Must be an absolute `http(s)` origin with no path |
-| `NGINX_PORT` | No | Published HTTP port | Defaults to `8080`; mission validation uses `8080` |
-| `WEREAD_API_KEY` | No | Official WeRead Skill API key | Optional; enables `/admin/books` and `npm run sync:weread` sync |
-| `WEREAD_SYNC_PROGRESS_LIMIT` | No | Per-sync progress lookup limit | Defaults to `80` |
-| `WEREAD_SYNC_DETAIL_LIMIT` | No | Per-sync book detail lookup limit | Defaults to `80` |
-| `WEREAD_SYNC_HIGHLIGHTS` | No | Sync highlight text content | Defaults to `0`; keep disabled if you only want progress and note counts |
+| Variable                      | Required         | Purpose                           | Notes                                                                    |
+| ----------------------------- | ---------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| `AUTH_SECRET`                 | Yes              | Session signing secret            | Must be non-placeholder and at least 32 chars                            |
+| `NEXT_PUBLIC_SITE_URL`        | Yes              | Public site origin                | Must be an absolute `http(s)` origin with no path                        |
+| `SMTP_HOST`                   | For registration | Verification mail server          | Use the host provided by the mail provider                               |
+| `SMTP_PORT`                   | For registration | SMTP port                         | Normally `465` or `587`                                                  |
+| `SMTP_SECURE`                 | For registration | TLS from connection start         | Normally `true` on port `465`                                            |
+| `SMTP_REQUIRE_TLS`            | Recommended      | Require STARTTLS                  | Normally `true` on port `587`                                            |
+| `SMTP_USER` / `SMTP_PASSWORD` | Production       | SMTP credentials                  | The password is normally an application authorization code               |
+| `SMTP_FROM`                   | For registration | Message sender                    | Must be allowed by the SMTP provider                                     |
+| `NGINX_PORT`                  | No               | Published HTTP port               | Defaults to `8080`; mission validation uses `8080`                       |
+| `WEREAD_API_KEY`              | No               | Official WeRead Skill API key     | Optional; enables `/admin/books` and `npm run sync:weread` sync          |
+| `WEREAD_SYNC_PROGRESS_LIMIT`  | No               | Per-sync progress lookup limit    | Defaults to `80`                                                         |
+| `WEREAD_SYNC_DETAIL_LIMIT`    | No               | Per-sync book detail lookup limit | Defaults to `80`                                                         |
+| `WEREAD_SYNC_HIGHLIGHTS`      | No               | Sync highlight text content       | Defaults to `0`; keep disabled if you only want progress and note counts |
 
 Production safety constraints enforced by `./deploy/check.sh`:
 
 - placeholder or short `AUTH_SECRET` values are rejected
-- weak `ADMIN_USERNAME` / `ADMIN_PASSWORD` values are rejected
 - malformed `NEXT_PUBLIC_SITE_URL` values are rejected
 - invalid or privileged `NGINX_PORT` values are rejected
+
+## Reader email registration
+
+Reader accounts use a unified passwordless flow. A first successful email code
+verification creates the account; later verifications sign in to it. Codes expire
+after ten minutes and only their hashes are persisted.
+
+For local end-to-end testing, point SMTP at `mailpit:1025`, set
+`SMTP_SECURE=false` and `SMTP_REQUIRE_TLS=false`, leave SMTP credentials empty,
+and start the local inbox:
+
+```bash
+docker compose --env-file deploy/.env.production --profile local-mail up -d
+```
+
+Open `http://localhost:8025` to read the messages actually sent by the app. The
+Mailpit web port is bound to `127.0.0.1` and is not a production mail service.
+Production should use an authenticated TLS SMTP provider. Both `/daily` and
+`/uploads/daily/` require an active reader or administrator session.
 
 ## WeRead bookshelf sync
 
@@ -206,20 +228,16 @@ Restore rules:
 - missing archive contents fail loudly
 - restore does **not** silently fall through to a fresh empty site
 
-## Admin credential behavior after deploy or restore
+## Administrator access after deploy or restore
 
-`ADMIN_PASSWORD` is **not** a continuously authoritative runtime password.
+Administration uses the same passwordless email-code flow as reader accounts.
+Only an active user whose persisted role is `admin` receives an administrator
+session. Username/password authentication and its deployment variables are not
+supported.
 
-Behavior:
-
-- on first initialization/login flow, if no stored admin hash exists in the database, the app hashes `ADMIN_PASSWORD` and stores that hash in `./data/blog.db`
-- after that, the persisted DB hash is authoritative
-- after backup/restore, admin authentication follows the restored database hash, not a newly changed `ADMIN_PASSWORD` value
-
-Operational implication:
-
-- changing `ADMIN_PASSWORD` in `deploy/.env.production` does **not** reset an already-seeded or restored admin password
-- if you restore onto a replacement host, keep using the password that matches the restored database state unless you intentionally perform an in-app/admin credential reset workflow
+After restoring a backup, administrator access follows the restored `users.role`
+and `users.status` values. Ensure SMTP remains correctly configured so an
+administrator can receive a new verification code.
 
 ## Fresh-host happy-path checklist
 

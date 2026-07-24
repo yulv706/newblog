@@ -226,9 +226,9 @@ export function buildRssFeedXml(posts: SeoPostEntry[], options: RssFeedOptions =
   ].join("");
 }
 
-export function buildSitemapXml(posts: SeoPostEntry[], dailyEntries: SeoDailyEntry[] = []) {
+export function buildSitemapXml(posts: SeoPostEntry[]) {
   const generatedAt = new Date().toISOString();
-  const staticEntries = ["/", "/blog", "/daily", "/books", "/about"];
+  const staticEntries = ["/", "/blog", "/books", "/about"];
   const staticXml = staticEntries
     .map((pathname) =>
       [
@@ -251,23 +251,11 @@ export function buildSitemapXml(posts: SeoPostEntry[], dailyEntries: SeoDailyEnt
     )
     .join("");
 
-  const dailyXml = dailyEntries
-    .map((entry) =>
-      [
-        "<url>",
-        `<loc>${escapeXml(getAbsoluteUrl(`/daily/${entry.id}`))}</loc>`,
-        `<lastmod>${escapeXml(toLastModifiedDate(entry.updatedAt))}</lastmod>`,
-        "</url>",
-      ].join("")
-    )
-    .join("");
-
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     staticXml,
     postXml,
-    dailyXml,
     "</urlset>",
   ].join("");
 }

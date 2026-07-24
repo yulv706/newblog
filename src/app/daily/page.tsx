@@ -61,11 +61,14 @@ export async function generateMetadata(): Promise<Metadata> {
   const { locale } = await getRequestI18n();
   const copy = getDailyCopy(locale).public;
 
-  return buildLocalizedMetadataFields(locale, {
-    title: copy.metadataTitle,
-    description: copy.metadataDescription,
-    path: "/daily",
-  });
+  return {
+    ...buildLocalizedMetadataFields(locale, {
+      title: copy.metadataTitle,
+      description: copy.metadataDescription,
+      path: "/daily",
+    }),
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function DailyPage({ searchParams }: DailyPageProps) {

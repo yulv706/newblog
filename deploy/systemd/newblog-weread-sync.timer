@@ -1,11 +1,10 @@
 [Unit]
-Description=Run the newblog WeRead bookshelf sync every day
+Description=Run the newblog WeRead sync and reading briefing at 18:00 CST
 
 [Timer]
-OnCalendar=*-*-* 04:15:00 Asia/Shanghai
+OnCalendar=*-*-* 18:00:00 Asia/Shanghai
 Persistent=true
-RandomizedDelaySec=10min
-AccuracySec=1min
+AccuracySec=1s
 Unit=newblog-weread-sync.service
 
 [Install]

@@ -1,5 +1,5 @@
 [Unit]
-Description=Synchronize the newblog bookshelf from WeRead
+Description=Synchronize WeRead and send the daily reading briefing
 Wants=docker.service network-online.target
 After=docker.service network-online.target
 
@@ -7,9 +7,9 @@ After=docker.service network-online.target
 Type=oneshot
 User=root
 WorkingDirectory=/root/workspace/newblog
-ExecStart=/root/workspace/newblog/deploy/sync-weread.sh
+EnvironmentFile=/etc/newblog-reading-briefing.env
+ExecStart=/usr/bin/python3 /root/workspace/newblog/scripts/reading-briefing.py sync-report
 TimeoutStartSec=35min
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7
-

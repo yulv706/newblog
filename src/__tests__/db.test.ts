@@ -26,9 +26,7 @@ describe("database", () => {
 
     const now = new Date().toISOString();
     const categoryInsert = sqlite
-      .prepare(
-        "INSERT INTO categories (name, slug, created_at) VALUES (?, ?, ?)"
-      )
+      .prepare("INSERT INTO categories (name, slug, created_at) VALUES (?, ?, ?)")
       .run("Test Category", "test-category", now);
     const categoryId = Number(categoryInsert.lastInsertRowid);
 
@@ -57,9 +55,7 @@ describe("database", () => {
       );
     const postId = Number(postInsert.lastInsertRowid);
 
-    sqlite
-      .prepare("INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)")
-      .run(postId, tagId);
+    sqlite.prepare("INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)").run(postId, tagId);
 
     sqlite
       .prepare(
@@ -69,7 +65,7 @@ describe("database", () => {
 
     sqlite
       .prepare("INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)")
-      .run("admin_password_hash", "dummy-hash", now);
+      .run("about_content", "# About", now);
   });
 
   afterAll(() => {

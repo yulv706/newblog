@@ -34,11 +34,18 @@ next-env.d.ts
 /data/*.db-wal
 /data/*.db-shm
 /data/*.db.bak.*
+/data/system-health.json
 /data/backups/
 
 # uploads (user content)
 /public/uploads/images/*
 !/public/uploads/images/.gitkeep
+/public/uploads/daily/*
+!/public/uploads/daily/.gitkeep
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
 
 # factory research
 .factory/research/

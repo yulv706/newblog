@@ -1,0 +1,11 @@
+[Unit]
+Description=Send the newblog nightly reading reflection at 23:00 CST
+
+[Timer]
+OnCalendar=*-*-* 23:00:00 Asia/Shanghai
+Persistent=true
+AccuracySec=1s
+Unit=newblog-evening-reading.service
+
+[Install]
+WantedBy=timers.target

@@ -33,20 +33,26 @@ export async function generateMetadata({ params }: DailyDetailPageProps): Promis
   const entry = id ? await getPublishedDailyEntryById(id) : null;
 
   if (!entry) {
-    return buildLocalizedMetadataFields(locale, {
-      title: copy.notFoundTitle,
-      description: copy.notFoundDescription,
-      path: id ? `/daily/${id}` : "/daily",
-    });
+    return {
+      ...buildLocalizedMetadataFields(locale, {
+        title: copy.notFoundTitle,
+        description: copy.notFoundDescription,
+        path: id ? `/daily/${id}` : "/daily",
+      }),
+      robots: { index: false, follow: false },
+    };
   }
 
-  return buildLocalizedMetadataFields(locale, {
-    title: buildMetaDescription(entry.content, copy.metadataTitle, 52),
-    description: buildMetaDescription(entry.content, copy.metadataDescription),
-    path: `/daily/${entry.id}`,
-    imageUrl: entry.images[0],
-    type: "article",
-  });
+  return {
+    ...buildLocalizedMetadataFields(locale, {
+      title: buildMetaDescription(entry.content, copy.metadataTitle, 52),
+      description: buildMetaDescription(entry.content, copy.metadataDescription),
+      path: `/daily/${entry.id}`,
+      imageUrl: entry.images[0],
+      type: "article",
+    }),
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function DailyDetailPage({ params }: DailyDetailPageProps) {

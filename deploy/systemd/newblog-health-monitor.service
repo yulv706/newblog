@@ -1,0 +1,15 @@
+[Unit]
+Description=Monitor newblog services and send state-change alerts through Hermes
+Wants=docker.service network-online.target
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/workspace/newblog
+EnvironmentFile=-/etc/newblog-health-monitor.env
+ExecStart=/usr/bin/python3 /root/workspace/newblog/scripts/server-health-monitor.py
+TimeoutStartSec=3min
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

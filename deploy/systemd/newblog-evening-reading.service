@@ -1,0 +1,15 @@
+[Unit]
+Description=Send a nightly reading reflection through Hermes Weixin
+Wants=docker.service network-online.target
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/workspace/newblog
+EnvironmentFile=/etc/newblog-reading-briefing.env
+ExecStart=/usr/bin/python3 /root/workspace/newblog/scripts/reading-briefing.py evening
+TimeoutStartSec=8min
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

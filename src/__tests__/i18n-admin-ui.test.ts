@@ -16,7 +16,6 @@ describe("admin i18n dictionaries", () => {
     expect(zhAdmin).not.toEqual(enAdmin);
 
     for (const key of [
-      "login",
       "sidebar",
       "dashboard",
       "posts",
@@ -39,7 +38,6 @@ describe("admin i18n route and component wiring", () => {
 
   it("wires admin server pages/layouts to request locale dictionaries", () => {
     const serverFiles = [
-      "login/page.tsx",
       "(protected)/layout.tsx",
       "(protected)/page.tsx",
       "(protected)/posts/page.tsx",
@@ -57,7 +55,6 @@ describe("admin i18n route and component wiring", () => {
 
   it("wires interactive admin components to locale context", () => {
     const clientFiles = [
-      "login-form.tsx",
       "sidebar-nav.tsx",
       "post-editor-form.tsx",
       "category-create-form.tsx",
@@ -73,13 +70,8 @@ describe("admin i18n route and component wiring", () => {
     }
   });
 
-  it("localizes admin action and auth-api feedback messages", () => {
-    const localizedActionFiles = [
-      "posts.ts",
-      "categories-tags.ts",
-      "about.ts",
-      "reading.ts",
-    ];
+  it("localizes admin action feedback and locale updates", () => {
+    const localizedActionFiles = ["posts.ts", "categories-tags.ts", "about.ts", "reading.ts"];
 
     for (const relativePath of localizedActionFiles) {
       const source = fs.readFileSync(path.join(actionRoot, relativePath), "utf8");
@@ -87,24 +79,18 @@ describe("admin i18n route and component wiring", () => {
       expect(source).toContain("dictionary.admin");
     }
 
-    const loginRouteSource = fs.readFileSync(
-      path.join(process.cwd(), "src/app/api/auth/login/route.ts"),
-      "utf8"
-    );
-    expect(loginRouteSource).toContain("getRequestI18n");
-    expect(loginRouteSource).toContain("dictionary.admin");
-
     const localeRouteSource = fs.readFileSync(
       path.join(process.cwd(), "src/app/api/locale/route.ts"),
       "utf8"
     );
     expect(localeRouteSource).toContain("normalizeLocale");
+  });
 
-    const middlewareSource = fs.readFileSync(
-      path.join(process.cwd(), "src/middleware.ts"),
-      "utf8"
-    );
-    expect(middlewareSource).toContain("normalizeLocale");
-    expect(middlewareSource).toContain("dictionary");
+  it("routes the legacy admin login URL to passwordless email authentication", () => {
+    const source = fs.readFileSync(path.join(appRoot, "login/page.tsx"), "utf8");
+
+    expect(source).toContain('redirect("/account/login?next=/admin")');
+    expect(source).not.toContain("password");
+    expect(source).not.toContain("LoginForm");
   });
 });

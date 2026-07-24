@@ -16,6 +16,7 @@ export type CommentValidationErrors = {
 
 export type CreatePendingCommentInput = {
   postId: number;
+  userId?: number;
   nickname: string;
   email: string;
   body: string;
@@ -48,6 +49,7 @@ export type ApprovedComment = {
   nickname: string;
   body: string;
   createdAt: string;
+  isRegistered: boolean;
 };
 
 export type PendingAdminComment = {
@@ -215,6 +217,7 @@ export async function createPendingComment(
     .insert(comments)
     .values({
       postId: input.postId,
+      userId: input.userId,
       nickname: sanitizeNickname(input.nickname),
       email: input.email.trim().toLowerCase(),
       body: sanitizeCommentBody(input.body),
@@ -245,6 +248,7 @@ export async function getApprovedCommentsForPost(
   const rows = database
     .select({
       id: comments.id,
+      userId: comments.userId,
       nickname: comments.nickname,
       body: comments.body,
       createdAt: comments.createdAt,
@@ -259,6 +263,7 @@ export async function getApprovedCommentsForPost(
     nickname: sanitizeNickname(row.nickname) || "Anonymous",
     body: sanitizeCommentBody(row.body),
     createdAt: row.createdAt,
+    isRegistered: row.userId !== null,
   }));
 }
 

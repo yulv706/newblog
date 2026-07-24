@@ -3,8 +3,11 @@ import { NextRequest } from "next/server";
 import { middleware } from "@/middleware";
 import {
   AUTH_COOKIE_NAME,
-  signSessionToken,
+  USER_AUTH_COOKIE_NAME,
+  signAdminSessionToken,
+  signUserSessionToken,
   verifySessionToken,
+  verifyUserSessionToken,
 } from "@/lib/auth";
 
 const originalCryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
@@ -65,16 +68,16 @@ describe("auth JWT session token", () => {
   });
 
   it("signs and verifies a valid session token", async () => {
-    const token = await signSessionToken("admin");
+    const token = await signAdminSessionToken(12);
     const payload = await verifySessionToken(token);
 
-    expect(payload?.sub).toBe("admin");
+    expect(payload?.sub).toBe("user:12");
     expect(payload?.exp).toBeTypeOf("number");
     expect(payload?.iat).toBeTypeOf("number");
   });
 
   it("rejects tampered tokens", async () => {
-    const token = await signSessionToken("admin");
+    const token = await signAdminSessionToken(12);
     const [header, payloadSegment, signature] = token.split(".");
     const firstSignatureChar = signature[0] ?? "";
     const replacementChar = firstSignatureChar === "a" ? "b" : "a";
@@ -90,13 +93,22 @@ describe("auth JWT session token", () => {
   });
 
   it("rejects expired tokens", async () => {
-    const token = await signSessionToken("admin", {
+    const token = await signAdminSessionToken(12, {
       now: 1_000,
       expiresInSeconds: 1,
     });
 
     const payload = await verifySessionToken(token, { now: 3_000 });
     expect(payload).toBeNull();
+  });
+
+  it("keeps admin and user tokens isolated by token kind", async () => {
+    const adminToken = await signAdminSessionToken(12);
+    const userToken = await signUserSessionToken(12);
+
+    expect(await verifySessionToken(userToken)).toBeNull();
+    expect(await verifyUserSessionToken(adminToken)).toBeNull();
+    expect((await verifyUserSessionToken(userToken))?.sub).toBe("12");
   });
 });
 
@@ -113,7 +125,7 @@ describe("auth runtime requirements", () => {
   it("fails clearly when Web Crypto is unavailable", async () => {
     removeTestCrypto();
 
-    await expect(signSessionToken("admin")).rejects.toThrow(
+    await expect(signAdminSessionToken(12)).rejects.toThrow(
       "A Web Crypto implementation is unavailable in this runtime."
     );
   });
@@ -129,12 +141,14 @@ describe("admin middleware protection", () => {
     uninstallTestCrypto();
   });
 
-  it("redirects /admin to /admin/login when auth cookie is missing", async () => {
+  it("redirects /admin to email login when auth cookie is missing", async () => {
     const request = createRequest("/admin");
     const response = await middleware(request);
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toContain("/admin/login");
+    const location = response.headers.get("location") ?? "";
+    expect(location).toContain("/account/login");
+    expect(decodeURIComponent(location)).toContain("next=/admin");
   });
 
   it("returns 401 for /api/admin requests when auth cookie is missing", async () => {
@@ -150,21 +164,53 @@ describe("admin middleware protection", () => {
   });
 
   it("allows authenticated /admin request with a valid auth cookie", async () => {
-    const token = await signSessionToken("admin");
+    const token = await signAdminSessionToken(12);
     const request = createRequest("/admin", `${AUTH_COOKIE_NAME}=${token}`);
     const response = await middleware(request);
 
     expect(response.status).toBe(200);
   });
 
-  it("redirects malformed JWT cookies to /admin/login", async () => {
-    const request = createRequest(
-      "/admin",
-      `${AUTH_COOKIE_NAME}=invalid.tampered.token`
-    );
+  it("redirects malformed JWT cookies to email login", async () => {
+    const request = createRequest("/admin", `${AUTH_COOKIE_NAME}=invalid.tampered.token`);
     const response = await middleware(request);
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toContain("/admin/login");
+    expect(response.headers.get("location")).toContain("/account/login");
+  });
+});
+
+describe("daily user middleware protection", () => {
+  beforeEach(() => {
+    process.env.AUTH_SECRET = "test-auth-secret";
+    installTestCrypto();
+  });
+
+  afterEach(() => {
+    uninstallTestCrypto();
+  });
+
+  it("redirects anonymous daily requests to email login with a return path", async () => {
+    const response = await middleware(createRequest("/daily/2?from=test"));
+
+    expect(response.status).toBe(307);
+    const location = response.headers.get("location") ?? "";
+    expect(location).toContain("/account/login");
+    expect(decodeURIComponent(location)).toContain("next=/daily/2?from=test");
+  });
+
+  it("allows daily requests with a valid user session", async () => {
+    const token = await signUserSessionToken(12);
+    const response = await middleware(createRequest("/daily", `${USER_AUTH_COOKIE_NAME}=${token}`));
+
+    expect(response.status).toBe(200);
+  });
+
+  it("requires the reader session even when an admin cookie is present", async () => {
+    const token = await signAdminSessionToken(12);
+    const response = await middleware(createRequest("/daily", `${AUTH_COOKIE_NAME}=${token}`));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toContain("/account/login");
   });
 });

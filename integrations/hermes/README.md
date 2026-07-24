@@ -22,4 +22,6 @@ docker exec hermes-agent python /opt/data/integrations/blog_manager_mcp.py --hel
 docker exec hermes-agent getent hosts blog-app
 ```
 
-Use the Hermes MCP inspector or a normal Weixin request to run `blog_status`, then create and delete a temporary draft to verify the complete mutation path.
+Use the Hermes MCP inspector or a normal Weixin request to run `blog_status`, list
+users, then create and delete a temporary draft to verify the complete mutation
+path. Role and status changes require explicit confirmation in the typed bridge.

@@ -53,6 +53,11 @@ import {
 } from "@/lib/management/core";
 import { saveManagementImage, type ManagementMediaPurpose } from "@/lib/management/media";
 import { getManagementStatus } from "@/lib/management/status";
+import {
+  getManagedUser,
+  listManagedUsers,
+  updateManagedUser,
+} from "@/lib/management/users";
 import { optionalString } from "@/lib/management/validation";
 
 export const runtime = "nodejs";
@@ -282,6 +287,27 @@ async function dispatch(
       return {
         data: await deleteManagedComment(commentId),
         audit: { action: "delete", resourceType: "comment", resourceId: commentId },
+      };
+    }
+  }
+
+  if (method === "GET" && resource === "users" && !id) {
+    return { data: await listManagedUsers(url) };
+  }
+  if (resource === "users" && id && !child) {
+    const userId = getPositiveInteger(id, "user id");
+    if (method === "GET") {
+      return { data: await getManagedUser(userId) };
+    }
+    if (method === "PATCH") {
+      return {
+        data: await updateManagedUser(userId, body),
+        audit: {
+          action: "update-access",
+          resourceType: "user",
+          resourceId: userId,
+          summary: mutationSummary(body),
+        },
       };
     }
   }

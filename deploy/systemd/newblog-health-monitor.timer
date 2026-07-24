@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the newblog server health monitor every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=20s
+AccuracySec=10s
+Persistent=true
+Unit=newblog-health-monitor.service
+
+[Install]
+WantedBy=timers.target

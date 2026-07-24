@@ -36,6 +36,34 @@
       "when": 1784732748587,
       "tag": "0004_regular_the_santerians",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784780743508,
+      "tag": "0005_fresh_payback",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1784783664627,
+      "tag": "0006_breezy_viper",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1784785200000,
+      "tag": "0007_remove_legacy_admin_password",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784800019253,
+      "tag": "0008_silent_madripoor",
+      "breakpoints": true
     }
   ]
 }

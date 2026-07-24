@@ -1,11 +1,4 @@
-import {
-  existsSync,
-  mkdtempSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -60,20 +53,18 @@ describe("canonical deployment entrypoints", () => {
     const updateScript = readFileSync(path.join(deployDir, "update.sh"), "utf8");
 
     expect(example).toContain("AUTH_SECRET=");
-    expect(example).toContain("ADMIN_USERNAME=");
-    expect(example).toContain("ADMIN_PASSWORD=");
+    expect(example).not.toContain("ADMIN_USERNAME=");
+    expect(example).not.toContain("ADMIN_PASSWORD=");
     expect(example).toContain("NEXT_PUBLIC_SITE_URL=");
     expect(example).toContain("BLOG_MANAGEMENT_API_TOKEN=");
     expect(example).toContain("APP_IMAGE=");
     expect(example).toContain("NGINX_PORT=");
     expect(example).toContain("NGINX_SSL_PORT=");
     expect(example).toContain("WEREAD_API_KEY=");
-    expect(readFileSync(path.join(repoRoot, "package.json"), "utf8")).toContain(
-      "\"sync:weread\""
-    );
+    expect(readFileSync(path.join(repoRoot, "package.json"), "utf8")).toContain('"sync:weread"');
 
     expect(compose).toContain("env_file:");
-    expect(compose).toContain('${APP_IMAGE:-newblog-app:local}');
+    expect(compose).toContain("${APP_IMAGE:-newblog-app:local}");
     expect(compose).toContain("- ./deploy/.env.production");
     expect(compose).toContain("${AUTH_SECRET}");
     expect(compose).not.toContain("change-me-in-production");
@@ -131,28 +122,20 @@ describe("canonical deployment entrypoints", () => {
       path.join(tempDir, "deploy", ".env.production"),
       [
         "AUTH_SECRET=change-me-in-production",
-        "ADMIN_USERNAME=administrator",
-        "ADMIN_PASSWORD=admin123",
         "NEXT_PUBLIC_SITE_URL=localhost:8080",
         "NGINX_PORT=70000",
         "NGINX_SSL_PORT=not-a-port",
       ].join("\n")
     );
 
-    const result = runScript(
-      "check.sh",
-      [],
-      {
-        DEPLOY_ENV_FILE: path.join(tempDir, "deploy", ".env.production"),
-        DEPLOY_DATA_DIR: path.join(tempDir, "data"),
-        DEPLOY_UPLOADS_DIR: path.join(tempDir, "public", "uploads"),
-      }
-    );
+    const result = runScript("check.sh", [], {
+      DEPLOY_ENV_FILE: path.join(tempDir, "deploy", ".env.production"),
+      DEPLOY_DATA_DIR: path.join(tempDir, "data"),
+      DEPLOY_UPLOADS_DIR: path.join(tempDir, "public", "uploads"),
+    });
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("AUTH_SECRET");
-    expect(result.stderr).toContain("ADMIN_USERNAME");
-    expect(result.stderr).toContain("ADMIN_PASSWORD");
     expect(result.stderr).toContain("NEXT_PUBLIC_SITE_URL");
     expect(result.stderr).toContain("NGINX_PORT");
     expect(result.stderr).toContain("NGINX_SSL_PORT");
@@ -169,40 +152,30 @@ describe("canonical deployment entrypoints", () => {
       envFile,
       [
         "AUTH_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef",
-        "ADMIN_USERNAME=operator",
-        "ADMIN_PASSWORD=StrongerPassword!234",
         "NEXT_PUBLIC_SITE_URL=http://example.com",
         "NGINX_PORT=8080",
         "NGINX_SSL_PORT=8443",
       ].join("\n")
     );
 
-    const first = runScript(
-      "init.sh",
-      [],
-      {
-        DEPLOY_ENV_FILE: envFile,
-        DEPLOY_DATA_DIR: dataDir,
-        DEPLOY_UPLOADS_DIR: uploadsDir,
-        SKIP_DB_MIGRATIONS: "1",
-      }
-    );
+    const first = runScript("init.sh", [], {
+      DEPLOY_ENV_FILE: envFile,
+      DEPLOY_DATA_DIR: dataDir,
+      DEPLOY_UPLOADS_DIR: uploadsDir,
+      SKIP_DB_MIGRATIONS: "1",
+    });
     expect(first.status).toBe(1);
     expect(first.stdout).toContain("created:");
     expect(first.stderr).toContain("Expected database file");
 
     writeFileSync(path.join(uploadsDir, "images", "keep.txt"), "preserve-me");
 
-    const second = runScript(
-      "init.sh",
-      [],
-      {
-        DEPLOY_ENV_FILE: envFile,
-        DEPLOY_DATA_DIR: dataDir,
-        DEPLOY_UPLOADS_DIR: uploadsDir,
-        SKIP_DB_MIGRATIONS: "1",
-      }
-    );
+    const second = runScript("init.sh", [], {
+      DEPLOY_ENV_FILE: envFile,
+      DEPLOY_DATA_DIR: dataDir,
+      DEPLOY_UPLOADS_DIR: uploadsDir,
+      SKIP_DB_MIGRATIONS: "1",
+    });
 
     expect(second.status).toBe(1);
     expect(second.stdout).toContain("already-present:");
@@ -223,8 +196,6 @@ describe("canonical deployment entrypoints", () => {
       envFile,
       [
         "AUTH_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef",
-        "ADMIN_USERNAME=operator-user",
-        "ADMIN_PASSWORD=StrongerPassword!234",
         "NEXT_PUBLIC_SITE_URL=http://example.com",
         "NGINX_PORT=8080",
         "NGINX_SSL_PORT=8443",
@@ -321,8 +292,6 @@ describe("canonical deployment entrypoints", () => {
       envFile,
       [
         "AUTH_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef",
-        "ADMIN_USERNAME=operator-user",
-        "ADMIN_PASSWORD=StrongerPassword!234",
         "NEXT_PUBLIC_SITE_URL=http://example.com",
         "NGINX_PORT=8080",
         "NGINX_SSL_PORT=8443",
@@ -334,11 +303,9 @@ describe("canonical deployment entrypoints", () => {
     writeFileSync(path.join(dataDir, "keep.db"), "existing");
 
     const archivePath = path.join(tempDir, "fixture.tar.gz");
-    const tarResult = spawnSync(
-      "tar",
-      ["-C", archiveDir, "-czf", archivePath, "."],
-      { encoding: "utf8" }
-    );
+    const tarResult = spawnSync("tar", ["-C", archiveDir, "-czf", archivePath, "."], {
+      encoding: "utf8",
+    });
     expect(tarResult.status).toBe(0);
 
     const restore = runScript("restore.sh", [], {
@@ -366,8 +333,6 @@ describe("canonical deployment entrypoints", () => {
       envFile,
       [
         "AUTH_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef",
-        "ADMIN_USERNAME=operator-user",
-        "ADMIN_PASSWORD=StrongerPassword!234",
         "NEXT_PUBLIC_SITE_URL=http://example.com",
         "NGINX_PORT=8080",
         "NGINX_SSL_PORT=8443",
@@ -392,7 +357,9 @@ describe("canonical deployment entrypoints", () => {
 
     expect(restore.status).toBe(0);
     expect(restore.stderr).not.toContain("No such file or directory");
-    expect(readFileSync(path.join(pristineUploadsDir, "images", "proof.txt"), "utf8")).toBe("asset");
+    expect(readFileSync(path.join(pristineUploadsDir, "images", "proof.txt"), "utf8")).toBe(
+      "asset"
+    );
 
     rmSync(archiveDir, { recursive: true, force: true });
     mkdirSync(path.join(archiveDir, "data"), { recursive: true });

@@ -1,0 +1,20 @@
+[Unit]
+Description=Send newblog registration notifications through Hermes Weixin
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/workspace/newblog
+EnvironmentFile=/etc/newblog-registration-notifier.env
+ExecStart=/usr/bin/python3 /root/workspace/newblog/scripts/dispatch-registration-notifications.py
+Restart=on-failure
+RestartSec=10s
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStopSec=20s
+
+[Install]
+WantedBy=multi-user.target

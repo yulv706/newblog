@@ -8,7 +8,9 @@ import {
   deleteComment,
   type CommentMessageOverrides,
 } from "@/lib/comments";
+import { getAccountCopy } from "@/lib/account-copy";
 import { getRequestI18n } from "@/lib/i18n/server";
+import { requireUserSession } from "@/lib/user-auth";
 
 type CommentFieldErrors = {
   nickname?: string;
@@ -49,8 +51,9 @@ export async function submitCommentAction(
   _previousState: SubmitCommentActionState,
   formData: FormData
 ): Promise<SubmitCommentActionState> {
-  const { dictionary } = await getRequestI18n();
+  const { dictionary, locale } = await getRequestI18n();
   const commentDictionary = dictionary.public.post.comments;
+  const accountCommentCopy = getAccountCopy(locale).comments;
   const commentMessages: CommentMessageOverrides = {
     nicknameRequired: commentDictionary.form.messages.nicknameRequired,
     emailRequired: commentDictionary.form.messages.emailRequired,
@@ -71,10 +74,22 @@ export async function submitCommentAction(
     };
   }
 
+  let user;
+  try {
+    user = await requireUserSession();
+  } catch {
+    return {
+      status: "error",
+      message: accountCommentCopy.loginRequired,
+      errors: {},
+    };
+  }
+
   const result = await createPendingComment({
     postId,
-    nickname: parseStringField(formData, "nickname"),
-    email: parseStringField(formData, "email"),
+    userId: user.id,
+    nickname: user.displayName,
+    email: user.email,
     body: parseStringField(formData, "body"),
   }, undefined, commentMessages);
 

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LockKeyhole, UserRound } from "lucide-react";
 import { useLocaleContext } from "@/components/i18n/locale-provider";
+import { getAccountCopy } from "@/lib/account-copy";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./language-switcher";
 import { ThemeToggle } from "./theme-toggle";
@@ -55,10 +57,18 @@ function BrandMark() {
   );
 }
 
-export function Header() {
+type HeaderProps = {
+  viewer: {
+    displayName: string;
+    email: string;
+  } | null;
+};
+
+export function Header({ viewer }: HeaderProps) {
   const pathname = usePathname();
-  const { dictionary } = useLocaleContext();
+  const { dictionary, locale } = useLocaleContext();
   const navDictionary = dictionary.shell.navigation;
+  const accountCopy = getAccountCopy(locale).header;
 
   return (
     <header
@@ -107,7 +117,15 @@ export function Header() {
                     : "text-muted hover:bg-background/55 hover:text-foreground"
                 )}
               >
-                {navDictionary.links[link.key]}
+                <span className="inline-flex items-center gap-1.5">
+                  {navDictionary.links[link.key]}
+                  {link.key === "daily" && !viewer ? (
+                    <LockKeyhole
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 opacity-65"
+                    />
+                  ) : null}
+                </span>
               </Link>
             );
           })}
@@ -116,9 +134,36 @@ export function Header() {
         {/* Right-side actions */}
         <div className="flex items-center gap-0.5 sm:gap-1">
           <SearchIcon ariaLabel={navDictionary.searchAriaLabel} />
+          <Link
+            href={
+              viewer
+                ? "/account"
+                : `/account/login?next=${encodeURIComponent(pathname)}`
+            }
+            aria-label={
+              viewer
+                ? `${accountCopy.accountAriaLabel}: ${viewer.displayName}`
+                : accountCopy.loginLabel
+            }
+            title={viewer ? viewer.displayName : accountCopy.loginLabel}
+            className={cn(
+              "inline-flex h-9 w-9 items-center justify-center rounded-full",
+              "transition-colors duration-[var(--duration-fast)]",
+              viewer
+                ? "bg-primary/10 text-primary"
+                : "text-muted hover:bg-secondary hover:text-foreground",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            )}
+          >
+            <UserRound
+              aria-hidden="true"
+              className="h-[18px] w-[18px]"
+              strokeWidth={1.7}
+            />
+          </Link>
           <LanguageSwitcher />
           <ThemeToggle />
-          <MobileNav />
+          <MobileNav viewer={viewer} />
         </div>
       </div>
     </header>

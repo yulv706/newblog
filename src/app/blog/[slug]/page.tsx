@@ -23,6 +23,7 @@ import {
   resolveOgImageUrl,
   serializeJsonLd,
 } from "@/lib/seo";
+import { getCurrentUser } from "@/lib/user-auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -116,11 +117,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
-  const [html, tocHeadings, adjacentPosts, approvedComments] = await Promise.all([
+  const [html, tocHeadings, adjacentPosts, approvedComments, viewer] = await Promise.all([
     renderPostMarkdownToHtml(post.content),
     Promise.resolve(extractTableOfContents(post.content)),
     getAdjacentPublishedPosts(post.id),
     getApprovedCommentsForPost(post.id),
+    getCurrentUser(),
   ]);
   const blogPostingJsonLd = buildBlogPostingJsonLd(post, {
     authorName: getLocalizedSiteName(locale),
@@ -293,7 +295,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </div>
 
           <div className="min-w-0 space-y-8">
-            <CommentForm postId={post.id} postSlug={post.slug} />
+            <CommentForm
+              postId={post.id}
+              postSlug={post.slug}
+              viewer={
+                viewer
+                  ? { displayName: viewer.displayName, email: viewer.email }
+                  : null
+              }
+            />
             <CommentList
               comments={approvedComments}
               locale={locale}

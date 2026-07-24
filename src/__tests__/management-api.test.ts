@@ -90,7 +90,7 @@ describe("management API security contract", () => {
 });
 
 describe("management deployment boundary", () => {
-  it("migrates audit and idempotency tables", () => {
+  it("migrates audit, idempotency, and registration notification tables", () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "blog-management-test-"));
     const sqlite = new Database(path.join(tempDir, "management.db"));
     migrate(drizzle(sqlite), {
@@ -104,6 +104,9 @@ describe("management deployment boundary", () => {
 
     expect(tables.map((row) => row.name)).toContain("management_audit_logs");
     expect(tables.map((row) => row.name)).toContain("management_api_requests");
+    expect(tables.map((row) => row.name)).toContain(
+      "user_registration_notifications"
+    );
   });
 
   it("blocks the management path at public nginx and ships a typed Hermes bridge", () => {
@@ -116,6 +119,8 @@ describe("management deployment boundary", () => {
     expect(nginx.match(/location \^~ \/api\/management\//g)).toHaveLength(2);
     expect(bridge).toContain("FastMCP");
     expect(bridge).toContain("BLOG_MANAGEMENT_API_TOKEN");
+    expect(bridge).toContain("blog_list_users");
+    expect(bridge).toContain("confirm_access_change");
     expect(bridge).not.toContain("docker.sock");
     expect(bridge).not.toContain("subprocess");
   });

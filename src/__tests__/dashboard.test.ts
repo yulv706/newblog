@@ -6,14 +6,8 @@ import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 import { comments, posts } from "@/lib/db/schema";
-import {
-  DASHBOARD_QUICK_ACTIONS,
-  getDashboardStats,
-} from "@/lib/admin/dashboard";
-import {
-  ADMIN_SIDEBAR_LINKS,
-  isAdminPathActive,
-} from "@/lib/admin/navigation";
+import { DASHBOARD_QUICK_ACTIONS, getDashboardStats } from "@/lib/admin/dashboard";
+import { ADMIN_SIDEBAR_LINKS, isAdminPathActive } from "@/lib/admin/navigation";
 
 describe("admin dashboard data", () => {
   let tempDir = "";
@@ -130,16 +124,20 @@ describe("admin dashboard navigation config", () => {
       "Posts",
       "Categories/Tags",
       "Comments",
+      "Users",
       "Daily",
       "Books",
       "About",
+      "System",
     ]);
 
     expect(isAdminPathActive("/admin", "/admin")).toBe(true);
     expect(isAdminPathActive("/admin/posts", "/admin")).toBe(false);
     expect(isAdminPathActive("/admin/posts/new", "/admin/posts")).toBe(true);
     expect(isAdminPathActive("/admin/comments", "/admin/comments")).toBe(true);
+    expect(isAdminPathActive("/admin/users", "/admin/users")).toBe(true);
     expect(isAdminPathActive("/admin/daily/1/edit", "/admin/daily")).toBe(true);
     expect(isAdminPathActive("/admin/books", "/admin/books")).toBe(true);
+    expect(isAdminPathActive("/admin/system", "/admin/system")).toBe(true);
   });
 });

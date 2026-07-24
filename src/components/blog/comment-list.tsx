@@ -1,8 +1,10 @@
+import { CircleCheck } from "lucide-react";
 import {
   formatCommentTimestamp,
   getCommentAvatarPlaceholder,
   type ApprovedComment,
 } from "@/lib/comments";
+import { getAccountCopy } from "@/lib/account-copy";
 import type { AppLocale } from "@/lib/i18n/config";
 import { getDateLocale } from "@/lib/i18n/config";
 import { cn } from "@/lib/utils";
@@ -20,6 +22,7 @@ export function CommentList({
   emptyStateLabel,
   unknownDateLabel,
 }: CommentListProps) {
+  const accountCopy = getAccountCopy(locale).comments;
   if (comments.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border bg-secondary/35 px-4 py-5 text-sm text-muted">
@@ -51,6 +54,12 @@ export function CommentList({
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <p className="font-medium text-foreground">{comment.nickname}</p>
+                  {comment.isRegistered ? (
+                    <span className="text-primary inline-flex items-center gap-1 text-[0.68rem] font-medium">
+                      <CircleCheck aria-hidden="true" className="h-3.5 w-3.5" />
+                      {accountCopy.accountBadge}
+                    </span>
+                  ) : null}
                   <span aria-hidden="true" className="text-xs text-muted">
                     •
                   </span>

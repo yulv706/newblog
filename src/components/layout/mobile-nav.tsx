@@ -3,18 +3,28 @@
 import { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { LockKeyhole, LogIn, UserRound } from "lucide-react";
 import { useLocaleContext } from "@/components/i18n/locale-provider";
+import { getAccountCopy } from "@/lib/account-copy";
 import { cn } from "@/lib/utils";
 import { NAV_LINKS } from "./nav-links";
 
 const DRAWER_TRANSITION_MS = 300;
 
-export function MobileNav() {
+type MobileNavProps = {
+  viewer: {
+    displayName: string;
+    email: string;
+  } | null;
+};
+
+export function MobileNav({ viewer }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDrawerMounted, setIsDrawerMounted] = useState(false);
   const pathname = usePathname();
-  const { dictionary } = useLocaleContext();
+  const { dictionary, locale } = useLocaleContext();
   const navDictionary = dictionary.shell.navigation;
+  const accountCopy = getAccountCopy(locale).header;
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -192,10 +202,38 @@ export function MobileNav() {
                       : "text-muted hover:bg-secondary hover:text-foreground"
                   )}
                 >
-                  {navDictionary.links[link.key]}
+                  <span className="flex items-center justify-between gap-3">
+                    {navDictionary.links[link.key]}
+                    {link.key === "daily" && !viewer ? (
+                      <LockKeyhole
+                        aria-hidden="true"
+                        className="h-4 w-4 opacity-60"
+                      />
+                    ) : null}
+                  </span>
                 </Link>
               );
             })}
+            <div className="border-border/70 mt-3 border-t pt-3">
+              <Link
+                href={
+                  viewer
+                    ? "/account"
+                    : `/account/login?next=${encodeURIComponent(pathname)}`
+                }
+                onClick={close}
+                className="text-foreground hover:bg-secondary flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium transition-colors"
+              >
+                {viewer ? (
+                  <UserRound aria-hidden="true" className="h-5 w-5" />
+                ) : (
+                  <LogIn aria-hidden="true" className="h-5 w-5" />
+                )}
+                <span className="min-w-0 truncate">
+                  {viewer ? viewer.displayName : accountCopy.loginLabel}
+                </span>
+              </Link>
+            </div>
           </nav>
         </div>
       )}

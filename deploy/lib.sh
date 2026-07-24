@@ -77,8 +77,6 @@ validate_env() {
   VALIDATION_ERRORS=()
 
   [[ -n "${AUTH_SECRET:-}" ]] || append_issue "AUTH_SECRET" "is required"
-  [[ -n "${ADMIN_USERNAME:-}" ]] || append_issue "ADMIN_USERNAME" "is required"
-  [[ -n "${ADMIN_PASSWORD:-}" ]] || append_issue "ADMIN_PASSWORD" "is required"
   [[ -n "${NEXT_PUBLIC_SITE_URL:-}" ]] || append_issue "NEXT_PUBLIC_SITE_URL" "is required"
   [[ -n "${NGINX_PORT:-}" ]] || append_issue "NGINX_PORT" "is required"
   [[ -n "${NGINX_SSL_PORT:-}" ]] || append_issue "NGINX_SSL_PORT" "is required"
@@ -95,26 +93,6 @@ validate_env() {
   fi
   if (( auth_secret_length < 32 )); then
     append_issue "AUTH_SECRET" "must be at least 32 characters long"
-  fi
-
-  case "${ADMIN_USERNAME:-}" in
-    admin|administrator|root|"")
-      append_issue "ADMIN_USERNAME" "must not use a weak default username such as 'admin'"
-      ;;
-  esac
-
-  case "${ADMIN_PASSWORD:-}" in
-    admin123|password|changeme|change-me|secret|"")
-      append_issue "ADMIN_PASSWORD" "must not use a weak or placeholder password"
-      ;;
-  esac
-
-  local admin_password_length="${#ADMIN_PASSWORD}"
-  if [[ -z "${ADMIN_PASSWORD:-}" ]]; then
-    admin_password_length=0
-  fi
-  if (( admin_password_length < 12 )); then
-    append_issue "ADMIN_PASSWORD" "must be at least 12 characters long"
   fi
 
   validate_tcp_port "NGINX_PORT" "${NGINX_PORT:-}"

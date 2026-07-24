@@ -1,4 +1,15 @@
 services:
+  mailpit:
+    image: axllent/mailpit:v1.30.0
+    container_name: blog-mailpit
+    profiles:
+      - local-mail
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_WEB_PORT:-8025}:8025"
+    expose:
+      - "1025"
+
   app:
     image: "${APP_IMAGE:-newblog-app:local}"
     build:
@@ -16,8 +27,6 @@ services:
       NODE_ENV: production
       PORT: 3000
       AUTH_SECRET: ${AUTH_SECRET}
-      ADMIN_USERNAME: ${ADMIN_USERNAME}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
     volumes:
       - ./data:/app/data

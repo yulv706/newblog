@@ -52,24 +52,47 @@ cp deploy/.env.production.example deploy/.env.production
 
 需要设置以下变量：
 
-| 变量 | 必填 | 用途 | 说明 |
-| --- | --- | --- | --- |
-| `AUTH_SECRET` | 是 | 会话签名密钥 | 不能是占位值，且至少 32 个字符 |
-| `ADMIN_USERNAME` | 是 | 管理员登录用户名 | 避免使用 `admin` 之类的弱默认值 |
-| `ADMIN_PASSWORD` | 是 | 首次运行时的管理员密码种子 | 必须足够强；仅在数据库里还没有保存密码哈希时才会生效 |
-| `NEXT_PUBLIC_SITE_URL` | 是 | 站点公开访问地址 | 必须是没有路径的绝对 `http(s)` 来源 |
-| `NGINX_PORT` | 否 | 对外发布的 HTTP 端口 | 默认 `8080`；本任务验证也使用 `8080` |
-| `WEREAD_API_KEY` | 否 | 微信读书官方 Skill API Key | 可选；配置后启用 `/admin/books` 和 `npm run sync:weread` 同步 |
-| `WEREAD_SYNC_PROGRESS_LIMIT` | 否 | 每次同步查询阅读进度的书籍上限 | 默认 `80` |
-| `WEREAD_SYNC_DETAIL_LIMIT` | 否 | 每次同步查询书籍详情的书籍上限 | 默认 `80` |
-| `WEREAD_SYNC_HIGHLIGHTS` | 否 | 是否同步划线文本内容 | 默认 `0`；只想同步进度和笔记数量时保持关闭 |
+| 变量                          | 必填         | 用途                           | 说明                                                          |
+| ----------------------------- | ------------ | ------------------------------ | ------------------------------------------------------------- |
+| `AUTH_SECRET`                 | 是           | 会话签名密钥                   | 不能是占位值，且至少 32 个字符                                |
+| `NEXT_PUBLIC_SITE_URL`        | 是           | 站点公开访问地址               | 必须是没有路径的绝对 `http(s)` 来源                           |
+| `SMTP_HOST`                   | 注册功能必填 | 验证码邮件服务器               | 例如邮箱服务商提供的 SMTP 主机                                |
+| `SMTP_PORT`                   | 注册功能必填 | SMTP 端口                      | 通常为 `465` 或 `587`                                         |
+| `SMTP_SECURE`                 | 注册功能必填 | 是否从连接开始使用 TLS         | 端口 `465` 通常设为 `true`                                    |
+| `SMTP_REQUIRE_TLS`            | 注册功能建议 | 是否要求 STARTTLS              | 端口 `587` 通常设为 `true`                                    |
+| `SMTP_USER` / `SMTP_PASSWORD` | 生产环境必填 | SMTP 登录凭据                  | 密码通常是邮箱授权码，不是网页登录密码                        |
+| `SMTP_FROM`                   | 注册功能必填 | 发件人                         | 必须符合服务商允许的发件地址                                  |
+| `NGINX_PORT`                  | 否           | 对外发布的 HTTP 端口           | 默认 `8080`；本任务验证也使用 `8080`                          |
+| `WEREAD_API_KEY`              | 否           | 微信读书官方 Skill API Key     | 可选；配置后启用 `/admin/books` 和 `npm run sync:weread` 同步 |
+| `WEREAD_SYNC_PROGRESS_LIMIT`  | 否           | 每次同步查询阅读进度的书籍上限 | 默认 `80`                                                     |
+| `WEREAD_SYNC_DETAIL_LIMIT`    | 否           | 每次同步查询书籍详情的书籍上限 | 默认 `80`                                                     |
+| `WEREAD_SYNC_HIGHLIGHTS`      | 否           | 是否同步划线文本内容           | 默认 `0`；只想同步进度和笔记数量时保持关闭                    |
 
 `./deploy/check.sh` 会强制执行这些生产安全约束：
 
 - 拒绝占位或过短的 `AUTH_SECRET`
-- 拒绝弱 `ADMIN_USERNAME` / `ADMIN_PASSWORD`
 - 拒绝格式错误的 `NEXT_PUBLIC_SITE_URL`
 - 拒绝非法或特权 `NGINX_PORT`
+
+## 邮箱注册与本地验证码收件箱
+
+读者使用统一的无密码邮箱登录流程：提交邮箱后收到六位验证码；邮箱第一次验证成功时
+创建账户，后续验证则登录已有账户。验证码有效期为 10 分钟，服务端只保存其哈希。
+
+本地开发可以启用 Compose 中隔离的 Mailpit SMTP 收件箱：
+
+```bash
+docker compose --env-file deploy/.env.production --profile local-mail up -d
+```
+
+将 SMTP 配置指向 `mailpit:1025`，并设置
+`SMTP_SECURE=false`、`SMTP_REQUIRE_TLS=false`。浏览器打开
+`http://localhost:8025` 即可读取应用实际发出的验证码邮件。Mailpit 只绑定本机
+`127.0.0.1`，不应作为生产邮件服务。
+
+生产环境应改为邮箱服务商提供的 SMTP 主机、授权码和发件地址，并启用 TLS。
+完成配置后，在 `/account/login` 输入一个可接收邮件的邮箱，确认邮件送达并完成登录。
+`/daily` 及 `/uploads/daily/` 均要求有效的读者或管理员会话。
 
 ## 微信读书书架同步
 
@@ -204,20 +227,14 @@ DEPLOY_RESTORE_ARCHIVE=./data/backups/<archive-name>.tar.gz ./deploy/restore.sh
 - 归档内容缺失时会明确失败
 - 恢复流程**不会**静默退化成一个全新的空站点
 
-## 部署后或恢复后的管理员凭据行为
+## 部署后或恢复后的管理员访问
 
-`ADMIN_PASSWORD` **不是** 持续生效的“运行时权威密码”。
+后台与普通账户共用无密码邮箱验证码登录流程。只有数据库中角色为 `admin`
+且状态正常的用户，验证邮箱后才会获得后台会话。系统不再支持用户名密码登录，
+也不再需要对应的部署变量。
 
-行为规则：
-
-- 在首次初始化/登录流程中，如果数据库里还没有管理员密码哈希，应用会对 `ADMIN_PASSWORD` 做哈希并写入 `./data/blog.db`
-- 从那之后，以数据库中已持久化的密码哈希为准
-- 备份恢复后，管理员认证遵循恢复出来的数据库哈希，而不是你后来改过的 `ADMIN_PASSWORD`
-
-运维含义：
-
-- 修改 `deploy/.env.production` 中的 `ADMIN_PASSWORD`，**不会** 重置已经完成初始化或已经恢复出来的管理员密码
-- 如果你把备份恢复到一台替换主机上，应继续使用与恢复后数据库状态匹配的密码；如果要改密码，应走应用内/管理员侧正式的凭据重置流程
+恢复备份后，管理员权限以恢复出来的 `users.role` 和 `users.status` 为准。
+请同时确保 SMTP 配置可用，以便管理员重新接收登录验证码。
 
 ## 新主机快速检查清单
 

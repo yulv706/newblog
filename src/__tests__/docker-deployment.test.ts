@@ -41,8 +41,11 @@ describe("docker deployment configuration", () => {
     const compose = readFileSync(composePath, "utf8");
 
     expect(compose).toContain("services:");
+    expect(compose).toContain("mailpit:");
+    expect(compose).toContain("profiles:");
+    expect(compose).toContain("local-mail");
     expect(compose).toContain("app:");
-    expect(compose).toContain('${APP_IMAGE:-newblog-app:local}');
+    expect(compose).toContain("${APP_IMAGE:-newblog-app:local}");
     expect(compose).toContain("APP_VERSION");
     expect(compose).toContain("GIT_COMMIT");
     expect(compose).toContain("BUILD_DATE");
@@ -52,8 +55,8 @@ describe("docker deployment configuration", () => {
     expect(compose).toContain("./data:/app/data");
     expect(compose).toContain("./public/uploads:/app/public/uploads");
     expect(compose).toContain("AUTH_SECRET");
-    expect(compose).toContain("ADMIN_USERNAME");
-    expect(compose).toContain("ADMIN_PASSWORD");
+    expect(compose).not.toContain("ADMIN_USERNAME");
+    expect(compose).not.toContain("ADMIN_PASSWORD");
     expect(compose).toContain("NEXT_PUBLIC_SITE_URL");
     expect(compose).toContain("condition: service_healthy");
     expect(compose).toContain("${NGINX_SSL_PORT}:443");
@@ -69,10 +72,10 @@ describe("docker deployment configuration", () => {
     expect(nginxConfig).toContain("server app:3000");
     expect(nginxConfig).toContain("proxy_pass http://next_app");
     expect(nginxConfig).toContain("listen 443 ssl");
-    expect(nginxConfig).toContain(
-      "ssl_certificate /etc/nginx/certs/blog.kongyu204.com.pem"
-    );
+    expect(nginxConfig).toContain("ssl_certificate /etc/nginx/certs/blog.kongyu204.com.pem");
     expect(nginxConfig).toContain("location /uploads/");
+    expect(nginxConfig).toContain("location ^~ /uploads/daily/");
+    expect(nginxConfig).toContain("auth_request /_daily_auth");
     expect(nginxConfig).toContain("location = /healthz");
     expect(nginxConfig).toContain("X-Forwarded-For");
     expect(nginxConfig).toContain("X-Forwarded-Proto");

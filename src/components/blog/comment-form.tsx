@@ -1,20 +1,34 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { LogIn, UserRound } from "lucide-react";
 import {
   submitCommentAction,
   type SubmitCommentActionState,
 } from "@/actions/comments";
 import { useLocaleContext } from "@/components/i18n/locale-provider";
+import { getAccountCopy } from "@/lib/account-copy";
 
 type CommentFormProps = {
   postId: number;
   postSlug: string;
+  viewer: {
+    displayName: string;
+    email: string;
+  } | null;
 };
 
-export function CommentForm({ postId, postSlug }: CommentFormProps) {
-  const { dictionary } = useLocaleContext();
-  const formDictionary = dictionary.public.post.comments.form;
+function interpolate(template: string, values: Record<string, string | number>) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replaceAll(`{${key}}`, String(value)),
+    template
+  );
+}
+
+export function CommentForm({ postId, postSlug, viewer }: CommentFormProps) {
+  const { locale } = useLocaleContext();
+  const accountCopy = getAccountCopy(locale).comments;
   const initialState: SubmitCommentActionState = {
     status: "idle",
     message: null,
@@ -33,6 +47,33 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
     }
   }, [state.status]);
 
+  if (!viewer) {
+    return (
+      <div className="border-border/70 bg-card/45 rounded-lg border p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <div className="bg-primary/10 text-primary grid h-10 w-10 shrink-0 place-items-center rounded-full">
+            <UserRound aria-hidden="true" className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-foreground font-semibold">
+              {accountCopy.signInTitle}
+            </h3>
+            <p className="text-muted mt-1 text-sm leading-6">
+              {accountCopy.signInDescription}
+            </p>
+            <Link
+              href={`/account/login?next=${encodeURIComponent(`/blog/${postSlug}#comments`)}`}
+              className="bg-primary text-primary-foreground mt-4 inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium transition hover:opacity-90"
+            >
+              <LogIn aria-hidden="true" className="h-4 w-4" />
+              {accountCopy.signInButton}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form
       ref={formRef}
@@ -42,43 +83,22 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
       <input type="hidden" name="postId" value={postId} />
       <input type="hidden" name="postSlug" value={postSlug} />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm">
-          <span className="font-medium text-foreground">
-            {formDictionary.nicknameLabel}
-          </span>
-          <input
-            type="text"
-            name="nickname"
-            required
-            maxLength={60}
-            autoComplete="name"
-            className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
-          {state.errors.nickname ? (
-            <p className="text-xs text-destructive">{state.errors.nickname}</p>
-          ) : null}
-        </label>
-
-        <label className="space-y-2 text-sm">
-          <span className="font-medium text-foreground">
-            {formDictionary.emailLabel}
-          </span>
-          <input
-            type="email"
-            name="email"
-            required
-            autoComplete="email"
-            className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
-          {state.errors.email ? (
-            <p className="text-xs text-destructive">{state.errors.email}</p>
-          ) : null}
-        </label>
+      <div className="border-border/70 flex items-center gap-3 border-b pb-4">
+        <div className="bg-primary/10 text-primary grid h-9 w-9 place-items-center rounded-full">
+          <UserRound aria-hidden="true" className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-foreground truncate text-sm font-medium">
+            {interpolate(accountCopy.signedInTemplate, {
+              name: viewer.displayName,
+            })}
+          </p>
+          <p className="text-muted truncate text-xs">{viewer.email}</p>
+        </div>
       </div>
 
       <label className="space-y-2 text-sm">
-        <span className="font-medium text-foreground">{formDictionary.bodyLabel}</span>
+        <span className="font-medium text-foreground">{accountCopy.bodyLabel}</span>
         <textarea
           name="body"
           required
@@ -108,8 +128,8 @@ export function CommentForm({ postId, postSlug }: CommentFormProps) {
         className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isPending
-          ? formDictionary.submittingButton
-          : formDictionary.submitButton}
+          ? accountCopy.submittingButton
+          : accountCopy.submitButton}
       </button>
     </form>
   );

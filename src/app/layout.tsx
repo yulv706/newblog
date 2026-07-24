@@ -12,6 +12,7 @@ import {
   getLocalizedSiteName,
   getSiteUrl,
 } from "@/lib/seo";
+import { getCurrentUser } from "@/lib/user-auth";
 import "./globals.css";
 
 const inter = localFont({
@@ -95,6 +96,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const { locale, dictionary } = await getRequestI18n();
+  const user = await getCurrentUser();
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -114,7 +116,13 @@ export default async function RootLayout({
         </Script>
         <ThemeProvider>
           <LocaleProvider locale={locale} dictionary={dictionary}>
-            <Header />
+            <Header
+              viewer={
+                user
+                  ? { displayName: user.displayName, email: user.email }
+                  : null
+              }
+            />
             <main className="w-full flex-1 px-[var(--spacing-page)]">
               {children}
             </main>

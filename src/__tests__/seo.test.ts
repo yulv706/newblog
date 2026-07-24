@@ -141,7 +141,6 @@ describe("seo feeds and structured data", () => {
     expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/")}</loc>`);
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/blog")}</loc>`);
-    expect(xml).toContain(`<loc>${getAbsoluteUrl("/daily")}</loc>`);
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/books")}</loc>`);
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/about")}</loc>`);
     expect(xml).toContain(`<loc>${getAbsoluteUrl("/blog/published-post")}</loc>`);
@@ -149,11 +148,11 @@ describe("seo feeds and structured data", () => {
     expect(xml).not.toContain("draft-post");
   });
 
-  it("seo sitemap xml includes published daily detail urls", () => {
-    const xml = buildSitemapXml([], [{ id: 42, updatedAt: "2026-07-22T08:00:00.000Z" }]);
+  it("seo sitemap excludes authenticated daily routes", () => {
+    const xml = buildSitemapXml([]);
 
-    expect(xml).toContain(`<loc>${getAbsoluteUrl("/daily/42")}</loc>`);
-    expect(xml).toContain("2026-07-22T08:00:00.000Z");
+    expect(xml).not.toContain(`<loc>${getAbsoluteUrl("/daily")}</loc>`);
+    expect(xml).not.toContain("/daily/");
   });
 
   it("seo slug updates remove old url references from rss and sitemap", async () => {

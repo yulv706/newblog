@@ -7,7 +7,7 @@ import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 import * as schema from "@/lib/db/schema";
-import { comments, posts } from "@/lib/db/schema";
+import { comments, posts, users } from "@/lib/db/schema";
 import {
   approveComment,
   createPendingComment,
@@ -26,6 +26,7 @@ describe("comment system", () => {
   let testDb: ReturnType<typeof drizzle>;
   let publishedPostId = 0;
   let draftPostId = 0;
+  let registeredUserId = 0;
 
   beforeAll(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "blog-comment-test-"));
@@ -40,6 +41,18 @@ describe("comment system", () => {
     });
 
     const now = new Date().toISOString();
+    registeredUserId = testDb
+      .insert(users)
+      .values({
+        email: "visitor@example.com",
+        displayName: "Visitor",
+        status: "active",
+        emailVerifiedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: users.id })
+      .get()!.id;
     const inserted = testDb
       .insert(posts)
       .values([
@@ -101,6 +114,7 @@ describe("comment system", () => {
     const publishedResult = await createPendingComment(
       {
         postId: publishedPostId,
+        userId: registeredUserId,
         nickname: "Visitor",
         email: "visitor@example.com",
         body: "First pending comment",
@@ -114,11 +128,12 @@ describe("comment system", () => {
     }
 
     const stored = testDb
-      .select({ approved: comments.approved })
+      .select({ approved: comments.approved, userId: comments.userId })
       .from(comments)
       .where(eq(comments.id, publishedResult.commentId))
       .get();
     expect(stored?.approved).toBe(false);
+    expect(stored?.userId).toBe(registeredUserId);
 
     const draftResult = await createPendingComment(
       {

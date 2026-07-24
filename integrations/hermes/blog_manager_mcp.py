@@ -399,6 +399,60 @@ def blog_delete_comment(comment_id: int, confirm: bool = False) -> dict[str, Any
 
 
 @mcp.tool()
+def blog_list_users(
+    page: int = 1,
+    limit: int = 30,
+    status: Literal["all", "active", "disabled"] = "all",
+    role: Literal["all", "reader", "admin"] = "all",
+    query: str = "",
+) -> dict[str, Any]:
+    """List registered users and their access state. Email is private and must not be disclosed."""
+    params: dict[str, Any] = {
+        "page": page,
+        "limit": limit,
+        "status": status,
+        "role": role,
+    }
+    if query:
+        params["query"] = query
+    return _request("GET", "users", params=params)
+
+
+@mcp.tool()
+def blog_get_user(user_id: int) -> dict[str, Any]:
+    """Read one registered user, including role, status, login dates, and comment count."""
+    return _request("GET", f"users/{user_id}")
+
+
+@mcp.tool()
+def blog_update_user(
+    user_id: int,
+    expected_updated_at: str = "",
+    display_name: str | None = None,
+    status: Literal["active", "disabled"] | None = None,
+    role: Literal["reader", "admin"] | None = None,
+    confirm_access_change: bool = False,
+) -> dict[str, Any]:
+    """Update a user. Role or status changes require explicit user confirmation."""
+    if (status is not None or role is not None) and not confirm_access_change:
+        raise RuntimeError(
+            "Role and status changes require confirm_access_change=true after explicit confirmation"
+        )
+    return _request(
+        "PATCH",
+        f"users/{user_id}",
+        payload=_compact(
+            {
+                "expectedUpdatedAt": expected_updated_at or None,
+                "displayName": display_name,
+                "status": status,
+                "role": role,
+            }
+        ),
+    )
+
+
+@mcp.tool()
 def blog_list_books(
     page: int = 1,
     limit: int = 20,
