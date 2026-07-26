@@ -7,6 +7,7 @@ export function GET() {
     `Allow: /`,
     `Disallow: /daily`,
     `Disallow: /uploads/daily/`,
+    `Disallow: /games`,
     `Disallow: /account`,
     `Sitemap: ${getAbsoluteUrl("/sitemap.xml")}`,
   ].join("\n");

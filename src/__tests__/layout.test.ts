@@ -2,12 +2,13 @@ import { describe, it, expect } from "vitest";
 import { NAV_LINKS } from "@/components/layout/nav-links";
 
 describe("Navigation links", () => {
-  it("contains Home, Blog, Daily, Books, and About links", () => {
+  it("contains Home, Blog, Daily, Books, Games, and About links", () => {
     const labels = NAV_LINKS.map((link) => link.label);
     expect(labels).toContain("Home");
     expect(labels).toContain("Blog");
     expect(labels).toContain("Daily");
     expect(labels).toContain("Books");
+    expect(labels).toContain("Games");
     expect(labels).toContain("About");
   });
 
@@ -35,6 +36,12 @@ describe("Navigation links", () => {
     expect(dailyLink!.href).toBe("/daily");
   });
 
+  it("Games link points to /games", () => {
+    const gamesLink = NAV_LINKS.find((link) => link.label === "Games");
+    expect(gamesLink).toBeDefined();
+    expect(gamesLink!.href).toBe("/games");
+  });
+
   it("About link points to /about", () => {
     const aboutLink = NAV_LINKS.find((link) => link.label === "About");
     expect(aboutLink).toBeDefined();
@@ -42,7 +49,7 @@ describe("Navigation links", () => {
   });
 
   it("has correct number of links", () => {
-    expect(NAV_LINKS).toHaveLength(5);
+    expect(NAV_LINKS).toHaveLength(6);
   });
 });
 

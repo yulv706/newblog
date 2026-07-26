@@ -8,6 +8,7 @@ import { ADMIN_SIDEBAR_LINKS, isAdminPathActive } from "@/lib/admin/navigation";
 import { getDailyCopy } from "@/lib/daily-copy";
 import { getAccountCopy } from "@/lib/account-copy";
 import { getSystemHealthCopy } from "@/lib/system-health-copy";
+import { getGamesCopy } from "@/lib/games-copy";
 import { cn } from "@/lib/utils";
 
 export function AdminSidebarNav() {
@@ -24,6 +25,7 @@ export function AdminSidebarNav() {
     Users: getAccountCopy(locale).adminUsers.title,
     Daily: getDailyCopy(locale).admin.title,
     Books: sidebarDictionary.books.title,
+    Games: getGamesCopy(locale).admin.title,
     About: sidebarDictionary.about.title,
     System: getSystemHealthCopy(locale).title,
   } as const;

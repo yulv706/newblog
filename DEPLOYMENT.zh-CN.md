@@ -67,6 +67,10 @@ cp deploy/.env.production.example deploy/.env.production
 | `WEREAD_SYNC_PROGRESS_LIMIT`  | 否           | 每次同步查询阅读进度的书籍上限 | 默认 `80`                                                     |
 | `WEREAD_SYNC_DETAIL_LIMIT`    | 否           | 每次同步查询书籍详情的书籍上限 | 默认 `80`                                                     |
 | `WEREAD_SYNC_HIGHLIGHTS`      | 否           | 是否同步划线文本内容           | 默认 `0`；只想同步进度和笔记数量时保持关闭                    |
+| `STEAM_WEB_API_KEY`           | 否           | Steam Web API 密钥             | 配置后启用 `/admin/games` 和 `npm run sync:steam`             |
+| `STEAM_ID64`                  | 否           | Steam 账户的 17 位公开 ID      | 与 API Key 同时配置；不是登录密码                             |
+| `STEAM_API_LANGUAGE`          | 否           | Steam 游戏名称语言             | 默认 `schinese`                                               |
+| `STEAM_SYNC_TIMEOUT_SECONDS`  | 否           | Steam 定时同步超时秒数         | 默认 `300`                                                    |
 
 `./deploy/check.sh` 会强制执行这些生产安全约束：
 
@@ -108,6 +112,25 @@ docker compose --env-file deploy/.env.production exec app npm run sync:weread
 ```
 
 微信读书里的私密条目会带私密标记保存，并从公开书架中过滤。默认不同步划线正文；只有设置 `WEREAD_SYNC_HIGHLIGHTS=1` 时才会同步摘记文本。
+
+## Steam 游戏档案同步
+
+登录后可见的 `/games` 页面同样读取本地 SQLite 快照，API Key 不会发送到浏览器：
+
+1. 登录 [Steam Web API Key](https://steamcommunity.com/dev/apikey) 页面并创建 Key。
+2. 在 Steam 的“编辑个人资料 → 隐私设置”中，把“游戏详情”设为公开。
+3. 在 `deploy/.env.production` 中加入 `STEAM_WEB_API_KEY` 与 17 位 `STEAM_ID64`。
+4. 重启应用后打开 `/admin/games` 点击同步，或运行：
+
+```bash
+docker compose --env-file deploy/.env.production exec app npm run sync:steam
+```
+
+启用 `newblog-weread-sync.timer` 的服务器会在每天北京时间 18:00 完成微信读书同步后，
+串行刷新 Steam 游戏快照。Steam 临时不可用时会记录日志并在 `/admin/games` 显示错误，
+但不会阻断当天的阅读简报。
+
+同步只更新 Steam 所有权、累计与近两周时长、最近启动时间等来源字段。本站维护的游玩状态、评分、短评、标签、珍藏和精选设置不会被后续同步覆盖。
 
 ## 在新 Linux 主机上首次部署
 

@@ -5,6 +5,7 @@ export const NAV_LINKS = [
   { href: "/blog", key: "blog", label: "Blog" },
   { href: "/daily", key: "daily", label: "Daily" },
   { href: "/books", key: "books", label: "Books" },
+  { href: "/games", key: "games", label: "Games" },
   { href: "/about", key: "about", label: "About" },
 ] as const satisfies readonly {
   href: string;

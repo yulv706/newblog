@@ -44,12 +44,13 @@ describe("admin i18n route and component wiring", () => {
       "(protected)/categories/page.tsx",
       "(protected)/comments/page.tsx",
       "(protected)/books/page.tsx",
+      "(protected)/games/page.tsx",
     ];
 
     for (const relativePath of serverFiles) {
       const source = fs.readFileSync(path.join(appRoot, relativePath), "utf8");
       expect(source).toContain("getRequestI18n");
-      expect(source).toContain("dictionary.admin");
+      expect(source).toMatch(/dictionary\.admin|getGamesCopy/);
     }
   });
 

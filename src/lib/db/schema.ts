@@ -94,14 +94,8 @@ export const emailAuthChallenges = sqliteTable(
       .$defaultFn(() => new Date().toISOString()),
   },
   (table) => [
-    index("email_auth_challenges_email_created_idx").on(
-      table.email,
-      table.createdAt
-    ),
-    index("email_auth_challenges_ip_created_idx").on(
-      table.requestIpHash,
-      table.createdAt
-    ),
+    index("email_auth_challenges_email_created_idx").on(table.email, table.createdAt),
+    index("email_auth_challenges_ip_created_idx").on(table.requestIpHash, table.createdAt),
     index("email_auth_challenges_expires_idx").on(table.expiresAt),
   ]
 );
@@ -131,10 +125,7 @@ export const userRegistrationNotifications = sqliteTable(
       .$defaultFn(() => new Date().toISOString()),
   },
   (table) => [
-    index("user_registration_notifications_dispatch_idx").on(
-      table.status,
-      table.nextAttemptAt
-    ),
+    index("user_registration_notifications_dispatch_idx").on(table.status, table.nextAttemptAt),
     index("user_registration_notifications_created_at_idx").on(table.createdAt),
   ]
 );
@@ -234,6 +225,91 @@ export const readingSyncState = sqliteTable("reading_sync_state", {
   payload: text("payload"),
 });
 
+export const steamGames = sqliteTable(
+  "steam_games",
+  {
+    appId: integer("app_id").primaryKey(),
+    name: text("name").notNull(),
+    iconHash: text("icon_hash"),
+    playtimeForever: integer("playtime_forever").notNull().default(0),
+    playtimeTwoWeeks: integer("playtime_two_weeks").notNull().default(0),
+    playtimeWindows: integer("playtime_windows").notNull().default(0),
+    playtimeMac: integer("playtime_mac").notNull().default(0),
+    playtimeLinux: integer("playtime_linux").notNull().default(0),
+    playtimeDeck: integer("playtime_deck").notNull().default(0),
+    lastPlayedAt: text("last_played_at"),
+    status: text("status", {
+      enum: ["unplayed", "played", "playing", "completed", "paused", "dropped"],
+    })
+      .notNull()
+      .default("unplayed"),
+    personalRating: integer("personal_rating"),
+    review: text("review"),
+    tags: text("tags").notNull().default("[]"),
+    customCoverUrl: text("custom_cover_url"),
+    customHeroUrl: text("custom_hero_url"),
+    isOwned: integer("is_owned", { mode: "boolean" }).notNull().default(true),
+    isVisible: integer("is_visible", { mode: "boolean" }).notNull().default(true),
+    isFavorite: integer("is_favorite", { mode: "boolean" }).notNull().default(false),
+    isFeatured: integer("is_featured", { mode: "boolean" }).notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    rawPayload: text("raw_payload"),
+    syncedAt: text("synced_at"),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text("updated_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    index("steam_games_public_idx").on(
+      table.isOwned,
+      table.isVisible,
+      table.isFeatured,
+      table.lastPlayedAt
+    ),
+    index("steam_games_status_idx").on(table.status),
+    index("steam_games_playtime_idx").on(table.playtimeForever),
+  ]
+);
+
+export const steamProfile = sqliteTable("steam_profile", {
+  key: text("key").primaryKey(),
+  steamId: text("steam_id").notNull(),
+  personaName: text("persona_name").notNull().default(""),
+  realName: text("real_name"),
+  profileUrl: text("profile_url"),
+  avatar: text("avatar"),
+  avatarMedium: text("avatar_medium"),
+  avatarFull: text("avatar_full"),
+  personaState: integer("persona_state").notNull().default(0),
+  visibilityState: integer("visibility_state").notNull().default(0),
+  countryCode: text("country_code"),
+  gameCount: integer("game_count").notNull().default(0),
+  totalPlaytimeMinutes: integer("total_playtime_minutes").notNull().default(0),
+  lastLogoffAt: text("last_logoff_at"),
+  accountCreatedAt: text("account_created_at"),
+  rawPayload: text("raw_payload"),
+  syncedAt: text("synced_at"),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+export const steamSyncState = sqliteTable("steam_sync_state", {
+  key: text("key").primaryKey(),
+  status: text("status", { enum: ["success", "error", "running"] })
+    .notNull()
+    .default("success"),
+  message: text("message"),
+  totalGames: integer("total_games").notNull().default(0),
+  recentlyPlayed: integer("recently_played").notNull().default(0),
+  startedAt: text("started_at"),
+  finishedAt: text("finished_at"),
+  payload: text("payload"),
+});
+
 export const dailyEntries = sqliteTable(
   "daily_entries",
   {
@@ -279,10 +355,7 @@ export const managementAuditLogs = sqliteTable(
   },
   (table) => [
     index("management_audit_logs_created_at_idx").on(table.createdAt),
-    index("management_audit_logs_resource_idx").on(
-      table.resourceType,
-      table.resourceId
-    ),
+    index("management_audit_logs_resource_idx").on(table.resourceType, table.resourceId),
   ]
 );
 

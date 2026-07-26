@@ -5,6 +5,7 @@ source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 LOCK_FILE="${WEREAD_SYNC_LOCK_FILE:-/run/lock/newblog-weread-sync.lock}"
 TIMEOUT_SECONDS="${WEREAD_SYNC_TIMEOUT_SECONDS:-1800}"
+STEAM_TIMEOUT_SECONDS="${STEAM_SYNC_TIMEOUT_SECONDS:-300}"
 
 require_command docker "Install Docker Engine and the Docker Compose plugin before scheduling WeRead sync."
 require_command flock "Install util-linux before scheduling WeRead sync."
@@ -18,6 +19,11 @@ fi
 
 if ! [[ "${TIMEOUT_SECONDS}" =~ ^[1-9][0-9]*$ ]]; then
   print_error "WEREAD_SYNC_TIMEOUT_SECONDS must be a positive integer."
+  exit 1
+fi
+
+if ! [[ "${STEAM_TIMEOUT_SECONDS}" =~ ^[1-9][0-9]*$ ]]; then
+  print_error "STEAM_SYNC_TIMEOUT_SECONDS must be a positive integer."
   exit 1
 fi
 
@@ -39,3 +45,25 @@ timeout --signal=TERM --kill-after=30 "${TIMEOUT_SECONDS}" \
   --project-directory "${REPO_ROOT}" \
   exec -T app npm run sync:weread
 print_info "Scheduled WeRead sync completed"
+
+if [[ -z "${STEAM_WEB_API_KEY:-}" && -z "${STEAM_ID64:-}" ]]; then
+  print_info "Steam sync is not configured; skipping the game archive refresh"
+  exit 0
+fi
+
+if [[ -z "${STEAM_WEB_API_KEY:-}" || -z "${STEAM_ID64:-}" ]]; then
+  print_error "Steam sync is partially configured; set both STEAM_WEB_API_KEY and STEAM_ID64."
+  print_error "The WeRead sync succeeded, so the daily reading briefing will continue."
+  exit 0
+fi
+
+print_info "Starting scheduled Steam sync"
+if ! timeout --signal=TERM --kill-after=30 "${STEAM_TIMEOUT_SECONDS}" \
+  docker compose --env-file "${DEPLOY_ENV_FILE}" \
+  --project-directory "${REPO_ROOT}" \
+  exec -T app npm run sync:steam; then
+  print_error "Scheduled Steam sync failed; the successful WeRead sync is preserved."
+  print_error "Review /admin/games or journalctl -u newblog-weread-sync.service for details."
+  exit 0
+fi
+print_info "Scheduled Steam sync completed"

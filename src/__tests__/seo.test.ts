@@ -148,11 +148,12 @@ describe("seo feeds and structured data", () => {
     expect(xml).not.toContain("draft-post");
   });
 
-  it("seo sitemap excludes authenticated daily routes", () => {
+  it("seo sitemap excludes authenticated daily and games routes", () => {
     const xml = buildSitemapXml([]);
 
     expect(xml).not.toContain(`<loc>${getAbsoluteUrl("/daily")}</loc>`);
     expect(xml).not.toContain("/daily/");
+    expect(xml).not.toContain(`<loc>${getAbsoluteUrl("/games")}</loc>`);
   });
 
   it("seo slug updates remove old url references from rss and sitemap", async () => {

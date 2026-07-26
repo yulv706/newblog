@@ -67,6 +67,10 @@ Set these values:
 | `WEREAD_SYNC_PROGRESS_LIMIT`  | No               | Per-sync progress lookup limit    | Defaults to `80`                                                         |
 | `WEREAD_SYNC_DETAIL_LIMIT`    | No               | Per-sync book detail lookup limit | Defaults to `80`                                                         |
 | `WEREAD_SYNC_HIGHLIGHTS`      | No               | Sync highlight text content       | Defaults to `0`; keep disabled if you only want progress and note counts |
+| `STEAM_WEB_API_KEY`           | No               | Steam Web API key                 | Enables `/admin/games` and `npm run sync:steam`                          |
+| `STEAM_ID64`                  | No               | Public 17-digit Steam account ID  | Configure together with the API key; this is not a login password        |
+| `STEAM_API_LANGUAGE`          | No               | Language for Steam game names     | Defaults to `schinese`                                                   |
+| `STEAM_SYNC_TIMEOUT_SECONDS`  | No               | Scheduled Steam sync timeout      | Defaults to `300`                                                        |
 
 Production safety constraints enforced by `./deploy/check.sh`:
 
@@ -107,6 +111,28 @@ docker compose --env-file deploy/.env.production exec app npm run sync:weread
 ```
 
 Private WeRead entries are stored with a private flag and excluded from the public bookshelf. Highlight text is not synced unless `WEREAD_SYNC_HIGHLIGHTS=1`.
+
+## Steam game archive sync
+
+The signed-in `/games` page also reads a local SQLite snapshot. The API key is
+never sent to browsers:
+
+1. Sign in at [Steam Web API Key](https://steamcommunity.com/dev/apikey) and create a key.
+2. In Steam Edit Profile → Privacy Settings, set Game details to Public.
+3. Add `STEAM_WEB_API_KEY` and the 17-digit `STEAM_ID64` to `deploy/.env.production`.
+4. Restart the app, open `/admin/games`, and click sync, or run:
+
+```bash
+docker compose --env-file deploy/.env.production exec app npm run sync:steam
+```
+
+On hosts using `newblog-weread-sync.timer`, the same 18:00 Asia/Shanghai job
+refreshes Steam immediately after WeRead. A transient Steam failure is logged and
+shown in `/admin/games` without suppressing the daily reading briefing.
+
+Sync updates Steam-owned fields such as ownership, lifetime and two-week
+playtime, and last launch time. Site-owned statuses, ratings, reviews, tags,
+favorites, and featured settings are preserved across every sync.
 
 ## First deploy on a new Linux host
 

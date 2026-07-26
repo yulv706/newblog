@@ -7,6 +7,34 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-26
+
+### Added
+
+- Added a Steam-connected game archive with owned-game, lifetime playtime,
+  recent-session, profile, and platform statistics persisted as a local snapshot.
+- Added a cinematic signed-in game experience with featured sessions, recent-play
+  history, searchable filters, sorting, pagination, and an accessible,
+  drag-dismissible game detail view.
+- Added private game curation controls for play status, personal ratings, reviews,
+  tags, favorites, featured placement, visibility, and custom artwork.
+- Added Steam connection diagnostics, privacy guidance, manual and scheduled sync
+  commands, database migrations, localized copy, and regression coverage.
+
+### Changed
+
+- Refreshes the Steam game snapshot serially with the daily 18:00 WeRead job while
+  allowing the reading summary to continue when Steam is temporarily unavailable.
+- Added resilient artwork selection that rejects blank CDN placeholders, avoids
+  stretching low-resolution icons, and recovers images loaded before hydration.
+
+### Security
+
+- Keeps the Steam Web API key server-side and preserves all site-owned editorial
+  fields when refreshing source data from Steam.
+- Requires an authenticated account for the game archive and its server-side
+  artwork fallback, and excludes the private route from indexing and the sitemap.
+
 ## [1.5.0] - 2026-07-24
 
 ### Added

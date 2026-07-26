@@ -22,29 +22,25 @@ describe("public i18n route wiring", () => {
     const homepageSource = fs.readFileSync(path.join(appRoot, "page.tsx"), "utf8");
     const blogSource = fs.readFileSync(path.join(appRoot, "blog/page.tsx"), "utf8");
     const booksSource = fs.readFileSync(path.join(appRoot, "books/page.tsx"), "utf8");
+    const gamesSource = fs.readFileSync(path.join(appRoot, "games/page.tsx"), "utf8");
     const searchSource = fs.readFileSync(path.join(appRoot, "search/page.tsx"), "utf8");
-    const postDetailSource = fs.readFileSync(
-      path.join(appRoot, "blog/[slug]/page.tsx"),
-      "utf8"
-    );
+    const postDetailSource = fs.readFileSync(path.join(appRoot, "blog/[slug]/page.tsx"), "utf8");
 
     for (const source of [
       homepageSource,
       blogSource,
       booksSource,
+      gamesSource,
       searchSource,
       postDetailSource,
     ]) {
       expect(source).toContain("getRequestI18n");
-      expect(source).toContain("dictionary.public");
+      expect(source).toMatch(/dictionary\.public|getGamesCopy/);
     }
   });
 
   it("wires interactive post-detail chrome to locale context", () => {
-    const commentForm = fs.readFileSync(
-      path.join(componentRoot, "comment-form.tsx"),
-      "utf8"
-    );
+    const commentForm = fs.readFileSync(path.join(componentRoot, "comment-form.tsx"), "utf8");
     const tableOfContents = fs.readFileSync(
       path.join(componentRoot, "table-of-contents.tsx"),
       "utf8"

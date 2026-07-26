@@ -127,6 +127,7 @@ describe("admin dashboard navigation config", () => {
       "Users",
       "Daily",
       "Books",
+      "Games",
       "About",
       "System",
     ]);
@@ -138,6 +139,7 @@ describe("admin dashboard navigation config", () => {
     expect(isAdminPathActive("/admin/users", "/admin/users")).toBe(true);
     expect(isAdminPathActive("/admin/daily/1/edit", "/admin/daily")).toBe(true);
     expect(isAdminPathActive("/admin/books", "/admin/books")).toBe(true);
+    expect(isAdminPathActive("/admin/games/1174180/edit", "/admin/games")).toBe(true);
     expect(isAdminPathActive("/admin/system", "/admin/system")).toBe(true);
   });
 });
