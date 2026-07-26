@@ -7,6 +7,16 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-07-26
+
+### Added
+
+- Added first-class Steam game archive monitoring to the administration status
+  page, covering login protection, sync freshness, library counts, and the shared
+  18:00 scheduler.
+- Routes Steam sync failures, stale snapshots, missing credentials, and access
+  control regressions through the existing transition-based Hermes alert flow.
+
 ## [1.6.0] - 2026-07-26
 
 ### Added

@@ -128,12 +128,25 @@ describe("server health monitor deployment", () => {
     expect(script).toContain("check_hermes");
     expect(script).toContain("check_proactive_push");
     expect(script).toContain("check_weread");
+    expect(script).toContain("check_steam_games");
+    expect(script).toContain("FROM steam_sync_state");
+    expect(script).toContain('config.site_url + "/games"');
+    expect(script).toContain('"accessProtected": route_ok');
     expect(script).toContain("check_tls");
     expect(script).toContain("check_backups");
     expect(script).toContain('config.site_url + "/feed.xml"');
     expect(script).not.toContain('config.site_url + "/rss.xml"');
     expect(script).toContain("should_repeat");
     expect(script).toContain("recoveries");
+  });
+
+  it("shows the Steam archive as a first-class monitored integration", () => {
+    const component = read("src/components/admin/system-health-dashboard.tsx");
+    const copy = read("src/lib/system-health-copy.ts");
+
+    expect(component).toContain("steam_games: Gamepad2");
+    expect(copy).toContain('steam_games: "Steam 游戏档案"');
+    expect(copy).toContain('steam_games: "Steam game archive"');
   });
 
   it("keeps the health API admin-only and uncached", () => {

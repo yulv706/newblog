@@ -44,6 +44,22 @@ def compact(value, limit=320):
     return text[: max(0, limit - 1)].rstrip() + "…"
 
 
+def iso_age_hours(value):
+    if not value:
+        return None
+    try:
+        normalized = value[:-1] if value.endswith("Z") else value
+        if "." in normalized:
+            normalized = normalized.split(".", 1)[0]
+        parsed = datetime.datetime.strptime(normalized, "%Y-%m-%dT%H:%M:%S")
+        return max(
+            0.0,
+            (datetime.datetime.utcnow() - parsed).total_seconds() / 3600.0,
+        )
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
 def log(message):
     print("{} {}".format(utc_now(), message), flush=True)
 
@@ -209,6 +225,55 @@ def http_probe(url, contains=None, timeout=12):
     except Exception as exc:
         latency_ms = int(round((time.time() - started) * 1000))
         return "critical", "请求失败：{}".format(compact(exc)), latency_ms
+
+
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, file_pointer, code, message, headers, new_url):
+        return None
+
+
+def protected_route_probe(url, expected_location, timeout=12):
+    started = time.time()
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": "newblog-health-monitor/1.0"},
+    )
+    opener = urllib.request.build_opener(NoRedirectHandler())
+    status_code = 0
+    location = ""
+    try:
+        with opener.open(request, timeout=timeout) as response:
+            status_code = int(response.getcode())
+            location = response.headers.get("Location", "")
+    except urllib.error.HTTPError as exc:
+        status_code = int(exc.code)
+        location = exc.headers.get("Location", "")
+        exc.close()
+    except Exception as exc:
+        latency_ms = int(round((time.time() - started) * 1000))
+        return (
+            False,
+            "登录保护请求失败：{}".format(compact(exc)),
+            latency_ms,
+            status_code,
+        )
+
+    latency_ms = int(round((time.time() - started) * 1000))
+    redirect_codes = (302, 303, 307, 308)
+    location_matches = (
+        location == expected_location or location.endswith(expected_location)
+    )
+    if status_code in redirect_codes and location_matches:
+        return True, "未登录访问会跳转登录页", latency_ms, status_code
+    return (
+        False,
+        "未登录访问返回 HTTP {}，跳转目标为 {}".format(
+            status_code or "unknown",
+            compact(location or "无"),
+        ),
+        latency_ms,
+        status_code,
+    )
 
 
 def check_database(config):
@@ -429,21 +494,7 @@ def check_weread(config):
         metrics = {"timerActive": timer_active}
     else:
         finished_at = row["finished_at"]
-        age_hours = None
-        if finished_at:
-            try:
-                normalized = finished_at[:-1] if finished_at.endswith("Z") else finished_at
-                if "." in normalized:
-                    normalized = normalized.split(".", 1)[0]
-                finished = datetime.datetime.strptime(
-                    normalized,
-                    "%Y-%m-%dT%H:%M:%S",
-                )
-                age_hours = (
-                    datetime.datetime.utcnow() - finished
-                ).total_seconds() / 3600.0
-            except ValueError:
-                age_hours = None
+        age_hours = iso_age_hours(finished_at)
 
         if not timer_active or row["status"] == "error":
             status = "critical"
@@ -473,6 +524,157 @@ def check_weread(config):
         "automation",
         status,
         "微信读书同步",
+        summary,
+        metrics=metrics,
+    )
+
+
+def check_steam_games(config):
+    timer_active = False
+    try:
+        timer_active = (
+            run(["systemctl", "is-active", "newblog-weread-sync.timer"], timeout=10)
+            == "active"
+        )
+    except Exception:
+        pass
+
+    env = parse_env_file(config.deploy_env_path)
+    api_key = env.get("STEAM_WEB_API_KEY", "").strip()
+    steam_id = env.get("STEAM_ID64", "").strip()
+    configured = bool(api_key and len(steam_id) == 17 and steam_id.isdigit())
+    route_ok, route_summary, route_latency, route_status = protected_route_probe(
+        config.site_url + "/games",
+        "/account/login?next=/games",
+        timeout=config.timeout,
+    )
+
+    try:
+        connection = sqlite3.connect(config.db_path, timeout=10)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA busy_timeout = 10000")
+        row = connection.execute(
+            """
+            SELECT status, message, total_games, recently_played,
+                   started_at, finished_at
+              FROM steam_sync_state
+             WHERE key = 'steam'
+            """
+        ).fetchone()
+        counts = connection.execute(
+            """
+            SELECT COUNT(*) AS stored_games,
+                   SUM(CASE WHEN is_owned = 1 THEN 1 ELSE 0 END) AS owned_games,
+                   SUM(
+                     CASE WHEN is_owned = 1 AND is_visible = 1 THEN 1 ELSE 0 END
+                   ) AS visible_games
+              FROM steam_games
+            """
+        ).fetchone()
+        connection.close()
+    except Exception as exc:
+        return make_check(
+            "steam_games",
+            "automation",
+            "critical",
+            "Steam 游戏档案",
+            "游戏档案状态读取失败：{}".format(compact(exc)),
+            metrics={
+                "configured": configured,
+                "timerActive": timer_active,
+                "accessProtected": route_ok,
+                "routeStatus": route_status,
+                "routeLatencyMs": route_latency,
+            },
+        )
+
+    stored_games = int(counts["stored_games"] or 0)
+    owned_games = int(counts["owned_games"] or 0)
+    visible_games = int(counts["visible_games"] or 0)
+    metrics = {
+        "configured": configured,
+        "timerActive": timer_active,
+        "accessProtected": route_ok,
+        "routeStatus": route_status,
+        "routeLatencyMs": route_latency,
+        "storedGames": stored_games,
+        "ownedGames": owned_games,
+        "visibleGames": visible_games,
+    }
+
+    if not route_ok:
+        status = "critical"
+        summary = "游戏页面登录保护异常：{}".format(route_summary)
+    elif row is None:
+        status = "warning" if configured else "unknown"
+        summary = (
+            "Steam 已配置，但尚无同步记录"
+            if configured
+            else "尚未配置 Steam 游戏档案同步"
+        )
+    else:
+        sync_status = row["status"]
+        finished_at = row["finished_at"]
+        finished_age_hours = iso_age_hours(finished_at)
+        started_age_hours = iso_age_hours(row["started_at"])
+        total_games = int(row["total_games"] or 0)
+        recently_played = int(row["recently_played"] or 0)
+        metrics.update(
+            {
+                "lastStatus": sync_status,
+                "finishedAt": finished_at,
+                "syncAgeHours": (
+                    round(finished_age_hours, 1)
+                    if finished_age_hours is not None
+                    else None
+                ),
+                "games": total_games,
+                "recentlyPlayed": recently_played,
+            }
+        )
+
+        if not configured:
+            status = "critical"
+            summary = "已有游戏快照，但 Steam API 配置缺失"
+        elif not timer_active:
+            status = "critical"
+            summary = "游戏档案与书架共用的 18:00 定时器未运行"
+        elif sync_status == "error":
+            status = "critical"
+            summary = "最近一次 Steam 同步失败：{}".format(compact(row["message"]))
+        elif sync_status == "running":
+            if started_age_hours is not None and started_age_hours > 1:
+                status = "critical"
+                summary = "Steam 同步已持续 {:.1f} 小时，可能已经停滞".format(
+                    started_age_hours
+                )
+            else:
+                status = "unknown"
+                summary = "游戏页面登录保护正常；Steam 游戏快照正在同步"
+        elif sync_status != "success":
+            status = "critical"
+            summary = "Steam 同步状态异常：{}".format(compact(sync_status))
+        elif not finished_at or finished_age_hours is None:
+            status = "warning"
+            summary = "Steam 同步成功，但完成时间无效"
+        elif finished_age_hours > 30:
+            status = "warning"
+            summary = "最近成功同步距今 {:.1f} 小时".format(finished_age_hours)
+        elif total_games <= 0 or owned_games <= 0:
+            status = "warning"
+            summary = "Steam 同步完成，但当前没有可展示的已拥有游戏"
+        else:
+            status = "healthy"
+            summary = (
+                "登录保护正常；最近同步成功，共 {} 款游戏，近期游玩 {} 款；"
+                "18:00 联动任务运行中"
+            ).format(total_games, recently_played)
+
+    return make_check(
+        "steam_games",
+        "automation",
+        status,
+        "Steam 游戏档案",
         summary,
         metrics=metrics,
     )
@@ -843,6 +1045,7 @@ def collect_checks(config):
             smtp_check(config),
             check_registration_notifications(config),
             check_weread(config),
+            check_steam_games(config),
             check_hermes(config),
             check_proactive_push(config),
             check_tls("blog.kongyu204.com", timeout=config.timeout),
