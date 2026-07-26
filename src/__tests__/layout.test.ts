@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { NAV_LINKS } from "@/components/layout/nav-links";
 
 describe("Navigation links", () => {
@@ -40,6 +42,30 @@ describe("Navigation links", () => {
     const gamesLink = NAV_LINKS.find((link) => link.label === "Games");
     expect(gamesLink).toBeDefined();
     expect(gamesLink!.href).toBe("/games");
+  });
+
+  it("marks Daily and Games as authenticated destinations", () => {
+    const protectedLinks = NAV_LINKS.filter((link) => link.requiresAuth).map(
+      (link) => link.key
+    );
+
+    expect(protectedLinks).toEqual(["daily", "games"]);
+  });
+
+  it("renders lock indicators from shared authentication metadata", () => {
+    const header = fs.readFileSync(
+      path.join(process.cwd(), "src/components/layout/header.tsx"),
+      "utf8"
+    );
+    const mobileNav = fs.readFileSync(
+      path.join(process.cwd(), "src/components/layout/mobile-nav.tsx"),
+      "utf8"
+    );
+
+    for (const source of [header, mobileNav]) {
+      expect(source).toContain("link.requiresAuth && !viewer");
+      expect(source).not.toContain('link.key === "daily" && !viewer');
+    }
   });
 
   it("About link points to /about", () => {

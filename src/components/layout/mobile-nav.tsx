@@ -204,7 +204,7 @@ export function MobileNav({ viewer }: MobileNavProps) {
                 >
                   <span className="flex items-center justify-between gap-3">
                     {navDictionary.links[link.key]}
-                    {link.key === "daily" && !viewer ? (
+                    {link.requiresAuth && !viewer ? (
                       <LockKeyhole
                         aria-hidden="true"
                         className="h-4 w-4 opacity-60"

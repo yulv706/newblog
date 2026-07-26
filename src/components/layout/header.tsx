@@ -119,7 +119,7 @@ export function Header({ viewer }: HeaderProps) {
               >
                 <span className="inline-flex items-center gap-1.5">
                   {navDictionary.links[link.key]}
-                  {link.key === "daily" && !viewer ? (
+                  {link.requiresAuth && !viewer ? (
                     <LockKeyhole
                       aria-hidden="true"
                       className="h-3.5 w-3.5 opacity-65"

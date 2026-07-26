@@ -7,6 +7,15 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-07-26
+
+### Fixed
+
+- Shows the same lock indicator beside both Daily and Games for signed-out users
+  across desktop and mobile navigation.
+- Centralized authenticated navigation metadata so route protection and visual
+  affordances cannot drift apart when more private sections are added.
+
 ## [1.6.1] - 2026-07-26
 
 ### Added
