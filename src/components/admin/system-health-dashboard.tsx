@@ -217,8 +217,8 @@ export function SystemHealthDashboard({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <label className="text-muted flex items-center gap-2 text-sm">
+        <div className="flex shrink-0 items-center gap-3">
+          <label className="text-muted flex items-center gap-2 text-sm whitespace-nowrap">
             <span>{copy.autoRefreshLabel}</span>
             <button
               type="button"
@@ -226,14 +226,14 @@ export function SystemHealthDashboard({
               aria-checked={autoRefresh}
               onClick={() => setAutoRefresh((value) => !value)}
               className={cn(
-                "relative h-6 w-10 rounded-full border transition",
+                "relative h-6 w-11 shrink-0 overflow-hidden rounded-full border transition",
                 autoRefresh ? "border-primary bg-primary" : "border-border bg-secondary"
               )}
             >
               <span
                 className={cn(
-                  "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
-                  autoRefresh ? "translate-x-4" : "translate-x-0.5"
+                  "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+                  autoRefresh ? "translate-x-5" : "translate-x-0"
                 )}
               />
             </button>
@@ -244,7 +244,7 @@ export function SystemHealthDashboard({
             aria-label={copy.refreshLabel}
             onClick={() => void refresh()}
             disabled={isRefreshing}
-            className="border-border bg-background text-foreground hover:bg-secondary flex h-9 w-9 items-center justify-center rounded-lg border transition disabled:cursor-wait disabled:opacity-60"
+            className="border-border bg-background text-foreground hover:bg-secondary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition disabled:cursor-wait disabled:opacity-60"
           >
             <RefreshCw
               aria-hidden="true"

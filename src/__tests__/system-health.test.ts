@@ -162,6 +162,14 @@ describe("server health monitor deployment", () => {
     expect(copy).toContain('steam_games: "Steam game archive"');
   });
 
+  it("keeps the auto-refresh thumb within its fixed switch track", () => {
+    const component = read("src/components/admin/system-health-dashboard.tsx");
+
+    expect(component).toContain("relative h-6 w-11 shrink-0 overflow-hidden");
+    expect(component).toContain("absolute top-0.5 left-0.5 h-5 w-5");
+    expect(component).toContain('autoRefresh ? "translate-x-5" : "translate-x-0"');
+  });
+
   it("keeps the health API admin-only and uncached", () => {
     const route = read("src/app/api/admin/system-health/route.ts");
 
