@@ -7,6 +7,7 @@ import datetime
 import fcntl
 import json
 import os
+import re
 import shlex
 import shutil
 import smtplib
@@ -66,14 +67,24 @@ def iso_age_seconds(value):
     if not value:
         return None
     try:
-        normalized = value.replace("Z", "+00:00")
-        parsed = datetime.datetime.fromisoformat(normalized)
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=datetime.timezone.utc)
-        now = datetime.datetime.now(datetime.timezone.utc)
-        elapsed = now - parsed.astimezone(datetime.timezone.utc)
+        normalized = value.strip()
+        offset = datetime.timedelta(0)
+        if normalized.endswith("Z"):
+            normalized = normalized[:-1]
+        else:
+            match = re.search(r"([+-])(\d{2}):?(\d{2})$", normalized)
+            if match:
+                direction = 1 if match.group(1) == "+" else -1
+                offset = direction * datetime.timedelta(
+                    hours=int(match.group(2)),
+                    minutes=int(match.group(3)),
+                )
+                normalized = normalized[: match.start()]
+        pattern = "%Y-%m-%dT%H:%M:%S.%f" if "." in normalized else "%Y-%m-%dT%H:%M:%S"
+        parsed = datetime.datetime.strptime(normalized, pattern) - offset
+        elapsed = datetime.datetime.utcnow() - parsed
         return max(0.0, elapsed.total_seconds())
-    except (AttributeError, TypeError, ValueError):
+    except (AttributeError, TypeError, ValueError, OverflowError):
         return None
 
 
@@ -847,9 +858,9 @@ def expected_delivery_date(hour, grace_minutes=30):
 
 def delivery_is_fresh(actual, expected):
     try:
-        return datetime.date.fromisoformat(actual) >= datetime.date.fromisoformat(
-            expected
-        )
+        actual_date = datetime.datetime.strptime(actual, "%Y-%m-%d").date()
+        expected_date = datetime.datetime.strptime(expected, "%Y-%m-%d").date()
+        return actual_date >= expected_date
     except (TypeError, ValueError):
         return False
 

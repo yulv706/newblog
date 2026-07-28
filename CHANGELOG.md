@@ -7,6 +7,13 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-07-28
+
+### Fixed
+
+- Keeps the Hermes heartbeat and delivery-freshness monitor compatible with the
+  server's Python 3.6 runtime.
+
 ## [1.6.3] - 2026-07-28
 
 ### Fixed
@@ -224,7 +231,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added traceable application version, source revision, and build time metadata.
 - Added immutable version and revision Docker image tags.
 
-[Unreleased]: https://github.com/yulv706/newblog/compare/v1.6.3...HEAD
+[Unreleased]: https://github.com/yulv706/newblog/compare/v1.6.4...HEAD
+[1.6.4]: https://github.com/yulv706/newblog/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/yulv706/newblog/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/yulv706/newblog/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/yulv706/newblog/compare/v1.6.0...v1.6.1

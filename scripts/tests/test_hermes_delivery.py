@@ -68,6 +68,13 @@ class HermesDeliveryTests(unittest.TestCase):
 
 
 class ProactivePushHealthTests(unittest.TestCase):
+    def test_parses_timezone_heartbeat_on_python_36_compatible_path(self):
+        heartbeat = datetime.datetime.utcnow().isoformat() + "+00:00"
+        age = server_health_monitor.iso_age_seconds(heartbeat)
+
+        self.assertIsNotNone(age)
+        self.assertLess(age, 5)
+
     @mock.patch.object(
         server_health_monitor,
         "local_now",
