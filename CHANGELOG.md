@@ -7,6 +7,17 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-07-28
+
+### Fixed
+
+- Retries Hermes Weixin deliveries after the iLink cooldown window instead of
+  dropping scheduled reading, evening, registration, or health-alert messages
+  on the first transient rate-limit response.
+- Marks proactive messaging unhealthy when the latest systemd job failed or an
+  expected daily delivery is stale, and validates the live Hermes gateway
+  heartbeat instead of trusting an old connected-state snapshot.
+
 ## [1.6.2] - 2026-07-26
 
 ### Fixed
@@ -213,7 +224,11 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added traceable application version, source revision, and build time metadata.
 - Added immutable version and revision Docker image tags.
 
-[Unreleased]: https://github.com/yulv706/newblog/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/yulv706/newblog/compare/v1.6.3...HEAD
+[1.6.3]: https://github.com/yulv706/newblog/compare/v1.6.2...v1.6.3
+[1.6.2]: https://github.com/yulv706/newblog/compare/v1.6.1...v1.6.2
+[1.6.1]: https://github.com/yulv706/newblog/compare/v1.6.0...v1.6.1
+[1.6.0]: https://github.com/yulv706/newblog/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/yulv706/newblog/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/yulv706/newblog/compare/v1.3.3...v1.4.0
 [1.3.3]: https://github.com/yulv706/newblog/compare/v1.3.2...v1.3.3

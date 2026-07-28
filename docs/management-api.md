@@ -26,30 +26,30 @@ Store it in both the blog and Hermes environment files. Never commit it.
 
 ## Endpoints
 
-| Method | Path | Capability |
-| --- | --- | --- |
-| `GET` | `/status` | Version, content counts, capabilities, safeguards |
-| `GET/POST` | `/posts` | List or create posts |
-| `GET/PATCH/DELETE` | `/posts/:id` | Read, update, or delete one post |
-| `GET/POST` | `/daily` | List or create daily entries |
-| `GET/PATCH/DELETE` | `/daily/:id` | Read, update, or delete one daily entry |
-| `POST` | `/media` | Upload a `daily` or `post` image with multipart `file` and `purpose` fields |
-| `GET/PUT` | `/about` | Read or replace About page Markdown |
-| `GET` | `/taxonomy` | List categories and tags with usage counts |
-| `POST` | `/categories` | Create a category |
-| `DELETE` | `/categories/:id` | Delete a category and detach posts |
-| `DELETE` | `/tags/:id` | Delete an unused tag |
-| `GET` | `/comments?status=pending` | List comments for moderation |
-| `PATCH/DELETE` | `/comments/:id` | Moderate or delete a comment |
-| `GET` | `/users` | List registered users with role, status, and comment count |
-| `GET/PATCH` | `/users/:id` | Read or update display name, role, or account status |
-| `GET` | `/books` | List synchronized and archived books |
-| `GET/PATCH` | `/books/:sourceId` | Read or edit shelf metadata |
-| `POST` | `/books/:sourceId/notes` | Add a manual highlight or review |
-| `DELETE` | `/books/:sourceId/notes/:noteId` | Delete a book note |
-| `POST` | `/reading/sync` | Run the fixed WeRead synchronization job |
-| `GET/POST` | `/backups` | List or create consistent SQLite snapshots |
-| `GET` | `/audit` | Review recent management mutations |
+| Method             | Path                             | Capability                                                                  |
+| ------------------ | -------------------------------- | --------------------------------------------------------------------------- |
+| `GET`              | `/status`                        | Version, content counts, capabilities, safeguards                           |
+| `GET/POST`         | `/posts`                         | List or create posts                                                        |
+| `GET/PATCH/DELETE` | `/posts/:id`                     | Read, update, or delete one post                                            |
+| `GET/POST`         | `/daily`                         | List or create daily entries                                                |
+| `GET/PATCH/DELETE` | `/daily/:id`                     | Read, update, or delete one daily entry                                     |
+| `POST`             | `/media`                         | Upload a `daily` or `post` image with multipart `file` and `purpose` fields |
+| `GET/PUT`          | `/about`                         | Read or replace About page Markdown                                         |
+| `GET`              | `/taxonomy`                      | List categories and tags with usage counts                                  |
+| `POST`             | `/categories`                    | Create a category                                                           |
+| `DELETE`           | `/categories/:id`                | Delete a category and detach posts                                          |
+| `DELETE`           | `/tags/:id`                      | Delete an unused tag                                                        |
+| `GET`              | `/comments?status=pending`       | List comments for moderation                                                |
+| `PATCH/DELETE`     | `/comments/:id`                  | Moderate or delete a comment                                                |
+| `GET`              | `/users`                         | List registered users with role, status, and comment count                  |
+| `GET/PATCH`        | `/users/:id`                     | Read or update display name, role, or account status                        |
+| `GET`              | `/books`                         | List synchronized and archived books                                        |
+| `GET/PATCH`        | `/books/:sourceId`               | Read or edit shelf metadata                                                 |
+| `POST`             | `/books/:sourceId/notes`         | Add a manual highlight or review                                            |
+| `DELETE`           | `/books/:sourceId/notes/:noteId` | Delete a book note                                                          |
+| `POST`             | `/reading/sync`                  | Run the fixed WeRead synchronization job                                    |
+| `GET/POST`         | `/backups`                       | List or create consistent SQLite snapshots                                  |
+| `GET`              | `/audit`                         | Review recent management mutations                                          |
 
 List endpoints accept bounded `page` and `limit` query parameters. Post and daily lists can filter by `status`. User lists can filter by `status`, `role`, and `query`. Book lists can filter by `status`, `visibility`, and `includeArchived`.
 
@@ -104,6 +104,8 @@ HERMES_WEIXIN_TARGET=weixin:<configured-dm-target>
 NOTIFIER_POLL_SECONDS=5
 NOTIFIER_CLAIM_TIMEOUT_SECONDS=300
 NOTIFIER_COMMAND_TIMEOUT_SECONDS=45
+HERMES_SEND_MAX_ATTEMPTS=4
+HERMES_SEND_RETRY_SECONDS=35
 ```
 
 The dispatcher needs the host Docker CLI only to run the fixed `hermes send`
@@ -140,9 +142,15 @@ READING_BRIEFING_SYNC_COMMAND=/root/workspace/newblog/deploy/sync-weread.sh
 READING_BRIEFING_SYNC_TIMEOUT_SECONDS=1800
 READING_BRIEFING_MODEL_TIMEOUT_SECONDS=240
 READING_BRIEFING_SEND_TIMEOUT_SECONDS=60
+HERMES_SEND_MAX_ATTEMPTS=4
+HERMES_SEND_RETRY_SECONDS=35
 ```
 
 The 18:00 report represents changes since the previous successful 18:00
 snapshot, rather than claiming calendar-day precision that the upstream API
 does not expose. Raw WeRead `readingTime` is used as a cumulative fallback when
 `recordReadingTime` is zero.
+
+All direct Weixin deliveries wait through Hermes/iLink cooldown responses and
+retry a bounded number of times. The same retry policy is used by registration
+notifications and host health alerts.

@@ -20,6 +20,8 @@ import time
 import urllib.error
 import urllib.request
 
+from hermes_delivery import send_hermes_message
+
 
 STATUS_RANK = {
     "healthy": 0,
@@ -56,6 +58,21 @@ def iso_age_hours(value):
             0.0,
             (datetime.datetime.utcnow() - parsed).total_seconds() / 3600.0,
         )
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def iso_age_seconds(value):
+    if not value:
+        return None
+    try:
+        normalized = value.replace("Z", "+00:00")
+        parsed = datetime.datetime.fromisoformat(normalized)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        elapsed = now - parsed.astimezone(datetime.timezone.utc)
+        return max(0.0, elapsed.total_seconds())
     except (AttributeError, TypeError, ValueError):
         return None
 
@@ -173,12 +190,19 @@ class MonitorConfig(object):
         self.hermes_env_path = "/opt/hermes/data/.env"
         self.hermes_config_path = "/opt/hermes/data/config.yaml"
         self.gateway_state_path = "/opt/hermes/data/gateway_state.json"
+        self.gateway_heartbeat_path = "/opt/hermes/data/state/gateway.heartbeat"
         self.briefing_delivery_path = (
             "/var/lib/newblog-reading-briefing/delivery.json"
         )
         self.alert_state_path = os.path.join(self.state_dir, "state.json")
         self.smtp_cache_path = os.path.join(self.state_dir, "smtp-cache.json")
         self.lock_path = os.path.join(self.state_dir, "monitor.lock")
+        self.send_attempts = max(
+            1, int(os.environ.get("HERMES_SEND_MAX_ATTEMPTS", "4"))
+        )
+        self.send_retry_seconds = max(
+            1, int(os.environ.get("HERMES_SEND_RETRY_SECONDS", "35"))
+        )
 
         if not self.weixin_target.startswith("weixin:"):
             raise RuntimeError("HERMES_WEIXIN_TARGET must be configured")
@@ -726,9 +750,19 @@ def check_hermes(config):
     weixin_state = (
         ((gateway.get("platforms") or {}).get("weixin") or {}).get("state")
     )
+    heartbeat = read_json(config.gateway_heartbeat_path, {})
+    heartbeat_age_seconds = iso_age_seconds(heartbeat.get("updated_at"))
+    heartbeat_fresh = (
+        heartbeat_age_seconds is not None and heartbeat_age_seconds <= 180
+    )
     api_ok, api_summary, api_metrics = hermes_api(config)
 
-    if container_status == "critical" or not gateway_running or weixin_state != "connected":
+    if (
+        container_status == "critical"
+        or not gateway_running
+        or weixin_state != "connected"
+        or not heartbeat_fresh
+    ):
         status = "critical"
     elif not api_ok:
         status = "warning"
@@ -741,6 +775,13 @@ def check_hermes(config):
         summary = "Hermes 网关未运行"
     elif weixin_state != "connected":
         summary = "微信通道状态为 {}".format(weixin_state or "unknown")
+    elif not heartbeat_fresh:
+        if heartbeat_age_seconds is None:
+            summary = "Hermes 网关心跳缺失或时间无效"
+        else:
+            summary = "Hermes 网关心跳已中断 {:.0f} 秒".format(
+                heartbeat_age_seconds
+            )
     else:
         summary = "微信通道已连接；{}".format(api_summary)
 
@@ -749,6 +790,12 @@ def check_hermes(config):
         {
             "gatewayRunning": gateway_running,
             "weixinState": weixin_state,
+            "heartbeatFresh": heartbeat_fresh,
+            "heartbeatAgeSeconds": (
+                int(round(heartbeat_age_seconds))
+                if heartbeat_age_seconds is not None
+                else None
+            ),
         }
     )
     if api_metrics:
@@ -760,6 +807,62 @@ def check_hermes(config):
         "Hermes 与微信",
         summary,
         metrics=metrics,
+    )
+
+
+def systemd_unit_state(unit):
+    try:
+        output = run(
+            [
+                "systemctl",
+                "show",
+                unit,
+                "--property=ActiveState",
+                "--property=SubState",
+                "--property=Result",
+                "--property=ExecMainStatus",
+                "--property=ExecMainStartTimestamp",
+                "--property=ExecMainExitTimestamp",
+                "--no-pager",
+            ],
+            timeout=10,
+        )
+        values = {}
+        for line in output.splitlines():
+            if "=" in line:
+                key, value = line.split("=", 1)
+                values[key] = value
+        return values
+    except Exception as exc:
+        return {"error": compact(exc)}
+
+
+def expected_delivery_date(hour, grace_minutes=30):
+    now = local_now()
+    cutoff = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+    cutoff += datetime.timedelta(minutes=grace_minutes)
+    due = now.date() if now >= cutoff else now.date() - datetime.timedelta(days=1)
+    return due.isoformat()
+
+
+def delivery_is_fresh(actual, expected):
+    try:
+        return datetime.date.fromisoformat(actual) >= datetime.date.fromisoformat(
+            expected
+        )
+    except (TypeError, ValueError):
+        return False
+
+
+def unit_failed(state):
+    try:
+        exit_status = int(state.get("ExecMainStatus") or 0)
+    except (TypeError, ValueError):
+        exit_status = 1
+    return (
+        state.get("ActiveState") == "failed"
+        or state.get("Result") not in ("", "success")
+        or exit_status != 0
     )
 
 
@@ -786,18 +889,44 @@ def check_proactive_push(config):
     delivery = read_json(config.briefing_delivery_path, {})
     report_date = delivery.get("readingReportDate")
     evening_date = delivery.get("eveningMessageDate")
+    expected_report_date = expected_delivery_date(18)
+    expected_evening_date = expected_delivery_date(23)
+    report_service = systemd_unit_state("newblog-weread-sync.service")
+    evening_service = systemd_unit_state("newblog-evening-reading.service")
+    problems = []
     if not report_timer or not evening_timer:
+        problems.append("一个或多个主动推送定时器未运行")
+    if unit_failed(report_service):
+        problems.append(
+            "最近一次 18:00 阅读汇报执行失败（{}）".format(
+                report_service.get("Result") or "unknown"
+            )
+        )
+    if unit_failed(evening_service):
+        problems.append(
+            "最近一次 23:00 晚间消息执行失败（{}）".format(
+                evening_service.get("Result") or "unknown"
+            )
+        )
+    if not delivery_is_fresh(report_date, expected_report_date):
+        problems.append(
+            "阅读汇报未送达应有日期 {}（最近 {}）".format(
+                expected_report_date, report_date or "无"
+            )
+        )
+    if not delivery_is_fresh(evening_date, expected_evening_date):
+        problems.append(
+            "晚间消息未送达应有日期 {}（最近 {}）".format(
+                expected_evening_date, evening_date or "无"
+            )
+        )
+
+    if problems:
         status = "critical"
-        summary = "一个或多个主动推送定时器未运行"
-    elif not report_date:
-        status = "unknown"
-        summary = "定时器运行中，等待首次阅读汇报"
-    elif not evening_date:
-        status = "unknown"
-        summary = "18:00 汇报已记录，等待首次 23:00 推送"
+        summary = "；".join(problems)
     else:
         status = "healthy"
-        summary = "18:00 与 23:00 主动推送定时器均运行中"
+        summary = "18:00 与 23:00 主动推送均已按期送达"
     return make_check(
         "proactive_push",
         "automation",
@@ -809,6 +938,12 @@ def check_proactive_push(config):
             "eveningTimerActive": evening_timer,
             "lastReadingReportDate": report_date,
             "lastEveningMessageDate": evening_date,
+            "expectedReadingReportDate": expected_report_date,
+            "expectedEveningMessageDate": expected_evening_date,
+            "readingServiceResult": report_service.get("Result"),
+            "readingServiceExitStatus": report_service.get("ExecMainStatus"),
+            "eveningServiceResult": evening_service.get("Result"),
+            "eveningServiceExitStatus": evening_service.get("ExecMainStatus"),
         },
     )
 
@@ -1067,33 +1202,15 @@ def overall_status(checks):
 
 
 def send_alert(config, message):
-    command = [
-        "docker",
-        "exec",
-        "-i",
-        "-u",
-        "hermes",
+    return send_hermes_message(
         config.hermes_container,
-        "/opt/hermes/.venv/bin/hermes",
-        "send",
-        "--to",
         config.weixin_target,
-        "--file",
-        "-",
-        "--quiet",
-    ]
-    completed = subprocess.run(
-        command,
-        input=(message.strip() + "\n").encode("utf-8"),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        message,
         timeout=60,
+        max_attempts=config.send_attempts,
+        min_retry_seconds=config.send_retry_seconds,
+        logger=log,
     )
-    if completed.returncode != 0:
-        detail = completed.stderr.decode("utf-8", "replace").strip()
-        if not detail:
-            detail = completed.stdout.decode("utf-8", "replace").strip()
-        raise RuntimeError(compact(detail or "Hermes send failed"))
 
 
 def alert_message(problems, recoveries):

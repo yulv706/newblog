@@ -122,6 +122,9 @@ describe("server health monitor deployment", () => {
 
   it("keeps alerts transition-based and checks critical integrations", () => {
     const script = read("scripts/server-health-monitor.py");
+    const delivery = read("scripts/hermes_delivery.py");
+    const readingBriefing = read("scripts/reading-briefing.py");
+    const registrationNotifier = read("scripts/dispatch-registration-notifications.py");
 
     expect(script).toContain("check_registration_notifications");
     expect(script).toContain("smtp_check");
@@ -138,6 +141,16 @@ describe("server health monitor deployment", () => {
     expect(script).not.toContain('config.site_url + "/rss.xml"');
     expect(script).toContain("should_repeat");
     expect(script).toContain("recoveries");
+    expect(script).toContain("gateway_heartbeat_path");
+    expect(script).toContain('systemd_unit_state("newblog-weread-sync.service")');
+    expect(script).toContain('systemd_unit_state("newblog-evening-reading.service")');
+    expect(script).toContain("expected_delivery_date");
+    expect(script).toContain("delivery_is_fresh");
+    expect(delivery).toContain("cooldown active");
+    expect(delivery).toContain("retrying in {}s");
+    expect(delivery).toContain("time.sleep(delay)");
+    expect(readingBriefing).toContain("from hermes_delivery import send_hermes_message");
+    expect(registrationNotifier).toContain("from hermes_delivery import send_hermes_message");
   });
 
   it("shows the Steam archive as a first-class monitored integration", () => {

@@ -15,6 +15,8 @@ import subprocess
 import sys
 import tempfile
 
+from hermes_delivery import send_hermes_message
+
 
 def utc_now():
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
@@ -86,6 +88,12 @@ class BriefingConfig(object):
         )
         self.send_timeout = max(
             10, int(os.environ.get("READING_BRIEFING_SEND_TIMEOUT_SECONDS", "60"))
+        )
+        self.send_attempts = max(
+            1, int(os.environ.get("HERMES_SEND_MAX_ATTEMPTS", "4"))
+        )
+        self.send_retry_seconds = max(
+            1, int(os.environ.get("HERMES_SEND_RETRY_SECONDS", "35"))
         )
 
         if not self.db_path:
@@ -347,33 +355,15 @@ def run_hermes(config, prompt):
 
 
 def send_message(config, message):
-    command = [
-        "docker",
-        "exec",
-        "-i",
-        "-u",
-        "hermes",
+    return send_hermes_message(
         config.container,
-        "/opt/hermes/.venv/bin/hermes",
-        "send",
-        "--to",
         config.target,
-        "--file",
-        "-",
-        "--quiet",
-    ]
-    completed = subprocess.run(
-        command,
-        input=(message.strip() + "\n").encode("utf-8"),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        message,
         timeout=config.send_timeout,
+        max_attempts=config.send_attempts,
+        min_retry_seconds=config.send_retry_seconds,
+        logger=log,
     )
-    if completed.returncode != 0:
-        detail = completed.stderr.decode("utf-8", "replace").strip()
-        if not detail:
-            detail = completed.stdout.decode("utf-8", "replace").strip()
-        raise RuntimeError(compact(detail or "Hermes send failed", 500))
 
 
 def reading_prompt(activity):

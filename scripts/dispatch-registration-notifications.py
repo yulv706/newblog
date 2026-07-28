@@ -7,9 +7,10 @@ import datetime
 import os
 import signal
 import sqlite3
-import subprocess
 import sys
 import time
+
+from hermes_delivery import send_hermes_message
 
 
 RUNNING = True
@@ -46,6 +47,12 @@ class RegistrationNotifier(object):
         )
         self.command_timeout = max(
             10, int(os.environ.get("NOTIFIER_COMMAND_TIMEOUT_SECONDS", "45"))
+        )
+        self.send_attempts = max(
+            1, int(os.environ.get("HERMES_SEND_MAX_ATTEMPTS", "4"))
+        )
+        self.send_retry_seconds = max(
+            1, int(os.environ.get("HERMES_SEND_RETRY_SECONDS", "35"))
         )
 
         if not self.db_path:
@@ -166,33 +173,16 @@ class RegistrationNotifier(object):
             "用户 ID：{user_id}\n\n"
             "你可以回复我查询用户列表，或在明确确认后调整该用户的角色与状态。"
         ).format(**row)
-        command = [
-            "docker",
-            "exec",
-            "-i",
+        return send_hermes_message(
             self.container,
-            "hermes",
-            "send",
-            "--to",
             self.target,
-            "--subject",
-            "博客新用户注册",
-            "--file",
-            "-",
-            "--quiet",
-        ]
-        completed = subprocess.run(
-            command,
-            input=message.encode("utf-8"),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            message,
+            subject="博客新用户注册",
             timeout=self.command_timeout,
+            max_attempts=self.send_attempts,
+            min_retry_seconds=self.send_retry_seconds,
+            logger=log,
         )
-        if completed.returncode != 0:
-            detail = completed.stderr.decode("utf-8", "replace").strip()
-            if not detail:
-                detail = completed.stdout.decode("utf-8", "replace").strip()
-            raise RuntimeError(detail or "Hermes send command failed")
 
     def run(self):
         connection = self.connect()
