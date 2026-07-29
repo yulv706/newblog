@@ -71,8 +71,9 @@ class HermesDeliveryTests(unittest.TestCase):
 
         self.assertEqual(run.call_count, 1)
         sleep.assert_not_called()
-        self.assertIn("--json", run.call_args.args[0])
-        self.assertNotIn("--quiet", run.call_args.args[0])
+        command = run.call_args[0][0]
+        self.assertIn("--json", command)
+        self.assertNotIn("--quiet", command)
         state = json.loads(
             pathlib.Path(self.directory.name, "state.json").read_text("utf-8")
         )
