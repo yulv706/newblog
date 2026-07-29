@@ -182,6 +182,7 @@ class RegistrationNotifier(object):
             max_attempts=self.send_attempts,
             min_retry_seconds=self.send_retry_seconds,
             logger=log,
+            idempotency_key="registration:{}".format(row["id"]),
         )
 
     def run(self):

@@ -209,6 +209,14 @@ class MonitorConfig(object):
         self.briefing_delivery_path = (
             "/var/lib/newblog-reading-briefing/delivery.json"
         )
+        hermes_delivery_state_dir = os.environ.get(
+            "HERMES_DELIVERY_STATE_DIR",
+            "/var/lib/newblog-hermes-delivery",
+        ).strip()
+        self.hermes_delivery_state_path = os.path.join(
+            hermes_delivery_state_dir,
+            "state.json",
+        )
         self.alert_state_path = os.path.join(self.state_dir, "state.json")
         self.smtp_cache_path = os.path.join(self.state_dir, "smtp-cache.json")
         self.lock_path = os.path.join(self.state_dir, "monitor.lock")
@@ -934,6 +942,12 @@ def check_proactive_push(config):
     expected_evening_date = expected_delivery_date(23)
     report_service = systemd_unit_state("newblog-weread-sync.service")
     evening_service = systemd_unit_state("newblog-evening-reading.service")
+    delivery_gate = read_json(config.hermes_delivery_state_path, {})
+    delivery_gate_next_epoch = float(delivery_gate.get("nextAllowedEpoch") or 0)
+    delivery_gate_cooling_down = delivery_gate_next_epoch > time.time()
+    delivery_gate_wait_seconds = max(
+        0, int(delivery_gate_next_epoch - time.time())
+    )
     problems = []
     if not report_timer or not evening_timer:
         problems.append("一个或多个主动推送定时器未运行")
@@ -961,9 +975,21 @@ def check_proactive_push(config):
                 expected_evening_date, evening_date or "无"
             )
         )
+    if delivery_gate_cooling_down and delivery_gate.get("rateLimitStrikes"):
+        problems.append(
+            "微信发送正在保护性退避，预计 {} 秒后恢复尝试".format(
+                delivery_gate_wait_seconds
+            )
+        )
 
     if problems:
-        status = "critical"
+        delivery_missing = (
+            not delivery_is_fresh(report_date, expected_report_date)
+            or not delivery_is_fresh(evening_date, expected_evening_date)
+            or unit_failed(report_service)
+            or unit_failed(evening_service)
+        )
+        status = "critical" if delivery_missing else "warning"
         summary = "；".join(problems)
     else:
         status = "healthy"
@@ -985,6 +1011,13 @@ def check_proactive_push(config):
             "readingServiceExitStatus": report_service.get("ExecMainStatus"),
             "eveningServiceResult": evening_service.get("Result"),
             "eveningServiceExitStatus": evening_service.get("ExecMainStatus"),
+            "deliveryGateCoolingDown": delivery_gate_cooling_down,
+            "deliveryGateWaitSeconds": delivery_gate_wait_seconds,
+            "deliveryGateLastSuccessAt": delivery_gate.get("lastSuccessAt"),
+            "deliveryGateLastRateLimitAt": delivery_gate.get("lastRateLimitAt"),
+            "deliveryGateRateLimitStrikes": delivery_gate.get(
+                "rateLimitStrikes", 0
+            ),
         },
     )
 
@@ -1364,7 +1397,7 @@ def process_alerts(config, checks):
         0o600,
     )
     if delivery_error:
-        raise RuntimeError(delivery_error)
+        log("health alert delivery deferred: {}".format(delivery_error))
 
 
 def main():

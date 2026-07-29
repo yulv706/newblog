@@ -151,12 +151,22 @@ describe("server health monitor deployment", () => {
     expect(script).toContain("expected_delivery_date");
     expect(script).toContain("delivery_is_fresh");
     expect(delivery).toContain("cooldown active");
+    expect(delivery).toContain("HERMES_MIN_SEND_INTERVAL_SECONDS");
+    expect(delivery).toContain("HERMES_RATE_LIMIT_BASE_SECONDS");
+    expect(delivery).toContain("delivery.lock");
+    expect(delivery).toContain("recentDeliveries");
+    expect(delivery).toContain("Do not retry a Weixin account limit");
     expect(delivery).toContain('"--json"');
     expect(delivery).not.toContain('"--quiet"');
     expect(delivery).toContain("retrying in {}s");
     expect(delivery).toContain("time.sleep(delay)");
     expect(readingBriefing).toContain("from hermes_delivery import send_hermes_message");
+    expect(readingBriefing).toContain('"reading-report:{}".format(day)');
+    expect(readingBriefing).toContain('"evening-reading:{}".format(day)');
     expect(registrationNotifier).toContain("from hermes_delivery import send_hermes_message");
+    expect(registrationNotifier).toContain(
+      'idempotency_key="registration:{}".format(row["id"])',
+    );
   });
 
   it("shows the Steam archive as a first-class monitored integration", () => {

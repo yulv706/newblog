@@ -7,6 +7,21 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.10] - 2026-07-29
+
+### Changed
+
+- Serializes every Hermes Weixin delivery across reading reports, evening
+  recommendations, registration notices, and health alerts with a shared
+  account-level delivery gate.
+- Spaces successful messages by at least 45 seconds and persists an exponential
+  account cooldown after iLink rate-limit responses so independent services
+  cannot create retry bursts.
+- Adds idempotency keys for scheduled and registration messages, preventing
+  duplicate delivery after process restarts or database acknowledgement races.
+- Exposes protective Hermes delivery cooldowns in system health while allowing
+  health snapshots to complete even when an alert itself must be deferred.
+
 ## [1.6.8] - 2026-07-29
 
 ### Fixed

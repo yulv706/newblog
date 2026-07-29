@@ -354,7 +354,7 @@ def run_hermes(config, prompt):
     return compact("\n".join(lines), 1400)
 
 
-def send_message(config, message):
+def send_message(config, message, idempotency_key=None):
     return send_hermes_message(
         config.container,
         config.target,
@@ -363,6 +363,7 @@ def send_message(config, message):
         max_attempts=config.send_attempts,
         min_retry_seconds=config.send_retry_seconds,
         logger=log,
+        idempotency_key=idempotency_key,
     )
 
 
@@ -517,6 +518,7 @@ def handle_sync_report(config, force=False, no_send=False):
                         config,
                         "今天的书架同步没有顺利完成，所以暂时不能给你一份准确的阅读小结。"
                         "我已经把错误记下来了，下次会继续重试。",
+                        idempotency_key="weread-sync-failure:{}".format(day),
                     )
                 except Exception as send_error:
                     log("sync failure notification failed: {}".format(send_error))
@@ -535,7 +537,13 @@ def handle_sync_report(config, force=False, no_send=False):
     if no_send:
         print(message)
         return
-    send_message(config, message)
+    send_message(
+        config,
+        message,
+        idempotency_key=(
+            None if force else "reading-report:{}".format(day)
+        ),
+    )
     mark_delivered(config, "readingReportDate", day)
     log("reading report delivered for {}".format(day))
 
@@ -567,7 +575,13 @@ def handle_evening(config, force=False, no_send=False):
     if no_send:
         print(message)
         return
-    send_message(config, message)
+    send_message(
+        config,
+        message,
+        idempotency_key=(
+            None if force else "evening-reading:{}".format(day)
+        ),
+    )
     mark_delivered(config, "eveningMessageDate", day)
     log("evening message delivered for {}".format(day))
 

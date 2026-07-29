@@ -14,7 +14,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 if sys.platform == "win32":
     sys.modules["fcntl"] = mock.MagicMock()
 
-from hermes_delivery import send_hermes_message
+from hermes_delivery import HermesDeliveryDeferred, send_hermes_message
 
 HEALTH_SPEC = importlib.util.spec_from_file_location(
     "server_health_monitor",
@@ -29,33 +29,68 @@ def completed(returncode, stderr=b"", stdout=b""):
 
 
 class HermesDeliveryTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.environment = mock.patch.dict(
+            "os.environ",
+            {
+                "HERMES_DELIVERY_STATE_DIR": self.directory.name,
+                "HERMES_MIN_SEND_INTERVAL_SECONDS": "5",
+                "HERMES_RATE_LIMIT_BASE_SECONDS": "90",
+                "HERMES_RATE_LIMIT_MAX_SECONDS": "900",
+                "HERMES_DELIVERY_LOCK_TIMEOUT_SECONDS": "10",
+                "HERMES_DEDUPE_SECONDS": "900",
+                "HERMES_IDEMPOTENCY_SECONDS": "604800",
+            },
+        )
+        self.environment.start()
+
+    def tearDown(self):
+        self.environment.stop()
+        self.directory.cleanup()
+
     @mock.patch("hermes_delivery.time.sleep")
     @mock.patch("hermes_delivery.subprocess.run")
-    def test_retries_rate_limit_after_reported_cooldown(self, run, sleep):
-        run.side_effect = [
-            completed(
-                1,
-                stdout=(
-                    b'{"error":"iLink sendmessage rate limited; '
-                    b'cooldown active for 30.0s"}'
-                ),
+    def test_rate_limit_stops_retries_and_opens_shared_cooldown(self, run, sleep):
+        run.return_value = completed(
+            1,
+            stdout=(
+                b'{"error":"iLink sendmessage rate limited; '
+                b'cooldown active for 30.0s"}'
             ),
-            completed(0),
-        ]
-
-        attempts = send_hermes_message(
-            "hermes-agent",
-            "weixin:test",
-            "hello",
-            max_attempts=3,
-            min_retry_seconds=5,
         )
 
-        self.assertEqual(attempts, 2)
-        self.assertEqual(run.call_count, 2)
-        sleep.assert_called_once_with(32)
+        with self.assertRaisesRegex(HermesDeliveryDeferred, "shared cooldown"):
+            send_hermes_message(
+                "hermes-agent",
+                "weixin:test",
+                "hello",
+                max_attempts=3,
+                min_retry_seconds=5,
+            )
+
+        self.assertEqual(run.call_count, 1)
+        sleep.assert_not_called()
         self.assertIn("--json", run.call_args.args[0])
         self.assertNotIn("--quiet", run.call_args.args[0])
+        state = json.loads(
+            pathlib.Path(self.directory.name, "state.json").read_text("utf-8")
+        )
+        self.assertEqual(state["rateLimitStrikes"], 1)
+        self.assertGreaterEqual(
+            state["nextAllowedEpoch"] - state["lastAttemptEpoch"],
+            89,
+        )
+
+        run.reset_mock()
+        with self.assertRaisesRegex(HermesDeliveryDeferred, "cooldown active"):
+            send_hermes_message(
+                "hermes-agent",
+                "weixin:test",
+                "another message",
+                max_attempts=3,
+            )
+        run.assert_not_called()
 
     @mock.patch("hermes_delivery.time.sleep")
     @mock.patch("hermes_delivery.subprocess.run")
@@ -106,6 +141,40 @@ class HermesDeliveryTests(unittest.TestCase):
                 max_attempts=4,
             )
 
+        self.assertEqual(run.call_count, 1)
+        sleep.assert_not_called()
+
+    @mock.patch("hermes_delivery.time.sleep")
+    @mock.patch("hermes_delivery.subprocess.run")
+    def test_serial_gate_spaces_successive_messages(self, run, sleep):
+        run.return_value = completed(0)
+
+        send_hermes_message("hermes-agent", "weixin:test", "first")
+        send_hermes_message("hermes-agent", "weixin:test", "second")
+
+        self.assertEqual(run.call_count, 2)
+        sleep.assert_called_once_with(5)
+
+    @mock.patch("hermes_delivery.time.sleep")
+    @mock.patch("hermes_delivery.subprocess.run")
+    def test_idempotency_key_prevents_duplicate_delivery(self, run, sleep):
+        run.return_value = completed(0)
+
+        first = send_hermes_message(
+            "hermes-agent",
+            "weixin:test",
+            "registration",
+            idempotency_key="registration:42",
+        )
+        duplicate = send_hermes_message(
+            "hermes-agent",
+            "weixin:test",
+            "registration",
+            idempotency_key="registration:42",
+        )
+
+        self.assertEqual(first, 1)
+        self.assertEqual(duplicate, 0)
         self.assertEqual(run.call_count, 1)
         sleep.assert_not_called()
 
@@ -185,8 +254,7 @@ class ProactivePushHealthTests(unittest.TestCase):
                 repeat_alert_seconds=21600,
                 alert_failure_retry_seconds=1800,
             )
-            with self.assertRaisesRegex(RuntimeError, "rate limited"):
-                server_health_monitor.process_alerts(config, [check])
+            server_health_monitor.process_alerts(config, [check])
 
             state = json.loads(pathlib.Path(config.alert_state_path).read_text("utf-8"))
             stored = state["checks"]["proactive_push"]
