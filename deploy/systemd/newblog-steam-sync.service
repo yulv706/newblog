@@ -1,5 +1,5 @@
 [Unit]
-Description=Synchronize WeRead and send the daily reading briefing
+Description=Synchronize the newblog Steam game archive
 Wants=docker.service network-online.target
 After=docker.service network-online.target
 StartLimitIntervalSec=45min
@@ -9,9 +9,8 @@ StartLimitBurst=4
 Type=oneshot
 User=root
 WorkingDirectory=/root/workspace/newblog
-EnvironmentFile=/etc/newblog-reading-briefing.env
-ExecStart=/usr/bin/python3 /root/workspace/newblog/scripts/reading-briefing.py sync-report
-TimeoutStartSec=35min
+ExecStart=/root/workspace/newblog/deploy/sync-steam.sh
+TimeoutStartSec=6min
 Restart=on-failure
 RestartSec=10min
 Nice=10

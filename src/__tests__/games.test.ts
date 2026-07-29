@@ -57,6 +57,18 @@ describe("Steam game archive", () => {
       path.join(process.cwd(), "deploy/sync-weread.sh"),
       "utf8"
     );
+    const scheduledSteamSyncSource = fs.readFileSync(
+      path.join(process.cwd(), "deploy/sync-steam.sh"),
+      "utf8"
+    );
+    const steamTimerSource = fs.readFileSync(
+      path.join(process.cwd(), "deploy/systemd/newblog-steam-sync.timer"),
+      "utf8"
+    );
+    const steamServiceSource = fs.readFileSync(
+      path.join(process.cwd(), "deploy/systemd/newblog-steam-sync.service"),
+      "utf8"
+    );
 
     expect(syncSource).toContain("IPlayerService/GetOwnedGames");
     expect(syncSource).toContain("IPlayerService/GetRecentlyPlayedGames");
@@ -68,9 +80,12 @@ describe("Steam game archive", () => {
     expect(syncSource).not.toContain("review = excluded");
     expect(syncSource).not.toContain("127.0.0.1:7891");
     expect(scheduledSyncSource).toContain("npm run sync:weread");
-    expect(scheduledSyncSource).toContain("npm run sync:steam");
-    expect(scheduledSyncSource).toContain("STEAM_SYNC_TIMEOUT_SECONDS");
-    expect(scheduledSyncSource).toContain("daily reading briefing will continue");
+    expect(scheduledSyncSource).not.toContain("npm run sync:steam");
+    expect(scheduledSteamSyncSource).toContain("npm run sync:steam");
+    expect(scheduledSteamSyncSource).toContain("STEAM_SYNC_TIMEOUT_SECONDS");
+    expect(steamTimerSource).toContain("OnCalendar=*-*-* 18:05:00 Asia/Shanghai");
+    expect(steamServiceSource).toContain("Restart=on-failure");
+    expect(steamServiceSource).toContain("RestartSec=10min");
   });
 
   it("retries transient Steam failures and preserves the underlying network cause", async () => {

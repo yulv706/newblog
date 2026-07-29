@@ -18,6 +18,8 @@ describe("reading briefing deployment", () => {
     expect(timer).not.toContain("RandomizedDelaySec");
     expect(service).toContain("EnvironmentFile=/etc/newblog-reading-briefing.env");
     expect(service).toContain("reading-briefing.py sync-report");
+    expect(service).toContain("Restart=on-failure");
+    expect(service).toContain("RestartSec=10min");
   });
 
   it("schedules the nightly reflection at 23:00 Asia/Shanghai", () => {
@@ -27,6 +29,7 @@ describe("reading briefing deployment", () => {
     expect(timer).toContain("OnCalendar=*-*-* 23:00:00 Asia/Shanghai");
     expect(timer).toContain("Persistent=true");
     expect(service).toContain("reading-briefing.py evening");
+    expect(service).toContain("Restart=on-failure");
   });
 
   it("keeps model generation bounded and provides non-model fallbacks", () => {

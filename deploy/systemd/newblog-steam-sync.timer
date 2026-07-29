@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh the newblog Steam game archive after the daily bookshelf sync
+
+[Timer]
+OnCalendar=*-*-* 18:05:00 Asia/Shanghai
+Persistent=true
+AccuracySec=1s
+Unit=newblog-steam-sync.service
+
+[Install]
+WantedBy=timers.target

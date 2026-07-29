@@ -104,8 +104,8 @@ HERMES_WEIXIN_TARGET=weixin:<configured-dm-target>
 NOTIFIER_POLL_SECONDS=5
 NOTIFIER_CLAIM_TIMEOUT_SECONDS=300
 NOTIFIER_COMMAND_TIMEOUT_SECONDS=45
-HERMES_SEND_MAX_ATTEMPTS=4
-HERMES_SEND_RETRY_SECONDS=35
+HERMES_SEND_MAX_ATTEMPTS=2
+HERMES_SEND_RETRY_SECONDS=90
 ```
 
 The dispatcher needs the host Docker CLI only to run the fixed `hermes send`
@@ -129,6 +129,7 @@ manual restarts do not duplicate messages.
 Production uses these units:
 
 - `newblog-weread-sync.service` and `newblog-weread-sync.timer`
+- `newblog-steam-sync.service` and `newblog-steam-sync.timer`
 - `newblog-evening-reading.service` and `newblog-evening-reading.timer`
 
 Both services read the root-only `/etc/newblog-reading-briefing.env`:
@@ -142,8 +143,8 @@ READING_BRIEFING_SYNC_COMMAND=/root/workspace/newblog/deploy/sync-weread.sh
 READING_BRIEFING_SYNC_TIMEOUT_SECONDS=1800
 READING_BRIEFING_MODEL_TIMEOUT_SECONDS=240
 READING_BRIEFING_SEND_TIMEOUT_SECONDS=60
-HERMES_SEND_MAX_ATTEMPTS=4
-HERMES_SEND_RETRY_SECONDS=35
+HERMES_SEND_MAX_ATTEMPTS=2
+HERMES_SEND_RETRY_SECONDS=90
 ```
 
 The 18:00 report represents changes since the previous successful 18:00
@@ -151,6 +152,11 @@ snapshot, rather than claiming calendar-day precision that the upstream API
 does not expose. Raw WeRead `readingTime` is used as a cumulative fallback when
 `recordReadingTime` is zero.
 
-All direct Weixin deliveries wait through Hermes/iLink cooldown responses and
-retry a bounded number of times. The same retry policy is used by registration
-notifications and host health alerts.
+Steam refreshes independently at 18:05 and retries failed cross-border API
+requests without blocking the bookshelf or reading report. A failed refresh
+keeps the last successful game snapshot available.
+
+All direct Weixin deliveries retain Hermes' structured adapter errors and retry
+a bounded number of times. Host health alerts wait 30 minutes after a delivery
+failure before trying again, preventing a five-minute monitor loop from
+continuously extending an upstream Weixin rate limit.

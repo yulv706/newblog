@@ -15,6 +15,10 @@ TRANSIENT_MARKERS = (
     "temporarily unavailable",
     "server disconnected",
     "connection reset",
+    "connection refused",
+    "timed out",
+    "timeout",
+    "hermes send failed",
 )
 
 
@@ -67,23 +71,46 @@ def send_hermes_message(
     ]
     if subject:
         command.extend(["--subject", subject])
-    command.extend(["--file", "-", "--quiet"])
+    # --quiet suppresses the Weixin adapter's structured error response, which
+    # makes retryable rate limits look like permanent empty failures.
+    command.extend(["--file", "-", "--json"])
     payload = (message.strip() + "\n").encode("utf-8")
 
     for attempt in range(1, attempts + 1):
-        completed = subprocess.run(
-            command,
-            input=payload,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=timeout,
-        )
+        try:
+            completed = subprocess.run(
+                command,
+                input=payload,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired:
+            detail = "Hermes send timed out after {}s".format(timeout)
+            if attempt >= attempts:
+                raise RuntimeError(detail)
+            delay = retry_floor
+            if logger:
+                logger(
+                    "Hermes delivery attempt {}/{} timed out; retrying in {}s".format(
+                        attempt,
+                        attempts,
+                        delay,
+                    )
+                )
+            time.sleep(delay)
+            continue
+
         if completed.returncode == 0:
             return attempt
 
         stderr = completed.stderr.decode("utf-8", "replace").strip()
         stdout = completed.stdout.decode("utf-8", "replace").strip()
-        detail = _compact(stderr or stdout or "Hermes send failed")
+        detail = _compact(
+            stderr
+            or stdout
+            or "Hermes send failed with exit code {}".format(completed.returncode)
+        )
         if attempt >= attempts or not _is_transient(detail):
             raise RuntimeError(detail)
 

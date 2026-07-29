@@ -191,6 +191,10 @@ class MonitorConfig(object):
         self.repeat_alert_seconds = max(
             3600, int(os.environ.get("HEALTH_ALERT_REPEAT_SECONDS", "21600"))
         )
+        self.alert_failure_retry_seconds = max(
+            300,
+            int(os.environ.get("HEALTH_ALERT_FAILURE_RETRY_SECONDS", "1800")),
+        )
         self.smtp_cache_seconds = max(
             300, int(os.environ.get("HEALTH_SMTP_CACHE_SECONDS", "1800"))
         )
@@ -568,7 +572,7 @@ def check_steam_games(config):
     timer_active = False
     try:
         timer_active = (
-            run(["systemctl", "is-active", "newblog-weread-sync.timer"], timeout=10)
+            run(["systemctl", "is-active", "newblog-steam-sync.timer"], timeout=10)
             == "active"
         )
     except Exception:
@@ -602,7 +606,8 @@ def check_steam_games(config):
                    SUM(CASE WHEN is_owned = 1 THEN 1 ELSE 0 END) AS owned_games,
                    SUM(
                      CASE WHEN is_owned = 1 AND is_visible = 1 THEN 1 ELSE 0 END
-                   ) AS visible_games
+                   ) AS visible_games,
+                   MAX(synced_at) AS snapshot_synced_at
               FROM steam_games
             """
         ).fetchone()
@@ -626,6 +631,8 @@ def check_steam_games(config):
     stored_games = int(counts["stored_games"] or 0)
     owned_games = int(counts["owned_games"] or 0)
     visible_games = int(counts["visible_games"] or 0)
+    snapshot_synced_at = counts["snapshot_synced_at"]
+    snapshot_age_hours = iso_age_hours(snapshot_synced_at)
     metrics = {
         "configured": configured,
         "timerActive": timer_active,
@@ -635,6 +642,12 @@ def check_steam_games(config):
         "storedGames": stored_games,
         "ownedGames": owned_games,
         "visibleGames": visible_games,
+        "snapshotSyncedAt": snapshot_synced_at,
+        "snapshotAgeHours": (
+            round(snapshot_age_hours, 1)
+            if snapshot_age_hours is not None
+            else None
+        ),
     }
 
     if not route_ok:
@@ -673,10 +686,27 @@ def check_steam_games(config):
             summary = "已有游戏快照，但 Steam API 配置缺失"
         elif not timer_active:
             status = "critical"
-            summary = "游戏档案与书架共用的 18:00 定时器未运行"
+            summary = "Steam 游戏档案的独立定时器未运行"
         elif sync_status == "error":
-            status = "critical"
-            summary = "最近一次 Steam 同步失败：{}".format(compact(row["message"]))
+            if (
+                owned_games > 0
+                and snapshot_age_hours is not None
+                and snapshot_age_hours <= 48
+            ):
+                status = "warning"
+                summary = (
+                    "本次 Steam 刷新失败，继续展示 {:.1f} 小时前的 {} 款游戏快照；"
+                    "系统将自动重试：{}"
+                ).format(
+                    snapshot_age_hours,
+                    owned_games,
+                    compact(row["message"]),
+                )
+            else:
+                status = "critical"
+                summary = "最近一次 Steam 同步失败且没有新鲜快照：{}".format(
+                    compact(row["message"])
+                )
         elif sync_status == "running":
             if started_age_hours is not None and started_age_hours > 1:
                 status = "critical"
@@ -702,7 +732,7 @@ def check_steam_games(config):
             status = "healthy"
             summary = (
                 "登录保护正常；最近同步成功，共 {} 款游戏，近期游玩 {} 款；"
-                "18:00 联动任务运行中"
+                "18:05 独立同步任务运行中"
             ).format(total_games, recently_played)
 
     return make_check(
@@ -1254,12 +1284,19 @@ def process_alerts(config, checks):
         previous = previous_checks.get(check_id) or {}
         previous_status = previous.get("status", "unknown")
         last_alert = float(previous.get("lastAlertEpoch") or 0)
+        last_attempt = float(previous.get("lastAttemptEpoch") or 0)
+        last_delivery_error = previous.get("lastDeliveryError")
         is_problem = current_status in ("warning", "critical")
         was_problem = previous_status in ("warning", "critical")
+        retry_interval = (
+            config.alert_failure_retry_seconds
+            if last_delivery_error
+            else config.repeat_alert_seconds
+        )
         should_repeat = (
             is_problem
             and was_problem
-            and now_epoch - last_alert >= config.repeat_alert_seconds
+            and now_epoch - max(last_alert, last_attempt) >= retry_interval
         )
 
         if is_problem and (
@@ -1271,21 +1308,34 @@ def process_alerts(config, checks):
         elif was_problem and current_status == "healthy":
             recoveries.append(check)
 
+    delivery_error = ""
+    attempted_ids = {item["id"] for item in problems + recoveries}
+    recovered_ids = {item["id"] for item in recoveries}
     if problems or recoveries:
         message = alert_message(problems, recoveries)
-        send_alert(config, message)
-        alerted_ids = {item["id"] for item in problems}
+        try:
+            send_alert(config, message)
+            alerted_ids = {item["id"] for item in problems}
+        except Exception as exc:
+            delivery_error = compact(exc)
+            alerted_ids = set()
     else:
         alerted_ids = set()
 
     next_checks = {}
     for check in checks:
         previous = previous_checks.get(check["id"]) or {}
+        preserve_recovery = bool(delivery_error and check["id"] in recovered_ids)
         next_checks[check["id"]] = {
-            "status": check["status"],
+            "status": (
+                previous.get("status", check["status"])
+                if preserve_recovery
+                else check["status"]
+            ),
             "lastChangedAt": (
                 utc_now()
-                if previous.get("status") != check["status"]
+                if not preserve_recovery
+                and previous.get("status") != check["status"]
                 else previous.get("lastChangedAt", utc_now())
             ),
             "lastAlertEpoch": (
@@ -1293,12 +1343,28 @@ def process_alerts(config, checks):
                 if check["id"] in alerted_ids
                 else previous.get("lastAlertEpoch", 0)
             ),
+            "lastAttemptEpoch": (
+                now_epoch
+                if check["id"] in attempted_ids
+                else previous.get("lastAttemptEpoch", 0)
+            ),
+            "lastDeliveryError": (
+                delivery_error
+                if delivery_error and check["id"] in attempted_ids
+                else (
+                    ""
+                    if check["id"] in attempted_ids
+                    else previous.get("lastDeliveryError", "")
+                )
+            ),
         }
     atomic_write_json(
         config.alert_state_path,
         {"updatedAt": utc_now(), "checks": next_checks},
         0o600,
     )
+    if delivery_error:
+        raise RuntimeError(delivery_error)
 
 
 def main():

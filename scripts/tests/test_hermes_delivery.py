@@ -1,8 +1,10 @@
 import datetime
 import importlib.util
+import json
 import pathlib
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -33,7 +35,10 @@ class HermesDeliveryTests(unittest.TestCase):
         run.side_effect = [
             completed(
                 1,
-                stderr=b"iLink sendmessage rate limited; cooldown active for 30.0s",
+                stdout=(
+                    b'{"error":"iLink sendmessage rate limited; '
+                    b'cooldown active for 30.0s"}'
+                ),
             ),
             completed(0),
         ]
@@ -49,6 +54,44 @@ class HermesDeliveryTests(unittest.TestCase):
         self.assertEqual(attempts, 2)
         self.assertEqual(run.call_count, 2)
         sleep.assert_called_once_with(32)
+        self.assertIn("--json", run.call_args.args[0])
+        self.assertNotIn("--quiet", run.call_args.args[0])
+
+    @mock.patch("hermes_delivery.time.sleep")
+    @mock.patch("hermes_delivery.subprocess.run")
+    def test_retries_empty_backend_failures_instead_of_hiding_them(self, run, sleep):
+        run.side_effect = [completed(1), completed(0)]
+
+        attempts = send_hermes_message(
+            "hermes-agent",
+            "weixin:test",
+            "hello",
+            max_attempts=2,
+            min_retry_seconds=7,
+        )
+
+        self.assertEqual(attempts, 2)
+        sleep.assert_called_once_with(7)
+
+    @mock.patch("hermes_delivery.time.sleep")
+    @mock.patch("hermes_delivery.subprocess.run")
+    def test_retries_subprocess_timeouts(self, run, sleep):
+        run.side_effect = [
+            subprocess.TimeoutExpired(["hermes", "send"], 10),
+            completed(0),
+        ]
+
+        attempts = send_hermes_message(
+            "hermes-agent",
+            "weixin:test",
+            "hello",
+            timeout=10,
+            max_attempts=2,
+            min_retry_seconds=6,
+        )
+
+        self.assertEqual(attempts, 2)
+        sleep.assert_called_once_with(6)
 
     @mock.patch("hermes_delivery.time.sleep")
     @mock.patch("hermes_delivery.subprocess.run")
@@ -123,6 +166,37 @@ class ProactivePushHealthTests(unittest.TestCase):
                 }
             )
         )
+
+    @mock.patch.object(server_health_monitor.time, "time", return_value=1000)
+    @mock.patch.object(server_health_monitor, "send_alert")
+    def test_failed_alert_delivery_enters_a_retry_cooldown(self, send_alert, _time):
+        send_alert.side_effect = RuntimeError("rate limited")
+        check = server_health_monitor.make_check(
+            "proactive_push",
+            "automation",
+            "critical",
+            "Hermes 主动推送",
+            "delivery failed",
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = mock.Mock(
+                alert_state_path=str(pathlib.Path(directory) / "state.json"),
+                repeat_alert_seconds=21600,
+                alert_failure_retry_seconds=1800,
+            )
+            with self.assertRaisesRegex(RuntimeError, "rate limited"):
+                server_health_monitor.process_alerts(config, [check])
+
+            state = json.loads(pathlib.Path(config.alert_state_path).read_text("utf-8"))
+            stored = state["checks"]["proactive_push"]
+            self.assertEqual(stored["status"], "critical")
+            self.assertEqual(stored["lastAttemptEpoch"], 1000)
+            self.assertEqual(stored["lastDeliveryError"], "rate limited")
+
+            send_alert.reset_mock()
+            server_health_monitor.process_alerts(config, [check])
+            send_alert.assert_not_called()
 
 
 if __name__ == "__main__":

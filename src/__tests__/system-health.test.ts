@@ -132,6 +132,8 @@ describe("server health monitor deployment", () => {
     expect(script).toContain("check_proactive_push");
     expect(script).toContain("check_weread");
     expect(script).toContain("check_steam_games");
+    expect(script).toContain('is-active", "newblog-weread-sync.timer"');
+    expect(script).toContain('is-active", "newblog-steam-sync.timer"');
     expect(script).toContain("FROM steam_sync_state");
     expect(script).toContain('config.site_url + "/games"');
     expect(script).toContain('"accessProtected": route_ok');
@@ -141,12 +143,16 @@ describe("server health monitor deployment", () => {
     expect(script).not.toContain('config.site_url + "/rss.xml"');
     expect(script).toContain("should_repeat");
     expect(script).toContain("recoveries");
+    expect(script).toContain("HEALTH_ALERT_FAILURE_RETRY_SECONDS");
+    expect(script).toContain("lastDeliveryError");
     expect(script).toContain("gateway_heartbeat_path");
     expect(script).toContain('systemd_unit_state("newblog-weread-sync.service")');
     expect(script).toContain('systemd_unit_state("newblog-evening-reading.service")');
     expect(script).toContain("expected_delivery_date");
     expect(script).toContain("delivery_is_fresh");
     expect(delivery).toContain("cooldown active");
+    expect(delivery).toContain('"--json"');
+    expect(delivery).not.toContain('"--quiet"');
     expect(delivery).toContain("retrying in {}s");
     expect(delivery).toContain("time.sleep(delay)");
     expect(readingBriefing).toContain("from hermes_delivery import send_hermes_message");
