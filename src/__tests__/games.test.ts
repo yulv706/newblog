@@ -8,7 +8,9 @@ import { getGamesCopy } from "@/lib/games-copy";
 import type { SteamGame } from "@/lib/games";
 
 const require = createRequire(import.meta.url);
-const { callSteamApi } = require(path.join(process.cwd(), "scripts", "sync-steam.js")) as {
+const { callSteamApi, fetchSteamPayloads } = require(
+  path.join(process.cwd(), "scripts", "sync-steam.js")
+) as {
   callSteamApi: (
     pathname: string,
     params: Record<string, string>,
@@ -19,6 +21,15 @@ const { callSteamApi } = require(path.join(process.cwd(), "scripts", "sync-steam
       sleepImpl: () => Promise<void>;
     }
   ) => Promise<unknown>;
+  fetchSteamPayloads: (
+    commonParams: Record<string, string>,
+    language: string,
+    apiCall: (pathname: string) => Promise<unknown>
+  ) => Promise<{
+    ownedPayload: unknown;
+    recentPayload: unknown;
+    profilePayload: unknown;
+  }>;
 };
 
 describe("Steam game archive", () => {
@@ -104,6 +115,36 @@ describe("Steam game archive", () => {
       )
     ).rejects.toThrow("Steam API request failed with 403");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("serializes Steam API calls to avoid cross-border connection bursts", async () => {
+    const callOrder: string[] = [];
+    let activeCalls = 0;
+    let maximumActiveCalls = 0;
+    const apiCall = vi.fn(async (pathname: string) => {
+      callOrder.push(pathname);
+      activeCalls += 1;
+      maximumActiveCalls = Math.max(maximumActiveCalls, activeCalls);
+      await Promise.resolve();
+      activeCalls -= 1;
+      return { response: pathname };
+    });
+
+    const payloads = await fetchSteamPayloads(
+      { key: "secret", steamid: "76561198000000000", format: "json" },
+      "schinese",
+      apiCall
+    );
+
+    expect(maximumActiveCalls).toBe(1);
+    expect(callOrder).toEqual([
+      "/IPlayerService/GetOwnedGames/v0001/",
+      "/IPlayerService/GetRecentlyPlayedGames/v0001/",
+      "/ISteamUser/GetPlayerSummaries/v0002/",
+    ]);
+    expect(payloads.profilePayload).toEqual({
+      response: "/ISteamUser/GetPlayerSummaries/v0002/",
+    });
   });
 
   it("wires the public archive, detail dialog, filters, and pagination", () => {

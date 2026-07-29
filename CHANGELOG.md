@@ -7,6 +7,13 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.7] - 2026-07-29
+
+### Fixed
+
+- Serializes the three Steam Web API requests so unstable cross-border routes
+  are not hit with concurrent connection and retry bursts.
+
 ## [1.6.6] - 2026-07-29
 
 ### Fixed
@@ -247,7 +254,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added traceable application version, source revision, and build time metadata.
 - Added immutable version and revision Docker image tags.
 
-[Unreleased]: https://github.com/yulv706/newblog/compare/v1.6.6...HEAD
+[Unreleased]: https://github.com/yulv706/newblog/compare/v1.6.7...HEAD
+[1.6.7]: https://github.com/yulv706/newblog/compare/v1.6.6...v1.6.7
 [1.6.6]: https://github.com/yulv706/newblog/compare/v1.6.5...v1.6.6
 [1.6.5]: https://github.com/yulv706/newblog/compare/v1.6.4...v1.6.5
 [1.6.4]: https://github.com/yulv706/newblog/compare/v1.6.3...v1.6.4

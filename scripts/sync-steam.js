@@ -144,6 +144,27 @@ async function callSteamApi(pathname, params, options = {}) {
   throw new Error(`Steam API ${pathname} failed without completing a request.`);
 }
 
+async function fetchSteamPayloads(commonParams, language, apiCall = callSteamApi) {
+  const ownedPayload = await apiCall("/IPlayerService/GetOwnedGames/v0001/", {
+    ...commonParams,
+    include_appinfo: 1,
+    include_played_free_games: 1,
+    include_extended_appinfo: 1,
+    language,
+  });
+  const recentPayload = await apiCall("/IPlayerService/GetRecentlyPlayedGames/v0001/", {
+    ...commonParams,
+    count: 0,
+  });
+  const profilePayload = await apiCall("/ISteamUser/GetPlayerSummaries/v0002/", {
+    key: commonParams.key,
+    steamids: commonParams.steamid,
+    format: "json",
+  });
+
+  return { ownedPayload, recentPayload, profilePayload };
+}
+
 function normalizeGame(game, recentGame, syncedAt) {
   const appId = toInteger(game.appid);
   const playtimeForever = toInteger(game.playtime_forever);
@@ -281,24 +302,10 @@ async function syncSteam() {
       format: "json",
     };
     const language = compactString(process.env.STEAM_API_LANGUAGE) || "schinese";
-    const [ownedPayload, recentPayload, profilePayload] = await Promise.all([
-      callSteamApi("/IPlayerService/GetOwnedGames/v0001/", {
-        ...commonParams,
-        include_appinfo: 1,
-        include_played_free_games: 1,
-        include_extended_appinfo: 1,
-        language,
-      }),
-      callSteamApi("/IPlayerService/GetRecentlyPlayedGames/v0001/", {
-        ...commonParams,
-        count: 0,
-      }),
-      callSteamApi("/ISteamUser/GetPlayerSummaries/v0002/", {
-        key: apiKey,
-        steamids: steamId,
-        format: "json",
-      }),
-    ]);
+    const { ownedPayload, recentPayload, profilePayload } = await fetchSteamPayloads(
+      commonParams,
+      language
+    );
 
     const ownedResponse = ownedPayload?.response || {};
     const ownedGames = Array.isArray(ownedResponse.games) ? ownedResponse.games : [];
@@ -431,6 +438,7 @@ if (require.main === module) {
 module.exports = {
   callSteamApi,
   createPreparedStatements,
+  fetchSteamPayloads,
   normalizeGame,
   syncSteam,
 };
