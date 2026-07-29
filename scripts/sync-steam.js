@@ -8,6 +8,8 @@ const DB_PATH = process.env.BLOG_DB_PATH || path.join(process.cwd(), "data", "bl
 const SYNC_KEY = "steam";
 const PROFILE_KEY = "owner";
 const REQUEST_TIMEOUT_MS = 25_000;
+const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_RETRY_DELAY_MS = 1_000;
 
 function compactString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -27,6 +29,42 @@ function unixToIso(value) {
   return new Date(timestamp * 1000).toISOString();
 }
 
+function toBoundedPositiveInteger(value, fallback, maximum) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number <= 0) {
+    return fallback;
+  }
+
+  return Math.min(number, maximum);
+}
+
+function getErrorMessage(error) {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+
+  const cause = error.cause;
+  if (!cause || typeof cause !== "object") {
+    return error.message;
+  }
+
+  const code = compactString(cause.code);
+  const causeMessage = compactString(cause.message);
+  const details = [code, causeMessage].filter(Boolean).join(": ");
+  return details && !error.message.includes(details)
+    ? `${error.message} (${details})`
+    : error.message;
+}
+
+function isRetryableSteamError(error) {
+  const status = Number(error?.status);
+  return !Number.isFinite(status) || status === 429 || status >= 500;
+}
+
+function wait(delayMs) {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
 function getRequiredConfig() {
   const apiKey = compactString(process.env.STEAM_WEB_API_KEY);
   const steamId = compactString(process.env.STEAM_ID64);
@@ -42,38 +80,68 @@ function getRequiredConfig() {
   return { apiKey, steamId };
 }
 
-async function callSteamApi(pathname, params) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+async function callSteamApi(pathname, params, options = {}) {
   const url = new URL(pathname, API_BASE_URL);
+  const fetchImpl = options.fetchImpl || fetch;
+  const sleepImpl = options.sleepImpl || wait;
+  const maxAttempts = toBoundedPositiveInteger(
+    options.maxAttempts ?? process.env.STEAM_API_MAX_ATTEMPTS,
+    DEFAULT_MAX_ATTEMPTS,
+    5
+  );
+  const retryDelayMs = Math.max(0, Number(options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS) || 0);
 
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, String(value));
   }
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "ReadWriteNotes-SteamSync/1.0",
-      },
-      signal: controller.signal,
-    });
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    if (!response.ok) {
-      const body = (await response.text()).slice(0, 240);
-      throw new Error(`Steam API request failed with ${response.status}${body ? `: ${body}` : ""}`);
-    }
+    try {
+      const response = await fetchImpl(url, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "ReadWriteNotes-SteamSync/1.0",
+        },
+        signal: controller.signal,
+      });
 
-    return await response.json();
-  } catch (error) {
-    if (error && error.name === "AbortError") {
-      throw new Error(`Steam API request timed out after ${REQUEST_TIMEOUT_MS / 1000}s.`);
+      if (!response.ok) {
+        const body = (await response.text()).slice(0, 240);
+        const requestError = new Error(
+          `Steam API request failed with ${response.status}${body ? `: ${body}` : ""}`
+        );
+        requestError.status = response.status;
+        throw requestError;
+      }
+
+      return await response.json();
+    } catch (error) {
+      const requestError =
+        error && error.name === "AbortError"
+          ? new Error(`Steam API request timed out after ${REQUEST_TIMEOUT_MS / 1000}s.`)
+          : error;
+      const message = getErrorMessage(requestError);
+
+      if (attempt >= maxAttempts || !isRetryableSteamError(requestError)) {
+        const attemptSummary = maxAttempts > 1 ? ` after ${attempt} attempt(s)` : "";
+        throw new Error(`Steam API ${pathname} failed${attemptSummary}: ${message}`);
+      }
+
+      const delayMs = Math.min(retryDelayMs * 2 ** (attempt - 1), 5_000);
+      console.warn(
+        `Steam API ${pathname} attempt ${attempt}/${maxAttempts} failed: ${message}. ` +
+          `Retrying in ${delayMs}ms.`
+      );
+      await sleepImpl(delayMs);
+    } finally {
+      clearTimeout(timeout);
     }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
   }
+
+  throw new Error(`Steam API ${pathname} failed without completing a request.`);
 }
 
 function normalizeGame(game, recentGame, syncedAt) {
@@ -361,6 +429,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  callSteamApi,
   createPreparedStatements,
   normalizeGame,
   syncSteam,

@@ -7,6 +7,15 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.6] - 2026-07-29
+
+### Fixed
+
+- Retries transient Steam API network, timeout, rate-limit, and server errors
+  with bounded backoff while preserving actionable low-level diagnostics.
+- Leaves authentication and privacy-related client errors fail-fast so invalid
+  configuration remains visible.
+
 ## [1.6.5] - 2026-07-28
 
 ### Fixed
@@ -238,7 +247,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added traceable application version, source revision, and build time metadata.
 - Added immutable version and revision Docker image tags.
 
-[Unreleased]: https://github.com/yulv706/newblog/compare/v1.6.5...HEAD
+[Unreleased]: https://github.com/yulv706/newblog/compare/v1.6.6...HEAD
+[1.6.6]: https://github.com/yulv706/newblog/compare/v1.6.5...v1.6.6
 [1.6.5]: https://github.com/yulv706/newblog/compare/v1.6.4...v1.6.5
 [1.6.4]: https://github.com/yulv706/newblog/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/yulv706/newblog/compare/v1.6.2...v1.6.3

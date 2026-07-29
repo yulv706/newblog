@@ -1,10 +1,25 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getGameArtworkSources, isLowInformationArtworkPixels } from "@/lib/game-artwork";
 import { formatPlaytime, formatRelativeGameDate } from "@/lib/game-format";
 import { getGamesCopy } from "@/lib/games-copy";
 import type { SteamGame } from "@/lib/games";
+
+const require = createRequire(import.meta.url);
+const { callSteamApi } = require(path.join(process.cwd(), "scripts", "sync-steam.js")) as {
+  callSteamApi: (
+    pathname: string,
+    params: Record<string, string>,
+    options: {
+      fetchImpl: typeof fetch;
+      maxAttempts: number;
+      retryDelayMs: number;
+      sleepImpl: () => Promise<void>;
+    }
+  ) => Promise<unknown>;
+};
 
 describe("Steam game archive", () => {
   it("provides complete localized copy and stable time formatting", () => {
@@ -42,6 +57,53 @@ describe("Steam game archive", () => {
     expect(scheduledSyncSource).toContain("npm run sync:steam");
     expect(scheduledSyncSource).toContain("STEAM_SYNC_TIMEOUT_SECONDS");
     expect(scheduledSyncSource).toContain("daily reading briefing will continue");
+  });
+
+  it("retries transient Steam failures and preserves the underlying network cause", async () => {
+    const transientError = Object.assign(new TypeError("fetch failed"), {
+      cause: { code: "ECONNRESET", message: "socket disconnected" },
+    });
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(transientError)
+      .mockResolvedValueOnce(Response.json({ response: { games: [] } }));
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const payload = await callSteamApi(
+      "/IPlayerService/GetOwnedGames/v0001/",
+      { key: "secret", steamid: "76561198000000000" },
+      {
+        fetchImpl,
+        maxAttempts: 3,
+        retryDelayMs: 0,
+        sleepImpl: async () => undefined,
+      }
+    );
+
+    expect(payload).toEqual({ response: { games: [] } });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(warning).toHaveBeenCalledWith(expect.stringContaining("ECONNRESET"));
+    warning.mockRestore();
+  });
+
+  it("does not retry non-transient Steam authorization failures", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response("Forbidden", { status: 403 }));
+
+    await expect(
+      callSteamApi(
+        "/ISteamUser/GetPlayerSummaries/v0002/",
+        { key: "invalid", steamids: "76561198000000000" },
+        {
+          fetchImpl,
+          maxAttempts: 3,
+          retryDelayMs: 0,
+          sleepImpl: async () => undefined,
+        }
+      )
+    ).rejects.toThrow("Steam API request failed with 403");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it("wires the public archive, detail dialog, filters, and pagination", () => {

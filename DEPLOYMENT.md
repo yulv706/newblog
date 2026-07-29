@@ -52,25 +52,26 @@ cp deploy/.env.production.example deploy/.env.production
 
 Set these values:
 
-| Variable                      | Required         | Purpose                           | Notes                                                                    |
-| ----------------------------- | ---------------- | --------------------------------- | ------------------------------------------------------------------------ |
-| `AUTH_SECRET`                 | Yes              | Session signing secret            | Must be non-placeholder and at least 32 chars                            |
-| `NEXT_PUBLIC_SITE_URL`        | Yes              | Public site origin                | Must be an absolute `http(s)` origin with no path                        |
-| `SMTP_HOST`                   | For registration | Verification mail server          | Use the host provided by the mail provider                               |
-| `SMTP_PORT`                   | For registration | SMTP port                         | Normally `465` or `587`                                                  |
-| `SMTP_SECURE`                 | For registration | TLS from connection start         | Normally `true` on port `465`                                            |
-| `SMTP_REQUIRE_TLS`            | Recommended      | Require STARTTLS                  | Normally `true` on port `587`                                            |
-| `SMTP_USER` / `SMTP_PASSWORD` | Production       | SMTP credentials                  | The password is normally an application authorization code               |
-| `SMTP_FROM`                   | For registration | Message sender                    | Must be allowed by the SMTP provider                                     |
-| `NGINX_PORT`                  | No               | Published HTTP port               | Defaults to `8080`; mission validation uses `8080`                       |
-| `WEREAD_API_KEY`              | No               | Official WeRead Skill API key     | Optional; enables `/admin/books` and `npm run sync:weread` sync          |
-| `WEREAD_SYNC_PROGRESS_LIMIT`  | No               | Per-sync progress lookup limit    | Defaults to `80`                                                         |
-| `WEREAD_SYNC_DETAIL_LIMIT`    | No               | Per-sync book detail lookup limit | Defaults to `80`                                                         |
-| `WEREAD_SYNC_HIGHLIGHTS`      | No               | Sync highlight text content       | Defaults to `0`; keep disabled if you only want progress and note counts |
-| `STEAM_WEB_API_KEY`           | No               | Steam Web API key                 | Enables `/admin/games` and `npm run sync:steam`                          |
-| `STEAM_ID64`                  | No               | Public 17-digit Steam account ID  | Configure together with the API key; this is not a login password        |
-| `STEAM_API_LANGUAGE`          | No               | Language for Steam game names     | Defaults to `schinese`                                                   |
-| `STEAM_SYNC_TIMEOUT_SECONDS`  | No               | Scheduled Steam sync timeout      | Defaults to `300`                                                        |
+| Variable                      | Required         | Purpose                           | Notes                                                                     |
+| ----------------------------- | ---------------- | --------------------------------- | ------------------------------------------------------------------------- |
+| `AUTH_SECRET`                 | Yes              | Session signing secret            | Must be non-placeholder and at least 32 chars                             |
+| `NEXT_PUBLIC_SITE_URL`        | Yes              | Public site origin                | Must be an absolute `http(s)` origin with no path                         |
+| `SMTP_HOST`                   | For registration | Verification mail server          | Use the host provided by the mail provider                                |
+| `SMTP_PORT`                   | For registration | SMTP port                         | Normally `465` or `587`                                                   |
+| `SMTP_SECURE`                 | For registration | TLS from connection start         | Normally `true` on port `465`                                             |
+| `SMTP_REQUIRE_TLS`            | Recommended      | Require STARTTLS                  | Normally `true` on port `587`                                             |
+| `SMTP_USER` / `SMTP_PASSWORD` | Production       | SMTP credentials                  | The password is normally an application authorization code                |
+| `SMTP_FROM`                   | For registration | Message sender                    | Must be allowed by the SMTP provider                                      |
+| `NGINX_PORT`                  | No               | Published HTTP port               | Defaults to `8080`; mission validation uses `8080`                        |
+| `WEREAD_API_KEY`              | No               | Official WeRead Skill API key     | Optional; enables `/admin/books` and `npm run sync:weread` sync           |
+| `WEREAD_SYNC_PROGRESS_LIMIT`  | No               | Per-sync progress lookup limit    | Defaults to `80`                                                          |
+| `WEREAD_SYNC_DETAIL_LIMIT`    | No               | Per-sync book detail lookup limit | Defaults to `80`                                                          |
+| `WEREAD_SYNC_HIGHLIGHTS`      | No               | Sync highlight text content       | Defaults to `0`; keep disabled if you only want progress and note counts  |
+| `STEAM_WEB_API_KEY`           | No               | Steam Web API key                 | Enables `/admin/games` and `npm run sync:steam`                           |
+| `STEAM_ID64`                  | No               | Public 17-digit Steam account ID  | Configure together with the API key; this is not a login password         |
+| `STEAM_API_LANGUAGE`          | No               | Language for Steam game names     | Defaults to `schinese`                                                    |
+| `STEAM_API_MAX_ATTEMPTS`      | No               | Steam API request attempts        | Defaults to `3`; retries network errors, timeouts, HTTP 429, and HTTP 5xx |
+| `STEAM_SYNC_TIMEOUT_SECONDS`  | No               | Scheduled Steam sync timeout      | Defaults to `300`                                                         |
 
 Production safety constraints enforced by `./deploy/check.sh`:
 
