@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 const Database = require("better-sqlite3");
+const https = require("node:https");
+const net = require("node:net");
 const path = require("node:path");
 
 const API_BASE_URL = process.env.STEAM_API_BASE_URL || "https://api.steampowered.com";
@@ -43,14 +45,11 @@ function getErrorMessage(error) {
     return String(error);
   }
 
+  const errorCode = compactString(error.code);
   const cause = error.cause;
-  if (!cause || typeof cause !== "object") {
-    return error.message;
-  }
-
-  const code = compactString(cause.code);
-  const causeMessage = compactString(cause.message);
-  const details = [code, causeMessage].filter(Boolean).join(": ");
+  const causeCode = cause && typeof cause === "object" ? compactString(cause.code) : "";
+  const causeMessage = cause && typeof cause === "object" ? compactString(cause.message) : "";
+  const details = [errorCode || causeCode, causeMessage].filter(Boolean).join(": ");
   return details && !error.message.includes(details)
     ? `${error.message} (${details})`
     : error.message;
@@ -63,6 +62,61 @@ function isRetryableSteamError(error) {
 
 function wait(delayMs) {
   return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+function getSteamResolveAddresses(value = process.env.STEAM_API_RESOLVE_IPS) {
+  return compactString(value)
+    .split(",")
+    .map((address) => address.trim())
+    .filter(
+      (address, index, addresses) => net.isIP(address) === 4 && addresses.indexOf(address) === index
+    );
+}
+
+function fetchSteamApiViaAddress(url, init, address) {
+  return new Promise((resolve, reject) => {
+    const request = https.get(
+      url,
+      {
+        headers: init.headers,
+        lookup(_hostname, options, callback) {
+          if (options?.all) {
+            callback(null, [{ address, family: 4 }]);
+            return;
+          }
+          callback(null, address, 4);
+        },
+      },
+      (response) => {
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(chunk));
+        response.on("end", () => {
+          const body = Buffer.concat(chunks).toString("utf8");
+          const status = response.statusCode || 0;
+          resolve({
+            ok: status >= 200 && status < 300,
+            status,
+            text: async () => body,
+            json: async () => JSON.parse(body),
+          });
+        });
+      }
+    );
+    const abort = () => {
+      const error = new Error("The operation was aborted.");
+      error.name = "AbortError";
+      request.destroy(error);
+    };
+
+    if (init.signal?.aborted) {
+      abort();
+      return;
+    }
+
+    init.signal?.addEventListener("abort", abort, { once: true });
+    request.once("close", () => init.signal?.removeEventListener("abort", abort));
+    request.once("error", reject);
+  });
 }
 
 function getRequiredConfig() {
@@ -84,6 +138,11 @@ async function callSteamApi(pathname, params, options = {}) {
   const url = new URL(pathname, API_BASE_URL);
   const fetchImpl = options.fetchImpl || fetch;
   const sleepImpl = options.sleepImpl || wait;
+  const requestImpl =
+    options.requestImpl ||
+    ((requestUrl, init, address) =>
+      address ? fetchSteamApiViaAddress(requestUrl, init, address) : fetchImpl(requestUrl, init));
+  const resolveAddresses = options.resolveAddresses || getSteamResolveAddresses();
   const maxAttempts = toBoundedPositiveInteger(
     options.maxAttempts ?? process.env.STEAM_API_MAX_ATTEMPTS,
     DEFAULT_MAX_ATTEMPTS,
@@ -98,15 +157,23 @@ async function callSteamApi(pathname, params, options = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const resolveAddress =
+      resolveAddresses.length > 0
+        ? resolveAddresses[(attempt - 1) % resolveAddresses.length]
+        : null;
 
     try {
-      const response = await fetchImpl(url, {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "ReadWriteNotes-SteamSync/1.0",
+      const response = await requestImpl(
+        url,
+        {
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "ReadWriteNotes-SteamSync/1.0",
+          },
+          signal: controller.signal,
         },
-        signal: controller.signal,
-      });
+        resolveAddress
+      );
 
       if (!response.ok) {
         const body = (await response.text()).slice(0, 240);
@@ -127,12 +194,14 @@ async function callSteamApi(pathname, params, options = {}) {
 
       if (attempt >= maxAttempts || !isRetryableSteamError(requestError)) {
         const attemptSummary = maxAttempts > 1 ? ` after ${attempt} attempt(s)` : "";
-        throw new Error(`Steam API ${pathname} failed${attemptSummary}: ${message}`);
+        const routeSummary = resolveAddress ? ` via ${resolveAddress}` : "";
+        throw new Error(`Steam API ${pathname} failed${attemptSummary}${routeSummary}: ${message}`);
       }
 
       const delayMs = Math.min(retryDelayMs * 2 ** (attempt - 1), 5_000);
+      const routeSummary = resolveAddress ? ` via ${resolveAddress}` : "";
       console.warn(
-        `Steam API ${pathname} attempt ${attempt}/${maxAttempts} failed: ${message}. ` +
+        `Steam API ${pathname} attempt ${attempt}/${maxAttempts}${routeSummary} failed: ${message}. ` +
           `Retrying in ${delayMs}ms.`
       );
       await sleepImpl(delayMs);
@@ -439,6 +508,7 @@ module.exports = {
   callSteamApi,
   createPreparedStatements,
   fetchSteamPayloads,
+  getSteamResolveAddresses,
   normalizeGame,
   syncSteam,
 };

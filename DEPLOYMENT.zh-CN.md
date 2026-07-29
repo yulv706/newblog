@@ -71,6 +71,7 @@ cp deploy/.env.production.example deploy/.env.production
 | `STEAM_ID64`                  | 否           | Steam 账户的 17 位公开 ID      | 与 API Key 同时配置；不是登录密码                             |
 | `STEAM_API_LANGUAGE`          | 否           | Steam 游戏名称语言             | 默认 `schinese`                                               |
 | `STEAM_API_MAX_ATTEMPTS`      | 否           | Steam API 请求次数             | 默认 `3`；重试网络错误、超时、HTTP 429 和 HTTP 5xx            |
+| `STEAM_API_RESOLVE_IPS`       | 否           | Steam API IPv4 备用边缘节点    | 逗号分隔；仅在实测服务器直连路由后配置                        |
 | `STEAM_SYNC_TIMEOUT_SECONDS`  | 否           | Steam 定时同步超时秒数         | 默认 `300`                                                    |
 
 `./deploy/check.sh` 会强制执行这些生产安全约束：

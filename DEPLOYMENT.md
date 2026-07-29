@@ -71,6 +71,7 @@ Set these values:
 | `STEAM_ID64`                  | No               | Public 17-digit Steam account ID  | Configure together with the API key; this is not a login password         |
 | `STEAM_API_LANGUAGE`          | No               | Language for Steam game names     | Defaults to `schinese`                                                    |
 | `STEAM_API_MAX_ATTEMPTS`      | No               | Steam API request attempts        | Defaults to `3`; retries network errors, timeouts, HTTP 429, and HTTP 5xx |
+| `STEAM_API_RESOLVE_IPS`       | No               | Steam API IPv4 fallback edges     | Comma-separated; only use after testing the server's direct routes        |
 | `STEAM_SYNC_TIMEOUT_SECONDS`  | No               | Scheduled Steam sync timeout      | Defaults to `300`                                                         |
 
 Production safety constraints enforced by `./deploy/check.sh`:

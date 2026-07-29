@@ -7,6 +7,13 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.8] - 2026-07-29
+
+### Fixed
+
+- Supports a Steam-only list of tested IPv4 edge routes, rotating between them
+  during retries without changing host, Docker, or system-wide DNS settings.
+
 ## [1.6.7] - 2026-07-29
 
 ### Fixed
@@ -254,7 +261,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added traceable application version, source revision, and build time metadata.
 - Added immutable version and revision Docker image tags.
 
-[Unreleased]: https://github.com/yulv706/newblog/compare/v1.6.7...HEAD
+[Unreleased]: https://github.com/yulv706/newblog/compare/v1.6.8...HEAD
+[1.6.8]: https://github.com/yulv706/newblog/compare/v1.6.7...v1.6.8
 [1.6.7]: https://github.com/yulv706/newblog/compare/v1.6.6...v1.6.7
 [1.6.6]: https://github.com/yulv706/newblog/compare/v1.6.5...v1.6.6
 [1.6.5]: https://github.com/yulv706/newblog/compare/v1.6.4...v1.6.5

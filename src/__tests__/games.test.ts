@@ -8,7 +8,7 @@ import { getGamesCopy } from "@/lib/games-copy";
 import type { SteamGame } from "@/lib/games";
 
 const require = createRequire(import.meta.url);
-const { callSteamApi, fetchSteamPayloads } = require(
+const { callSteamApi, fetchSteamPayloads, getSteamResolveAddresses } = require(
   path.join(process.cwd(), "scripts", "sync-steam.js")
 ) as {
   callSteamApi: (
@@ -18,6 +18,8 @@ const { callSteamApi, fetchSteamPayloads } = require(
       fetchImpl: typeof fetch;
       maxAttempts: number;
       retryDelayMs: number;
+      requestImpl?: (url: URL, init: RequestInit, address: string | null) => Promise<Response>;
+      resolveAddresses?: string[];
       sleepImpl: () => Promise<void>;
     }
   ) => Promise<unknown>;
@@ -30,6 +32,7 @@ const { callSteamApi, fetchSteamPayloads } = require(
     recentPayload: unknown;
     profilePayload: unknown;
   }>;
+  getSteamResolveAddresses: (value: string) => string[];
 };
 
 describe("Steam game archive", () => {
@@ -145,6 +148,39 @@ describe("Steam game archive", () => {
     expect(payloads.profilePayload).toEqual({
       response: "/ISteamUser/GetPlayerSummaries/v0002/",
     });
+  });
+
+  it("rotates through configured Steam edge addresses without accepting invalid hosts", async () => {
+    const addresses = getSteamResolveAddresses(
+      "23.77.12.206, invalid.example, 173.222.146.99, 23.77.12.206"
+    );
+    const attemptedAddresses: Array<string | null> = [];
+    const requestImpl = vi.fn(async (_url: URL, _init: RequestInit, address: string | null) => {
+      attemptedAddresses.push(address);
+      if (attemptedAddresses.length === 1) {
+        throw Object.assign(new Error("connect timeout"), { code: "ETIMEDOUT" });
+      }
+      return Response.json({ response: { ok: true } });
+    });
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await callSteamApi(
+      "/IPlayerService/GetOwnedGames/v0001/",
+      { key: "secret", steamid: "76561198000000000" },
+      {
+        fetchImpl: fetch,
+        requestImpl,
+        resolveAddresses: addresses,
+        maxAttempts: 3,
+        retryDelayMs: 0,
+        sleepImpl: async () => undefined,
+      }
+    );
+
+    expect(addresses).toEqual(["23.77.12.206", "173.222.146.99"]);
+    expect(attemptedAddresses).toEqual(["23.77.12.206", "173.222.146.99"]);
+    expect(warning).toHaveBeenCalledWith(expect.stringContaining("23.77.12.206"));
+    warning.mockRestore();
   });
 
   it("wires the public archive, detail dialog, filters, and pagination", () => {
