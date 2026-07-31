@@ -104,6 +104,38 @@ def _delivery_paths():
     )
 
 
+def _context_token_fingerprint():
+    directory = os.environ.get(
+        "HERMES_WEIXIN_CONTEXT_DIR",
+        "/opt/hermes/data/weixin/accounts",
+    ).strip()
+    if not directory:
+        return ""
+    entries = []
+    try:
+        names = os.listdir(directory)
+    except OSError:
+        return ""
+    for name in sorted(names):
+        if not name.endswith(".context-tokens.json"):
+            continue
+        path = os.path.join(directory, name)
+        try:
+            stat = os.stat(path)
+        except OSError:
+            continue
+        entries.append(
+            "{}:{}:{}".format(
+                name,
+                int(stat.st_size),
+                int(getattr(stat, "st_mtime_ns", stat.st_mtime * 1000000000)),
+            )
+        )
+    if not entries:
+        return ""
+    return hashlib.sha256("\n".join(entries).encode("utf-8")).hexdigest()
+
+
 def _retry_delay(detail, minimum_seconds):
     match = re.search(
         r"(?:cooldown active for|retry(?:ing)? after)\s+([0-9]+(?:\.[0-9]+)?)s",
@@ -325,6 +357,23 @@ def send_hermes_message(
         queue_wait_seconds = time.time() - queue_started_epoch
         state = _read_json(state_path, {})
         now_epoch = time.time()
+        context_fingerprint = _context_token_fingerprint()
+        blocked_fingerprint = str(state.get("blockedContextFingerprint") or "")
+        if state.get("rateLimitStrikes") and context_fingerprint:
+            if blocked_fingerprint and blocked_fingerprint != context_fingerprint:
+                state["rateLimitStrikes"] = 0
+                state["nextAllowedEpoch"] = 0
+                state["lastError"] = ""
+                state["lastErrorAt"] = ""
+                state["blockedContextFingerprint"] = ""
+                if logger:
+                    logger(
+                        "Hermes Weixin context refreshed; shared cooldown released"
+                    )
+                _atomic_write_json(state_path, state)
+            elif not blocked_fingerprint:
+                state["blockedContextFingerprint"] = context_fingerprint
+                _atomic_write_json(state_path, state)
         deliveries = _prune_deliveries(
             state.get("recentDeliveries"),
             now_epoch,
@@ -384,6 +433,7 @@ def send_hermes_message(
                         "lastSuccessAt": _utc_now(),
                         "nextAllowedEpoch": now_epoch + min_send_interval,
                         "rateLimitStrikes": 0,
+                        "blockedContextFingerprint": "",
                         "lastError": "",
                         "lastErrorAt": "",
                         "recentDeliveries": deliveries,
@@ -409,6 +459,7 @@ def send_hermes_message(
                 state["rateLimitStrikes"] = strikes
                 state["nextAllowedEpoch"] = time.time() + backoff
                 state["lastRateLimitAt"] = _utc_now()
+                state["blockedContextFingerprint"] = context_fingerprint
                 _atomic_write_json(state_path, state)
                 if logger:
                     logger(

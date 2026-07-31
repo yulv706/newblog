@@ -158,6 +158,8 @@ describe("server health monitor deployment", () => {
     expect(delivery).toContain("X-Webhook-Signature");
     expect(delivery).toContain("HERMES_WEBHOOK_SECRET_FILE");
     expect(delivery).toContain("HERMES_UPSTREAM_REJECTION_BACKOFF_SECONDS");
+    expect(delivery).toContain("HERMES_WEIXIN_CONTEXT_DIR");
+    expect(delivery).toContain("context refreshed; shared cooldown released");
     expect(delivery).not.toContain('"hermes",\n        "send"');
     expect(delivery).toContain("retrying in {}s");
     expect(delivery).toContain("time.sleep(delay)");

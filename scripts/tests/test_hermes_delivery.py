@@ -26,6 +26,10 @@ HEALTH_SPEC.loader.exec_module(server_health_monitor)
 class HermesDeliveryTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
+        self.context_directory = pathlib.Path(self.directory.name, "contexts")
+        self.context_directory.mkdir()
+        self.context_path = self.context_directory / "account.context-tokens.json"
+        self.context_path.write_text('{"token":"one"}', encoding="utf-8")
         self.environment = mock.patch.dict(
             "os.environ",
             {
@@ -37,6 +41,7 @@ class HermesDeliveryTests(unittest.TestCase):
                 "HERMES_DEDUPE_SECONDS": "900",
                 "HERMES_IDEMPOTENCY_SECONDS": "604800",
                 "HERMES_WEBHOOK_SECRET": "a" * 64,
+                "HERMES_WEIXIN_CONTEXT_DIR": str(self.context_directory),
             },
         )
         self.environment.start()
@@ -190,6 +195,36 @@ class HermesDeliveryTests(unittest.TestCase):
             21599,
         )
         post.assert_called_once()
+        sleep.assert_not_called()
+
+    @mock.patch("hermes_delivery.time.sleep")
+    @mock.patch("hermes_delivery._post_webhook")
+    def test_new_inbound_context_releases_shared_cooldown(self, post, sleep):
+        post.side_effect = [
+            RuntimeError("Hermes webhook returned HTTP 502: Delivery failed"),
+            {"status": "delivered"},
+        ]
+
+        with self.assertRaises(HermesDeliveryDeferred):
+            send_hermes_message("hermes-agent", "weixin:test", "first")
+
+        self.context_path.write_text(
+            '{"token":"refreshed-and-longer"}',
+            encoding="utf-8",
+        )
+        attempts = send_hermes_message(
+            "hermes-agent",
+            "weixin:test",
+            "second",
+        )
+
+        self.assertEqual(attempts, 1)
+        self.assertEqual(post.call_count, 2)
+        state = json.loads(
+            pathlib.Path(self.directory.name, "state.json").read_text("utf-8")
+        )
+        self.assertEqual(state["rateLimitStrikes"], 0)
+        self.assertEqual(state["blockedContextFingerprint"], "")
         sleep.assert_not_called()
 
 
