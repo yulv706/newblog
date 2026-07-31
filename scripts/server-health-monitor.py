@@ -30,6 +30,7 @@ STATUS_RANK = {
     "warning": 2,
     "critical": 3,
 }
+NON_HERMES_ALERTABLE_CHECKS = {"hermes_gateway", "proactive_push"}
 
 
 def utc_now():
@@ -195,6 +196,18 @@ class MonitorConfig(object):
             300,
             int(os.environ.get("HEALTH_ALERT_FAILURE_RETRY_SECONDS", "1800")),
         )
+        self.warning_confirm_seconds = max(
+            0,
+            int(os.environ.get("HEALTH_WARNING_CONFIRM_SECONDS", "900")),
+        )
+        self.critical_confirm_seconds = max(
+            0,
+            int(os.environ.get("HEALTH_CRITICAL_CONFIRM_SECONDS", "300")),
+        )
+        self.send_recovery_alerts = os.environ.get(
+            "HEALTH_SEND_RECOVERY_ALERTS",
+            "false",
+        ).strip().lower() in ("1", "true", "yes", "on")
         self.smtp_cache_seconds = max(
             300, int(os.environ.get("HEALTH_SMTP_CACHE_SECONDS", "1800"))
         )
@@ -1321,6 +1334,15 @@ def process_alerts(config, checks):
         last_delivery_error = previous.get("lastDeliveryError")
         is_problem = current_status in ("warning", "critical")
         was_problem = previous_status in ("warning", "critical")
+        problem_since = float(previous.get("problemSinceEpoch") or 0)
+        if is_problem and not was_problem:
+            problem_since = now_epoch
+        confirm_seconds = (
+            config.critical_confirm_seconds
+            if current_status == "critical"
+            else config.warning_confirm_seconds
+        )
+        confirmed = is_problem and now_epoch - problem_since >= confirm_seconds
         retry_interval = (
             config.alert_failure_retry_seconds
             if last_delivery_error
@@ -1329,16 +1351,27 @@ def process_alerts(config, checks):
         should_repeat = (
             is_problem
             and was_problem
+            and bool(last_alert or last_attempt)
             and now_epoch - max(last_alert, last_attempt) >= retry_interval
         )
+        can_use_hermes = check_id not in NON_HERMES_ALERTABLE_CHECKS
 
-        if is_problem and (
-            not was_problem
-            or STATUS_RANK[current_status] > STATUS_RANK.get(previous_status, 0)
+        if can_use_hermes and confirmed and (
+            (not last_alert and not last_attempt)
+            or (
+                STATUS_RANK[current_status] > STATUS_RANK.get(previous_status, 0)
+                and now_epoch - last_attempt >= confirm_seconds
+            )
             or should_repeat
         ):
             problems.append(check)
-        elif was_problem and current_status == "healthy":
+        elif (
+            can_use_hermes
+            and config.send_recovery_alerts
+            and was_problem
+            and current_status == "healthy"
+            and bool(last_alert)
+        ):
             recoveries.append(check)
 
     delivery_error = ""
@@ -1389,6 +1422,9 @@ def process_alerts(config, checks):
                     if check["id"] in attempted_ids
                     else previous.get("lastDeliveryError", "")
                 )
+            ),
+            "problemSinceEpoch": (
+                problem_since if check["status"] in ("warning", "critical") else 0
             ),
         }
     atomic_write_json(

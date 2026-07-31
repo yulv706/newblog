@@ -7,12 +7,15 @@ import datetime
 import errno
 import fcntl
 import hashlib
+import hmac
 import json
 import math
 import os
 import re
-import subprocess
+import socket
 import time
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 
 TRANSIENT_MARKERS = (
@@ -30,6 +33,12 @@ RATE_LIMIT_MARKERS = (
     "too many requests",
     "http 429",
     "status 429",
+)
+UPSTREAM_REJECTION_MARKERS = (
+    "http 502",
+    "bad gateway",
+    "delivery failed",
+    "target rejected",
 )
 
 
@@ -116,9 +125,104 @@ def _is_transient(detail):
     return any(marker in lowered for marker in TRANSIENT_MARKERS)
 
 
+def _is_upstream_rejection(detail):
+    lowered = detail.lower()
+    return any(marker in lowered for marker in UPSTREAM_REJECTION_MARKERS)
+
+
 def _message_key(target, subject, message):
     payload = "\0".join((target, subject or "", message.strip())).encode("utf-8")
     return "message:" + hashlib.sha256(payload).hexdigest()
+
+
+def _webhook_settings():
+    url = os.environ.get(
+        "HERMES_WEBHOOK_URL",
+        "http://127.0.0.1:8644/webhooks/newblog-notify",
+    ).strip()
+    secret = os.environ.get("HERMES_WEBHOOK_SECRET", "").strip()
+    secret_path = os.environ.get(
+        "HERMES_WEBHOOK_SECRET_FILE",
+        "/etc/newblog-hermes-webhook.secret",
+    ).strip()
+    if not secret and secret_path:
+        try:
+            with open(secret_path, "r", encoding="utf-8") as handle:
+                secret = handle.read().strip()
+        except OSError as exc:
+            raise RuntimeError(
+                "Hermes webhook secret is unavailable at {}: {}".format(
+                    secret_path,
+                    exc,
+                )
+            )
+    if not url.startswith(("http://127.0.0.1:", "http://localhost:")):
+        raise RuntimeError("Hermes webhook must use a loopback URL")
+    if len(secret) < 32:
+        raise RuntimeError("Hermes webhook secret is missing or too short")
+    return url, secret
+
+
+def _post_webhook(url, secret, message, request_id, timeout):
+    body = json.dumps(
+        {"message": message},
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    signature = hmac.new(
+        secret.encode("utf-8"),
+        body,
+        hashlib.sha256,
+    ).hexdigest()
+    request = Request(
+        url,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "X-Webhook-Signature": signature,
+            "X-Request-ID": request_id,
+        },
+        method="POST",
+    )
+    try:
+        response = urlopen(request, timeout=timeout)
+        try:
+            status = int(response.getcode() or 0)
+            response_body = response.read().decode("utf-8", "replace")
+        finally:
+            response.close()
+    except HTTPError as exc:
+        try:
+            response_body = exc.read().decode("utf-8", "replace")
+        except Exception:
+            response_body = ""
+        raise RuntimeError(
+            "Hermes webhook returned HTTP {}: {}".format(
+                exc.code,
+                _compact(response_body or exc.reason),
+            )
+        )
+    except (URLError, socket.timeout, TimeoutError) as exc:
+        raise RuntimeError("Hermes webhook request failed: {}".format(_compact(exc)))
+
+    if status < 200 or status >= 300:
+        raise RuntimeError(
+            "Hermes webhook returned HTTP {}: {}".format(
+                status,
+                _compact(response_body),
+            )
+        )
+    try:
+        result = json.loads(response_body or "{}")
+    except ValueError:
+        raise RuntimeError("Hermes webhook returned invalid JSON")
+    if result.get("status") not in ("delivered", "duplicate"):
+        raise RuntimeError(
+            "Hermes webhook did not confirm delivery: {}".format(
+                _compact(response_body)
+            )
+        )
+    return result
 
 
 def _prune_deliveries(deliveries, now_epoch, retention_seconds):
@@ -182,7 +286,13 @@ def send_hermes_message(
         "HERMES_RATE_LIMIT_BASE_SECONDS", 90, minimum=30, maximum=1800
     )
     rate_limit_max = _env_int(
-        "HERMES_RATE_LIMIT_MAX_SECONDS", 900, minimum=rate_limit_base, maximum=3600
+        "HERMES_RATE_LIMIT_MAX_SECONDS", 900, minimum=rate_limit_base, maximum=86400
+    )
+    upstream_rejection_backoff = _env_int(
+        "HERMES_UPSTREAM_REJECTION_BACKOFF_SECONDS",
+        21600,
+        minimum=900,
+        maximum=86400,
     )
     dedupe_seconds = _env_int(
         "HERMES_DEDUPE_SECONDS", 900, minimum=60, maximum=86400
@@ -191,23 +301,13 @@ def send_hermes_message(
         "HERMES_IDEMPOTENCY_SECONDS", 604800, minimum=3600, maximum=2592000
     )
 
-    command = [
-        "docker",
-        "exec",
-        "-i",
-        "-u",
-        "hermes",
-        container,
-        "/opt/hermes/.venv/bin/hermes",
-        "send",
-        "--to",
-        target,
-    ]
+    del container
+    if not target.startswith("weixin:"):
+        raise RuntimeError("Hermes webhook delivery requires a Weixin target")
+    webhook_url, webhook_secret = _webhook_settings()
+    delivery_message = message.strip()
     if subject:
-        command.extend(["--subject", subject])
-    # --quiet hides structured Weixin errors and must not be used here.
-    command.extend(["--file", "-", "--json"])
-    payload = (message.strip() + "\n").encode("utf-8")
+        delivery_message = "{}\n\n{}".format(subject.strip(), delivery_message)
     automatic_key = _message_key(target, subject, message)
     delivery_key = (
         "idempotency:" + str(idempotency_key).strip()
@@ -269,32 +369,13 @@ def send_hermes_message(
             state["lastDeliveryKey"] = delivery_key
             _atomic_write_json(state_path, state)
             try:
-                completed = subprocess.run(
-                    command,
-                    input=payload,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                _post_webhook(
+                    webhook_url,
+                    webhook_secret,
+                    delivery_message,
+                    delivery_key,
                     timeout=timeout,
                 )
-            except subprocess.TimeoutExpired:
-                detail = "Hermes send timed out after {}s".format(timeout)
-                state["lastError"] = detail
-                state["lastErrorAt"] = _utc_now()
-                _atomic_write_json(state_path, state)
-                if attempt >= attempts:
-                    raise RuntimeError(detail)
-                if logger:
-                    logger(
-                        "Hermes delivery attempt {}/{} timed out; retrying in {}s".format(
-                            attempt,
-                            attempts,
-                            retry_floor,
-                        )
-                    )
-                time.sleep(retry_floor)
-                continue
-
-            if completed.returncode == 0:
                 now_epoch = time.time()
                 deliveries[delivery_key] = now_epoch
                 state.update(
@@ -310,24 +391,21 @@ def send_hermes_message(
                 )
                 _atomic_write_json(state_path, state)
                 return attempt
-
-            stderr = completed.stderr.decode("utf-8", "replace").strip()
-            stdout = completed.stdout.decode("utf-8", "replace").strip()
-            detail = _compact(
-                stderr
-                or stdout
-                or "Hermes send failed with exit code {}".format(completed.returncode)
-            )
+            except Exception as exc:
+                detail = _compact(exc)
             state["lastError"] = detail
             state["lastErrorAt"] = _utc_now()
 
-            if _is_rate_limited(detail):
+            if _is_rate_limited(detail) or _is_upstream_rejection(detail):
                 strikes = min(6, int(state.get("rateLimitStrikes") or 0) + 1)
                 reported_delay = _retry_delay(detail, rate_limit_base)
-                backoff = min(
-                    rate_limit_max,
-                    max(reported_delay, rate_limit_base * (2 ** (strikes - 1))),
-                )
+                if _is_upstream_rejection(detail):
+                    backoff = upstream_rejection_backoff
+                else:
+                    backoff = min(
+                        rate_limit_max,
+                        max(reported_delay, rate_limit_base * (2 ** (strikes - 1))),
+                    )
                 state["rateLimitStrikes"] = strikes
                 state["nextAllowedEpoch"] = time.time() + backoff
                 state["lastRateLimitAt"] = _utc_now()
@@ -338,7 +416,7 @@ def send_hermes_message(
                             backoff
                         )
                     )
-                # Do not retry a Weixin account limit inside the same process.
+                # Do not retry an upstream account rejection inside the same process.
                 # The persistent gate protects every other sender as well.
                 raise HermesDeliveryDeferred(
                     "Hermes account rate limited; shared cooldown active for {}s".format(

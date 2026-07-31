@@ -2,7 +2,6 @@ import datetime
 import importlib.util
 import json
 import pathlib
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -24,10 +23,6 @@ server_health_monitor = importlib.util.module_from_spec(HEALTH_SPEC)
 HEALTH_SPEC.loader.exec_module(server_health_monitor)
 
 
-def completed(returncode, stderr=b"", stdout=b""):
-    return subprocess.CompletedProcess([], returncode, stdout=stdout, stderr=stderr)
-
-
 class HermesDeliveryTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -41,6 +36,7 @@ class HermesDeliveryTests(unittest.TestCase):
                 "HERMES_DELIVERY_LOCK_TIMEOUT_SECONDS": "10",
                 "HERMES_DEDUPE_SECONDS": "900",
                 "HERMES_IDEMPOTENCY_SECONDS": "604800",
+                "HERMES_WEBHOOK_SECRET": "a" * 64,
             },
         )
         self.environment.start()
@@ -50,14 +46,10 @@ class HermesDeliveryTests(unittest.TestCase):
         self.directory.cleanup()
 
     @mock.patch("hermes_delivery.time.sleep")
-    @mock.patch("hermes_delivery.subprocess.run")
-    def test_rate_limit_stops_retries_and_opens_shared_cooldown(self, run, sleep):
-        run.return_value = completed(
-            1,
-            stdout=(
-                b'{"error":"iLink sendmessage rate limited; '
-                b'cooldown active for 30.0s"}'
-            ),
+    @mock.patch("hermes_delivery._post_webhook")
+    def test_rate_limit_stops_retries_and_opens_shared_cooldown(self, post, sleep):
+        post.side_effect = RuntimeError(
+            "iLink sendmessage rate limited; cooldown active for 30.0s"
         )
 
         with self.assertRaisesRegex(HermesDeliveryDeferred, "shared cooldown"):
@@ -69,11 +61,8 @@ class HermesDeliveryTests(unittest.TestCase):
                 min_retry_seconds=5,
             )
 
-        self.assertEqual(run.call_count, 1)
+        self.assertEqual(post.call_count, 1)
         sleep.assert_not_called()
-        command = run.call_args[0][0]
-        self.assertIn("--json", command)
-        self.assertNotIn("--quiet", command)
         state = json.loads(
             pathlib.Path(self.directory.name, "state.json").read_text("utf-8")
         )
@@ -83,7 +72,7 @@ class HermesDeliveryTests(unittest.TestCase):
             89,
         )
 
-        run.reset_mock()
+        post.reset_mock()
         with self.assertRaisesRegex(HermesDeliveryDeferred, "cooldown active"):
             send_hermes_message(
                 "hermes-agent",
@@ -91,12 +80,15 @@ class HermesDeliveryTests(unittest.TestCase):
                 "another message",
                 max_attempts=3,
             )
-        run.assert_not_called()
+        post.assert_not_called()
 
     @mock.patch("hermes_delivery.time.sleep")
-    @mock.patch("hermes_delivery.subprocess.run")
-    def test_retries_empty_backend_failures_instead_of_hiding_them(self, run, sleep):
-        run.side_effect = [completed(1), completed(0)]
+    @mock.patch("hermes_delivery._post_webhook")
+    def test_retries_transport_failures_instead_of_hiding_them(self, post, sleep):
+        post.side_effect = [
+            RuntimeError("Hermes webhook request failed: connection reset"),
+            {"status": "delivered"},
+        ]
 
         attempts = send_hermes_message(
             "hermes-agent",
@@ -107,14 +99,15 @@ class HermesDeliveryTests(unittest.TestCase):
         )
 
         self.assertEqual(attempts, 2)
+        self.assertEqual(post.call_count, 2)
         sleep.assert_called_once_with(7)
 
     @mock.patch("hermes_delivery.time.sleep")
-    @mock.patch("hermes_delivery.subprocess.run")
-    def test_retries_subprocess_timeouts(self, run, sleep):
-        run.side_effect = [
-            subprocess.TimeoutExpired(["hermes", "send"], 10),
-            completed(0),
+    @mock.patch("hermes_delivery._post_webhook")
+    def test_retries_webhook_timeouts(self, post, sleep):
+        post.side_effect = [
+            RuntimeError("Hermes webhook request failed: timed out"),
+            {"status": "delivered"},
         ]
 
         attempts = send_hermes_message(
@@ -130,9 +123,9 @@ class HermesDeliveryTests(unittest.TestCase):
         sleep.assert_called_once_with(6)
 
     @mock.patch("hermes_delivery.time.sleep")
-    @mock.patch("hermes_delivery.subprocess.run")
-    def test_does_not_retry_permanent_configuration_errors(self, run, sleep):
-        run.return_value = completed(1, stderr=b"unknown delivery target")
+    @mock.patch("hermes_delivery._post_webhook")
+    def test_does_not_retry_permanent_configuration_errors(self, post, sleep):
+        post.side_effect = RuntimeError("unknown delivery target")
 
         with self.assertRaisesRegex(RuntimeError, "unknown delivery target"):
             send_hermes_message(
@@ -142,24 +135,24 @@ class HermesDeliveryTests(unittest.TestCase):
                 max_attempts=4,
             )
 
-        self.assertEqual(run.call_count, 1)
+        self.assertEqual(post.call_count, 1)
         sleep.assert_not_called()
 
     @mock.patch("hermes_delivery.time.sleep")
-    @mock.patch("hermes_delivery.subprocess.run")
-    def test_serial_gate_spaces_successive_messages(self, run, sleep):
-        run.return_value = completed(0)
+    @mock.patch("hermes_delivery._post_webhook")
+    def test_serial_gate_spaces_successive_messages(self, post, sleep):
+        post.return_value = {"status": "delivered"}
 
         send_hermes_message("hermes-agent", "weixin:test", "first")
         send_hermes_message("hermes-agent", "weixin:test", "second")
 
-        self.assertEqual(run.call_count, 2)
+        self.assertEqual(post.call_count, 2)
         sleep.assert_called_once_with(5)
 
     @mock.patch("hermes_delivery.time.sleep")
-    @mock.patch("hermes_delivery.subprocess.run")
-    def test_idempotency_key_prevents_duplicate_delivery(self, run, sleep):
-        run.return_value = completed(0)
+    @mock.patch("hermes_delivery._post_webhook")
+    def test_idempotency_key_prevents_duplicate_delivery(self, post, sleep):
+        post.return_value = {"status": "delivered"}
 
         first = send_hermes_message(
             "hermes-agent",
@@ -176,7 +169,27 @@ class HermesDeliveryTests(unittest.TestCase):
 
         self.assertEqual(first, 1)
         self.assertEqual(duplicate, 0)
-        self.assertEqual(run.call_count, 1)
+        self.assertEqual(post.call_count, 1)
+        sleep.assert_not_called()
+
+    @mock.patch("hermes_delivery.time.sleep")
+    @mock.patch("hermes_delivery._post_webhook")
+    def test_webhook_rejection_opens_long_shared_cooldown(self, post, sleep):
+        post.side_effect = RuntimeError(
+            "Hermes webhook returned HTTP 502: Delivery failed"
+        )
+
+        with self.assertRaisesRegex(HermesDeliveryDeferred, "shared cooldown"):
+            send_hermes_message("hermes-agent", "weixin:test", "hello")
+
+        state = json.loads(
+            pathlib.Path(self.directory.name, "state.json").read_text("utf-8")
+        )
+        self.assertGreaterEqual(
+            state["nextAllowedEpoch"] - state["lastAttemptEpoch"],
+            21599,
+        )
+        post.assert_called_once()
         sleep.assert_not_called()
 
 
@@ -239,8 +252,9 @@ class ProactivePushHealthTests(unittest.TestCase):
 
     @mock.patch.object(server_health_monitor.time, "time", return_value=1000)
     @mock.patch.object(server_health_monitor, "send_alert")
-    def test_failed_alert_delivery_enters_a_retry_cooldown(self, send_alert, _time):
-        send_alert.side_effect = RuntimeError("rate limited")
+    def test_transport_checks_never_alert_through_the_broken_transport(
+        self, send_alert, _time
+    ):
         check = server_health_monitor.make_check(
             "proactive_push",
             "automation",
@@ -254,17 +268,45 @@ class ProactivePushHealthTests(unittest.TestCase):
                 alert_state_path=str(pathlib.Path(directory) / "state.json"),
                 repeat_alert_seconds=21600,
                 alert_failure_retry_seconds=1800,
+                warning_confirm_seconds=900,
+                critical_confirm_seconds=0,
+                send_recovery_alerts=False,
             )
             server_health_monitor.process_alerts(config, [check])
 
             state = json.loads(pathlib.Path(config.alert_state_path).read_text("utf-8"))
             stored = state["checks"]["proactive_push"]
             self.assertEqual(stored["status"], "critical")
-            self.assertEqual(stored["lastAttemptEpoch"], 1000)
-            self.assertEqual(stored["lastDeliveryError"], "rate limited")
+            self.assertEqual(stored["lastAttemptEpoch"], 0)
+            self.assertEqual(stored["lastDeliveryError"], "")
+            send_alert.assert_not_called()
 
-            send_alert.reset_mock()
+    @mock.patch.object(server_health_monitor.time, "time", return_value=1000)
+    @mock.patch.object(server_health_monitor, "send_alert")
+    def test_transient_warning_waits_for_confirmation(self, send_alert, _time):
+        check = server_health_monitor.make_check(
+            "steam_games",
+            "automation",
+            "warning",
+            "Steam 游戏档案",
+            "temporary timeout",
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = mock.Mock(
+                alert_state_path=str(pathlib.Path(directory) / "state.json"),
+                repeat_alert_seconds=21600,
+                alert_failure_retry_seconds=1800,
+                warning_confirm_seconds=900,
+                critical_confirm_seconds=300,
+                send_recovery_alerts=False,
+            )
             server_health_monitor.process_alerts(config, [check])
+
+            stored = json.loads(
+                pathlib.Path(config.alert_state_path).read_text("utf-8")
+            )["checks"]["steam_games"]
+            self.assertEqual(stored["problemSinceEpoch"], 1000)
             send_alert.assert_not_called()
 
 

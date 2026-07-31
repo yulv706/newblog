@@ -7,6 +7,20 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.11] - 2026-07-31
+
+### Fixed
+
+- Routes proactive Weixin notifications through a signed loopback webhook on
+  the resident Hermes gateway, avoiding competing one-shot iLink sessions.
+- Applies a six-hour shared protection window when the live Weixin adapter
+  rejects delivery, while retaining bounded retries for HTTP transport errors.
+- Prevents the health monitor from reporting Hermes transport failures through
+  the same broken transport and confirms transient integration failures before
+  alerting.
+- Disables routine recovery notifications by default so brief Steam or network
+  incidents do not consume the limited proactive Weixin delivery budget.
+
 ## [1.6.10] - 2026-07-29
 
 ### Changed

@@ -155,11 +155,15 @@ describe("server health monitor deployment", () => {
     expect(delivery).toContain("HERMES_RATE_LIMIT_BASE_SECONDS");
     expect(delivery).toContain("delivery.lock");
     expect(delivery).toContain("recentDeliveries");
-    expect(delivery).toContain("Do not retry a Weixin account limit");
-    expect(delivery).toContain('"--json"');
-    expect(delivery).not.toContain('"--quiet"');
+    expect(delivery).toContain("X-Webhook-Signature");
+    expect(delivery).toContain("HERMES_WEBHOOK_SECRET_FILE");
+    expect(delivery).toContain("HERMES_UPSTREAM_REJECTION_BACKOFF_SECONDS");
+    expect(delivery).not.toContain('"hermes",\n        "send"');
     expect(delivery).toContain("retrying in {}s");
     expect(delivery).toContain("time.sleep(delay)");
+    expect(script).toContain("NON_HERMES_ALERTABLE_CHECKS");
+    expect(script).toContain("HEALTH_WARNING_CONFIRM_SECONDS");
+    expect(script).toContain("HEALTH_SEND_RECOVERY_ALERTS");
     expect(readingBriefing).toContain("from hermes_delivery import send_hermes_message");
     expect(readingBriefing).toContain('"reading-report:{}".format(day)');
     expect(readingBriefing).toContain('"evening-reading:{}".format(day)');
