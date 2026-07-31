@@ -13,6 +13,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 if sys.platform == "win32":
     sys.modules["fcntl"] = mock.MagicMock()
 
+import hermes_delivery
 from hermes_delivery import HermesDeliveryDeferred, send_hermes_message
 
 HEALTH_SPEC = importlib.util.spec_from_file_location(
@@ -49,6 +50,28 @@ class HermesDeliveryTests(unittest.TestCase):
     def tearDown(self):
         self.environment.stop()
         self.directory.cleanup()
+
+    @mock.patch.object(hermes_delivery.time, "time", return_value=1000)
+    @mock.patch("hermes_delivery.urlopen")
+    def test_webhook_uses_replay_protected_hmac_v2(self, urlopen_mock, _time):
+        response = mock.Mock()
+        response.getcode.return_value = 200
+        response.read.return_value = b'{"status":"delivered"}'
+        urlopen_mock.return_value = response
+
+        result = hermes_delivery._post_webhook(
+            "http://127.0.0.1:8644/webhooks/newblog-notify",
+            "a" * 64,
+            "hello",
+            "request-id",
+            10,
+        )
+
+        request = urlopen_mock.call_args[0][0]
+        self.assertEqual(result["status"], "delivered")
+        self.assertEqual(request.get_header("X-webhook-timestamp"), "1000")
+        self.assertEqual(len(request.get_header("X-webhook-signature-v2")), 64)
+        self.assertIsNone(request.get_header("X-webhook-signature"))
 
     @mock.patch("hermes_delivery.time.sleep")
     @mock.patch("hermes_delivery._post_webhook")

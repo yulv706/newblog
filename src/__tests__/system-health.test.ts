@@ -155,7 +155,8 @@ describe("server health monitor deployment", () => {
     expect(delivery).toContain("HERMES_RATE_LIMIT_BASE_SECONDS");
     expect(delivery).toContain("delivery.lock");
     expect(delivery).toContain("recentDeliveries");
-    expect(delivery).toContain("X-Webhook-Signature");
+    expect(delivery).toContain("X-Webhook-Signature-V2");
+    expect(delivery).toContain("X-Webhook-Timestamp");
     expect(delivery).toContain("HERMES_WEBHOOK_SECRET_FILE");
     expect(delivery).toContain("HERMES_UPSTREAM_REJECTION_BACKOFF_SECONDS");
     expect(delivery).toContain("HERMES_WEIXIN_CONTEXT_DIR");

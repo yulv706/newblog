@@ -12,7 +12,8 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Routes proactive Weixin notifications through a signed loopback webhook on
-  the resident Hermes gateway, avoiding competing one-shot iLink sessions.
+  the resident Hermes gateway using replay-protected HMAC V2, avoiding
+  competing one-shot iLink sessions.
 - Applies a six-hour shared protection window when the live Weixin adapter
   rejects delivery, automatically releasing it when a new inbound Weixin
   context is observed while retaining bounded retries for HTTP transport errors.

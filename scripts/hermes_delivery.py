@@ -201,9 +201,10 @@ def _post_webhook(url, secret, message, request_id, timeout):
         ensure_ascii=False,
         separators=(",", ":"),
     ).encode("utf-8")
+    timestamp = str(int(time.time()))
     signature = hmac.new(
         secret.encode("utf-8"),
-        body,
+        timestamp.encode("ascii") + b"." + body,
         hashlib.sha256,
     ).hexdigest()
     request = Request(
@@ -211,7 +212,8 @@ def _post_webhook(url, secret, message, request_id, timeout):
         data=body,
         headers={
             "Content-Type": "application/json",
-            "X-Webhook-Signature": signature,
+            "X-Webhook-Signature-V2": signature,
+            "X-Webhook-Timestamp": timestamp,
             "X-Request-ID": request_id,
         },
         method="POST",
