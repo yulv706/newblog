@@ -7,6 +7,16 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.12] - 2026-08-02
+
+### Fixed
+
+- Adds direction-aware horizontal swipe navigation to the featured bookshelf,
+  featured game stage, and book annotation pages while preserving vertical
+  page scrolling on touch devices.
+- Keeps daily image gallery swiping available when reduced motion is enabled
+  and shares the same distance, velocity, and diagonal-gesture safeguards.
+
 ## [1.6.11] - 2026-07-31
 
 ### Fixed

@@ -22,6 +22,7 @@ import { formatPlaytime, formatRelativeGameDate, interpolateGameCopy } from "@/l
 import type { GameStatus, SteamGame } from "@/lib/games";
 import type { GamesCopy } from "@/lib/games-copy";
 import type { AppLocale } from "@/lib/i18n/config";
+import { getHorizontalSwipeDirection } from "@/lib/swipe";
 import { cn } from "@/lib/utils";
 
 const GAMES_PER_PAGE = 10;
@@ -154,10 +155,25 @@ function FeaturedStage({
   };
 
   return (
-    <section
+    <motion.section
       className="border-border/70 relative isolate min-h-[30rem] overflow-hidden border-y bg-[#10151b] text-white sm:min-h-[32rem]"
       aria-labelledby="featured-game-title"
       data-featured-game
+      onPanEnd={(_, info) => {
+        if (games.length <= 1) {
+          return;
+        }
+        const direction = getHorizontalSwipeDirection({
+          offsetX: info.offset.x,
+          offsetY: info.offset.y,
+          velocityX: info.velocity.x,
+          velocityY: info.velocity.y,
+        });
+        if (direction !== 0) {
+          move(direction);
+        }
+      }}
+      style={{ touchAction: games.length > 1 ? "pan-y" : "auto" }}
     >
       <AnimatePresence mode="sync" initial={false}>
         <motion.div
@@ -264,7 +280,7 @@ function FeaturedStage({
           </motion.div>
         </AnimatePresence>
       </div>
-    </section>
+    </motion.section>
   );
 }
 

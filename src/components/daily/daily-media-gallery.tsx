@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, Images, X } from "lucide-react";
+import { getHorizontalSwipeDirection } from "@/lib/swipe";
 import { cn } from "@/lib/utils";
 
 type DailyMediaGalleryProps = {
@@ -148,17 +149,25 @@ export function DailyMediaGallery({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.985 }}
                 transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
-                drag={safeImages.length > 1 && !reduceMotion ? "x" : false}
+                drag={safeImages.length > 1 ? "x" : false}
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.08}
+                dragMomentum={false}
                 onDragEnd={(_, info) => {
-                  if (info.offset.x > 70) {
-                    setActiveIndex((activeIndex - 1 + safeImages.length) % safeImages.length);
-                  } else if (info.offset.x < -70) {
-                    setActiveIndex((activeIndex + 1) % safeImages.length);
+                  const direction = getHorizontalSwipeDirection({
+                    offsetX: info.offset.x,
+                    offsetY: info.offset.y,
+                    velocityX: info.velocity.x,
+                    velocityY: info.velocity.y,
+                  });
+                  if (direction !== 0) {
+                    setActiveIndex(
+                      (activeIndex + direction + safeImages.length) % safeImages.length
+                    );
                   }
                 }}
                 className="relative h-full w-full"
+                style={{ touchAction: safeImages.length > 1 ? "pan-y" : "auto" }}
               >
                 <Image
                   src={safeImages[activeIndex]}

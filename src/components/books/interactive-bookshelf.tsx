@@ -23,6 +23,7 @@ import { APPLE_EASE, StaggeredItem, StaggeredList } from "@/components/ui/animat
 import type { ReadingBook, ReadingBookAnnotation, ReadingStatus } from "@/lib/books";
 import type { AppLocale } from "@/lib/i18n/config";
 import type { AppDictionary } from "@/lib/i18n/dictionaries";
+import { getHorizontalSwipeDirection } from "@/lib/swipe";
 import { cn } from "@/lib/utils";
 
 type BooksDictionary = AppDictionary["public"]["books"];
@@ -384,7 +385,24 @@ function CurrentReadingStage({
         ) : null}
       </div>
 
-      <div className="border-border/70 grid overflow-hidden border-y lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]">
+      <motion.div
+        className="border-border/70 grid overflow-hidden border-y lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]"
+        onPanEnd={(_, info) => {
+          if (books.length <= 1) {
+            return;
+          }
+          const direction = getHorizontalSwipeDirection({
+            offsetX: info.offset.x,
+            offsetY: info.offset.y,
+            velocityX: info.velocity.x,
+            velocityY: info.velocity.y,
+          });
+          if (direction !== 0) {
+            move(direction);
+          }
+        }}
+        style={{ touchAction: books.length > 1 ? "pan-y" : "auto" }}
+      >
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={`copy-${book.id}`}
@@ -523,7 +541,7 @@ function CurrentReadingStage({
             </div>
           ) : null}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
@@ -951,6 +969,23 @@ function BookDetailsDialog({
                       animate={{ opacity: 1, x: 0 }}
                       exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -14 }}
                       transition={{ duration: 0.28, ease: [...APPLE_EASE] }}
+                      onPanEnd={(_, info) => {
+                        if (totalAnnotationPages <= 1) {
+                          return;
+                        }
+                        const direction = getHorizontalSwipeDirection({
+                          offsetX: info.offset.x,
+                          offsetY: info.offset.y,
+                          velocityX: info.velocity.x,
+                          velocityY: info.velocity.y,
+                        });
+                        if (direction !== 0) {
+                          setAnnotationPage((page) =>
+                            Math.max(0, Math.min(totalAnnotationPages - 1, page + direction))
+                          );
+                        }
+                      }}
+                      style={{ touchAction: totalAnnotationPages > 1 ? "pan-y" : "auto" }}
                     >
                       {visibleAnnotations.length > 0 ? (
                         visibleAnnotations.map((annotation) => (
