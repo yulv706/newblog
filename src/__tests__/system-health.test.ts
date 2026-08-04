@@ -161,6 +161,10 @@ describe("server health monitor deployment", () => {
     expect(delivery).toContain("HERMES_UPSTREAM_REJECTION_BACKOFF_SECONDS");
     expect(delivery).toContain("HERMES_WEIXIN_CONTEXT_DIR");
     expect(delivery).toContain("context refreshed; shared cooldown released");
+    expect(delivery).toContain("requiresContextRefresh");
+    expect(delivery).toContain("ensure_hermes_delivery_ready");
+    expect(script).toContain("deliveryContextRefreshRequired");
+    expect(script).toContain("请先在微信中向 Hermes 发送一条消息以刷新会话");
     expect(delivery).not.toContain('"hermes",\n        "send"');
     expect(delivery).toContain("retrying in {}s");
     expect(delivery).toContain("time.sleep(delay)");
@@ -168,6 +172,7 @@ describe("server health monitor deployment", () => {
     expect(script).toContain("HEALTH_WARNING_CONFIRM_SECONDS");
     expect(script).toContain("HEALTH_SEND_RECOVERY_ALERTS");
     expect(readingBriefing).toContain("from hermes_delivery import send_hermes_message");
+    expect(readingBriefing).toContain("ensure_hermes_delivery_ready(logger=log)");
     expect(readingBriefing).toContain('"reading-report:{}".format(day)');
     expect(readingBriefing).toContain('"evening-reading:{}".format(day)');
     expect(registrationNotifier).toContain("from hermes_delivery import send_hermes_message");

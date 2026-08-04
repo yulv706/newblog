@@ -21,7 +21,7 @@ import time
 import urllib.error
 import urllib.request
 
-from hermes_delivery import send_hermes_message
+from hermes_delivery import delivery_gate_status, send_hermes_message
 
 
 STATUS_RANK = {
@@ -956,6 +956,8 @@ def check_proactive_push(config):
     report_service = systemd_unit_state("newblog-weread-sync.service")
     evening_service = systemd_unit_state("newblog-evening-reading.service")
     delivery_gate = read_json(config.hermes_delivery_state_path, {})
+    delivery_context = delivery_gate_status(delivery_gate)
+    context_refresh_required = delivery_context.get("contextRefreshRequired", False)
     delivery_gate_next_epoch = float(delivery_gate.get("nextAllowedEpoch") or 0)
     delivery_gate_cooling_down = delivery_gate_next_epoch > time.time()
     delivery_gate_wait_seconds = max(
@@ -988,7 +990,11 @@ def check_proactive_push(config):
                 expected_evening_date, evening_date or "无"
             )
         )
-    if delivery_gate_cooling_down and delivery_gate.get("rateLimitStrikes"):
+    if context_refresh_required:
+        problems.append(
+            "微信主动发送会话已失效，请先在微信中向 Hermes 发送一条消息以刷新会话"
+        )
+    elif delivery_gate_cooling_down and delivery_gate.get("rateLimitStrikes"):
         problems.append(
             "微信发送正在保护性退避，预计 {} 秒后恢复尝试".format(
                 delivery_gate_wait_seconds
@@ -1030,6 +1036,10 @@ def check_proactive_push(config):
             "deliveryGateLastRateLimitAt": delivery_gate.get("lastRateLimitAt"),
             "deliveryGateRateLimitStrikes": delivery_gate.get(
                 "rateLimitStrikes", 0
+            ),
+            "deliveryContextRefreshRequired": context_refresh_required,
+            "deliveryContextRefreshedSinceBlock": delivery_context.get(
+                "contextRefreshedSinceBlock", False
             ),
         },
     )

@@ -220,6 +220,16 @@ class HermesDeliveryTests(unittest.TestCase):
         post.assert_called_once()
         sleep.assert_not_called()
 
+        state["nextAllowedEpoch"] = 0
+        pathlib.Path(self.directory.name, "state.json").write_text(
+            json.dumps(state), encoding="utf-8"
+        )
+        with self.assertRaisesRegex(
+            HermesDeliveryDeferred, "context has not refreshed"
+        ):
+            send_hermes_message("hermes-agent", "weixin:test", "still blocked")
+        post.assert_called_once()
+
     @mock.patch("hermes_delivery.time.sleep")
     @mock.patch("hermes_delivery._post_webhook")
     def test_new_inbound_context_releases_shared_cooldown(self, post, sleep):

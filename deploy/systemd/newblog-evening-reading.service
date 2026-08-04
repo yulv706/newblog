@@ -13,6 +13,7 @@ EnvironmentFile=/etc/newblog-reading-briefing.env
 ExecStart=/usr/bin/python3 /root/workspace/newblog/scripts/reading-briefing.py evening
 TimeoutStartSec=8min
 Restart=on-failure
+RestartPreventExitStatus=75
 RestartSec=10min
 Nice=10
 IOSchedulingClass=best-effort

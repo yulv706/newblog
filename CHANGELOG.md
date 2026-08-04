@@ -7,6 +7,17 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Keeps proactive Weixin delivery blocked after an upstream iLink rejection
+  until a genuinely refreshed inbound context is available, preventing repeated
+  sends against the same invalid session.
+- Checks the shared delivery gate before invoking Hermes message generation and
+  prevents systemd from restarting safely deferred reading jobs every ten
+  minutes.
+- Reports an actionable Weixin session-refresh requirement in system health
+  while continuing the underlying WeRead synchronization normally.
+
 ## [1.6.12] - 2026-08-02
 
 ### Fixed

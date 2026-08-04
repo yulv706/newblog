@@ -19,6 +19,7 @@ describe("reading briefing deployment", () => {
     expect(service).toContain("EnvironmentFile=/etc/newblog-reading-briefing.env");
     expect(service).toContain("reading-briefing.py sync-report");
     expect(service).toContain("Restart=on-failure");
+    expect(service).toContain("RestartPreventExitStatus=75");
     expect(service).toContain("RestartSec=10min");
   });
 
@@ -30,6 +31,7 @@ describe("reading briefing deployment", () => {
     expect(timer).toContain("Persistent=true");
     expect(service).toContain("reading-briefing.py evening");
     expect(service).toContain("Restart=on-failure");
+    expect(service).toContain("RestartPreventExitStatus=75");
   });
 
   it("keeps model generation bounded and provides non-model fallbacks", () => {

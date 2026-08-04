@@ -136,6 +136,99 @@ def _context_token_fingerprint():
     return hashlib.sha256("\n".join(entries).encode("utf-8")).hexdigest()
 
 
+def _context_refresh_required(state, context_fingerprint):
+    requires_refresh = state.get("requiresContextRefresh")
+    if requires_refresh is None:
+        requires_refresh = bool(
+            state.get("rateLimitStrikes")
+            and _is_upstream_rejection(str(state.get("lastError") or ""))
+        )
+    if not requires_refresh:
+        return False
+    blocked_fingerprint = str(state.get("blockedContextFingerprint") or "")
+    if not blocked_fingerprint:
+        return True
+    return not context_fingerprint or blocked_fingerprint == context_fingerprint
+
+
+def _release_refreshed_context(state, context_fingerprint, logger=None):
+    blocked_fingerprint = str(state.get("blockedContextFingerprint") or "")
+    if not state.get("rateLimitStrikes") or not context_fingerprint:
+        return False
+    if blocked_fingerprint and blocked_fingerprint != context_fingerprint:
+        state["rateLimitStrikes"] = 0
+        state["nextAllowedEpoch"] = 0
+        state["requiresContextRefresh"] = False
+        state["lastError"] = ""
+        state["lastErrorAt"] = ""
+        state["blockedContextFingerprint"] = ""
+        if logger:
+            logger("Hermes Weixin context refreshed; shared cooldown released")
+        return True
+    if not blocked_fingerprint:
+        state["blockedContextFingerprint"] = context_fingerprint
+        return True
+    return False
+
+
+def delivery_gate_status(state=None):
+    if state is None:
+        _, state_path = _delivery_paths()
+        state = _read_json(state_path, {})
+    context_fingerprint = _context_token_fingerprint()
+    blocked_fingerprint = str(state.get("blockedContextFingerprint") or "")
+    return {
+        "contextRefreshRequired": _context_refresh_required(
+            state, context_fingerprint
+        ),
+        "contextRefreshedSinceBlock": bool(
+            blocked_fingerprint
+            and context_fingerprint
+            and blocked_fingerprint != context_fingerprint
+        ),
+    }
+
+
+def ensure_hermes_delivery_ready(logger=None):
+    """Fail fast before expensive message generation when delivery is blocked."""
+    lock_timeout = _env_int(
+        "HERMES_DELIVERY_LOCK_TIMEOUT_SECONDS", 90, minimum=5, maximum=600
+    )
+    min_send_interval = _env_int(
+        "HERMES_MIN_SEND_INTERVAL_SECONDS", 45, minimum=5, maximum=300
+    )
+    lock_path, state_path = _delivery_paths()
+    os.makedirs(os.path.dirname(lock_path), mode=0o700, exist_ok=True)
+    lock_handle = open(lock_path, "a+")
+    try:
+        _acquire_lock(lock_handle, lock_timeout)
+        state = _read_json(state_path, {})
+        context_fingerprint = _context_token_fingerprint()
+        if _release_refreshed_context(state, context_fingerprint, logger=logger):
+            _atomic_write_json(state_path, state)
+        if _context_refresh_required(state, context_fingerprint):
+            raise HermesDeliveryDeferred(
+                "Hermes Weixin context has not refreshed since upstream rejection; "
+                "delivery deferred"
+            )
+        now_epoch = time.time()
+        next_allowed_epoch = max(
+            float(state.get("nextAllowedEpoch") or 0),
+            float(state.get("lastSuccessEpoch") or 0) + min_send_interval,
+        )
+        wait_seconds = max(0, int(math.ceil(next_allowed_epoch - now_epoch)))
+        if wait_seconds:
+            raise HermesDeliveryDeferred(
+                "Hermes account cooldown active for {}s; delivery deferred".format(
+                    wait_seconds
+                )
+            )
+        return delivery_gate_status(state)
+    finally:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+        lock_handle.close()
+
+
 def _retry_delay(detail, minimum_seconds):
     match = re.search(
         r"(?:cooldown active for|retry(?:ing)? after)\s+([0-9]+(?:\.[0-9]+)?)s",
@@ -360,22 +453,8 @@ def send_hermes_message(
         state = _read_json(state_path, {})
         now_epoch = time.time()
         context_fingerprint = _context_token_fingerprint()
-        blocked_fingerprint = str(state.get("blockedContextFingerprint") or "")
-        if state.get("rateLimitStrikes") and context_fingerprint:
-            if blocked_fingerprint and blocked_fingerprint != context_fingerprint:
-                state["rateLimitStrikes"] = 0
-                state["nextAllowedEpoch"] = 0
-                state["lastError"] = ""
-                state["lastErrorAt"] = ""
-                state["blockedContextFingerprint"] = ""
-                if logger:
-                    logger(
-                        "Hermes Weixin context refreshed; shared cooldown released"
-                    )
-                _atomic_write_json(state_path, state)
-            elif not blocked_fingerprint:
-                state["blockedContextFingerprint"] = context_fingerprint
-                _atomic_write_json(state_path, state)
+        if _release_refreshed_context(state, context_fingerprint, logger=logger):
+            _atomic_write_json(state_path, state)
         deliveries = _prune_deliveries(
             state.get("recentDeliveries"),
             now_epoch,
@@ -392,6 +471,12 @@ def send_hermes_message(
                     )
                 )
             return 0
+
+        if _context_refresh_required(state, context_fingerprint):
+            raise HermesDeliveryDeferred(
+                "Hermes Weixin context has not refreshed since upstream rejection; "
+                "delivery deferred"
+            )
 
         next_allowed_epoch = max(
             float(state.get("nextAllowedEpoch") or 0),
@@ -435,6 +520,7 @@ def send_hermes_message(
                         "lastSuccessAt": _utc_now(),
                         "nextAllowedEpoch": now_epoch + min_send_interval,
                         "rateLimitStrikes": 0,
+                        "requiresContextRefresh": False,
                         "blockedContextFingerprint": "",
                         "lastError": "",
                         "lastErrorAt": "",
@@ -451,7 +537,8 @@ def send_hermes_message(
             if _is_rate_limited(detail) or _is_upstream_rejection(detail):
                 strikes = min(6, int(state.get("rateLimitStrikes") or 0) + 1)
                 reported_delay = _retry_delay(detail, rate_limit_base)
-                if _is_upstream_rejection(detail):
+                upstream_rejection = _is_upstream_rejection(detail)
+                if upstream_rejection:
                     backoff = upstream_rejection_backoff
                 else:
                     backoff = min(
@@ -462,6 +549,9 @@ def send_hermes_message(
                 state["nextAllowedEpoch"] = time.time() + backoff
                 state["lastRateLimitAt"] = _utc_now()
                 state["blockedContextFingerprint"] = context_fingerprint
+                state["requiresContextRefresh"] = bool(
+                    state.get("requiresContextRefresh") or upstream_rejection
+                )
                 _atomic_write_json(state_path, state)
                 if logger:
                     logger(

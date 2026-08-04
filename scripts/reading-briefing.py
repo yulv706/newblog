@@ -16,6 +16,7 @@ import sys
 import tempfile
 
 from hermes_delivery import send_hermes_message
+from hermes_delivery import HermesDeliveryDeferred, ensure_hermes_delivery_ready
 
 
 def utc_now():
@@ -529,6 +530,8 @@ def handle_sync_report(config, force=False, no_send=False):
         atomic_write_json(config.snapshot_path, after)
         atomic_write_json(daily_path, activity)
 
+    if not no_send:
+        ensure_hermes_delivery_ready(logger=log)
     message = generate_message(
         config,
         reading_prompt(activity),
@@ -567,6 +570,8 @@ def handle_evening(config, force=False, no_send=False):
             "counts": {},
         },
     )
+    if not no_send:
+        ensure_hermes_delivery_ready(logger=log)
     message = generate_message(
         config,
         evening_prompt(activity),
@@ -632,6 +637,9 @@ def main():
 if __name__ == "__main__":
     try:
         sys.exit(main())
+    except HermesDeliveryDeferred as exc:
+        log("delivery deferred: {}".format(compact(exc, 500)))
+        sys.exit(75)
     except Exception as exc:
         log("fatal: {}".format(compact(exc, 500)))
         sys.exit(1)
