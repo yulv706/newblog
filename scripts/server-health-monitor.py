@@ -931,9 +931,13 @@ def unit_failed(state):
 
 def unit_deferred(state):
     try:
-        return int(state.get("ExecMainStatus") or 0) == 75
+        exit_status = int(state.get("ExecMainStatus") or 0)
     except (TypeError, ValueError):
         return False
+    result = state.get("Result") or ""
+    return exit_status == 75 and (
+        state.get("ActiveState") == "failed" or result not in ("", "success")
+    )
 
 
 def check_proactive_push(config):

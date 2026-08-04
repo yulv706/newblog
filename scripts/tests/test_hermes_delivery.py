@@ -335,6 +335,15 @@ class ProactivePushHealthTests(unittest.TestCase):
                 }
             )
         )
+        self.assertFalse(
+            server_health_monitor.unit_deferred(
+                {
+                    "ActiveState": "inactive",
+                    "Result": "success",
+                    "ExecMainStatus": "75",
+                }
+            )
+        )
 
     @mock.patch.object(server_health_monitor.time, "time", return_value=1000)
     @mock.patch.object(server_health_monitor, "send_alert")
