@@ -921,11 +921,19 @@ def unit_failed(state):
         exit_status = int(state.get("ExecMainStatus") or 0)
     except (TypeError, ValueError):
         exit_status = 1
+    result = state.get("Result") or ""
     return (
         state.get("ActiveState") == "failed"
-        or state.get("Result") not in ("", "success")
-        or exit_status != 0
+        or result not in ("", "success")
+        or (exit_status != 0 and result != "success")
     )
+
+
+def unit_deferred(state):
+    try:
+        return int(state.get("ExecMainStatus") or 0) == 75
+    except (TypeError, ValueError):
+        return False
 
 
 def check_proactive_push(config):
@@ -966,13 +974,17 @@ def check_proactive_push(config):
     problems = []
     if not report_timer or not evening_timer:
         problems.append("一个或多个主动推送定时器未运行")
-    if unit_failed(report_service):
+    if unit_deferred(report_service):
+        problems.append("最近一次 18:00 阅读汇报已安全延期，等待微信会话刷新")
+    elif unit_failed(report_service):
         problems.append(
             "最近一次 18:00 阅读汇报执行失败（{}）".format(
                 report_service.get("Result") or "unknown"
             )
         )
-    if unit_failed(evening_service):
+    if unit_deferred(evening_service):
+        problems.append("最近一次 23:00 晚间消息已安全延期，等待微信会话刷新")
+    elif unit_failed(evening_service):
         problems.append(
             "最近一次 23:00 晚间消息执行失败（{}）".format(
                 evening_service.get("Result") or "unknown"
@@ -1007,6 +1019,8 @@ def check_proactive_push(config):
             or not delivery_is_fresh(evening_date, expected_evening_date)
             or unit_failed(report_service)
             or unit_failed(evening_service)
+            or unit_deferred(report_service)
+            or unit_deferred(evening_service)
         )
         status = "critical" if delivery_missing else "warning"
         summary = "；".join(problems)
