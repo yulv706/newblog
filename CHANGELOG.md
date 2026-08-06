@@ -7,6 +7,15 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Routes scheduled reading briefings, registration notifications, and server
+  health alerts through SMTP email as the reliable primary channel, while
+  retaining Weixin as a bounded best-effort companion channel.
+- Records email and Weixin delivery results separately so a Weixin iLink
+  rate-limit or stale session no longer makes a successfully delivered email
+  appear to be a failed reading task.
+
 ### Fixed
 
 - Keeps proactive Weixin delivery blocked after an upstream iLink rejection

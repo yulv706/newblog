@@ -1,5 +1,5 @@
 [Unit]
-Description=Send a nightly reading reflection through Hermes Weixin
+Description=Send a nightly email-primary reading reflection
 Wants=docker.service network-online.target
 After=docker.service network-online.target
 StartLimitIntervalSec=45min

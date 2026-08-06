@@ -17,6 +17,7 @@ import tempfile
 
 from hermes_delivery import send_hermes_message
 from hermes_delivery import HermesDeliveryDeferred, ensure_hermes_delivery_ready
+from email_delivery import EmailDeliveryError, send_email
 
 
 def utc_now():
@@ -73,6 +74,9 @@ class BriefingConfig(object):
         self.db_path = os.environ.get("NEWBLOG_DB_PATH", "").strip()
         self.container = os.environ.get("HERMES_CONTAINER", "hermes-agent").strip()
         self.target = os.environ.get("HERMES_WEIXIN_TARGET", "").strip()
+        self.email_env_file = os.environ.get(
+            "PROACTIVE_EMAIL_ENV_FILE", ""
+        ).strip()
         self.state_dir = os.environ.get(
             "READING_BRIEFING_STATE_DIR",
             "/var/lib/newblog-reading-briefing",
@@ -96,11 +100,18 @@ class BriefingConfig(object):
         self.send_retry_seconds = max(
             1, int(os.environ.get("HERMES_SEND_RETRY_SECONDS", "35"))
         )
+        self.email_timeout = max(
+            10, int(os.environ.get("PROACTIVE_EMAIL_TIMEOUT_SECONDS", "30"))
+        )
+        self.email_attempts = max(
+            1, int(os.environ.get("PROACTIVE_EMAIL_MAX_ATTEMPTS", "3"))
+        )
+        self.email_retry_seconds = max(
+            1, int(os.environ.get("PROACTIVE_EMAIL_RETRY_SECONDS", "20"))
+        )
 
         if not self.db_path:
             raise RuntimeError("NEWBLOG_DB_PATH is required")
-        if not self.target.startswith("weixin:"):
-            raise RuntimeError("HERMES_WEIXIN_TARGET must be a Weixin target")
         if not self.sync_command:
             raise RuntimeError("READING_BRIEFING_SYNC_COMMAND is required")
 
@@ -356,6 +367,8 @@ def run_hermes(config, prompt):
 
 
 def send_message(config, message, idempotency_key=None):
+    if not config.target.startswith("weixin:"):
+        raise RuntimeError("HERMES_WEIXIN_TARGET is not configured")
     return send_hermes_message(
         config.container,
         config.target,
@@ -366,6 +379,84 @@ def send_message(config, message, idempotency_key=None):
         logger=log,
         idempotency_key=idempotency_key,
     )
+
+
+def record_delivery(config, values):
+    state = delivery_state(config)
+    state.update(values)
+    state["updatedAt"] = utc_now()
+    atomic_write_json(config.delivery_path, state)
+
+
+def deliver_message(
+    config,
+    message,
+    subject,
+    idempotency_key,
+    state_key=None,
+    day=None,
+):
+    """Deliver by email first; attempt Weixin only after email is accepted."""
+
+    email_attempt = send_email(
+        subject,
+        message,
+        idempotency_key=idempotency_key,
+        env_file=config.email_env_file or None,
+        timeout=config.email_timeout,
+        max_attempts=config.email_attempts,
+        retry_seconds=config.email_retry_seconds,
+        logger=log,
+    )
+    email_at = utc_now()
+    if state_key and day:
+        record_delivery(
+            config,
+            {
+                state_key: day,
+                "{}EmailAt".format(state_key[:-4] if state_key.endswith("Date") else state_key): email_at,
+                "{}EmailAttempts".format(state_key[:-4] if state_key.endswith("Date") else state_key): email_attempt,
+            },
+        )
+
+    weixin_state_key = state_key[:-4] if state_key and state_key.endswith("Date") else state_key
+    if not config.target.startswith("weixin:"):
+        log("Weixin best-effort delivery skipped; no Weixin target configured")
+        if weixin_state_key:
+            record_delivery(
+                config,
+                {
+                    "{}WeixinStatus".format(weixin_state_key): "skipped",
+                    "{}WeixinError".format(weixin_state_key): "",
+                },
+            )
+        return email_attempt
+
+    try:
+        ensure_hermes_delivery_ready(logger=log)
+        send_message(config, message, idempotency_key=idempotency_key)
+        if weixin_state_key:
+            record_delivery(
+                config,
+                {
+                    "{}WeixinAt".format(weixin_state_key): utc_now(),
+                    "{}WeixinStatus".format(weixin_state_key): "delivered",
+                    "{}WeixinError".format(weixin_state_key): "",
+                },
+            )
+        log("Weixin best-effort delivery completed")
+    except Exception as exc:
+        error = compact(exc, 500)
+        log("Weixin best-effort delivery failed; email remains primary: {}".format(error))
+        if weixin_state_key:
+            record_delivery(
+                config,
+                {
+                    "{}WeixinStatus".format(weixin_state_key): "failed",
+                    "{}WeixinError".format(weixin_state_key): error,
+                },
+            )
+    return email_attempt
 
 
 def reading_prompt(activity):
@@ -515,13 +606,14 @@ def handle_sync_report(config, force=False, no_send=False):
             log("WeRead sync failed: {}".format(compact(exc, 500)))
             if not no_send:
                 try:
-                    send_message(
+                    deliver_message(
                         config,
                         "今天的书架同步没有顺利完成，所以暂时不能给你一份准确的阅读小结。"
                         "我已经把错误记下来了，下次会继续重试。",
+                        subject="读写札记 · 微信读书同步失败",
                         idempotency_key="weread-sync-failure:{}".format(day),
                     )
-                except Exception as send_error:
+                except EmailDeliveryError as send_error:
                     log("sync failure notification failed: {}".format(send_error))
             raise
 
@@ -530,8 +622,6 @@ def handle_sync_report(config, force=False, no_send=False):
         atomic_write_json(config.snapshot_path, after)
         atomic_write_json(daily_path, activity)
 
-    if not no_send:
-        ensure_hermes_delivery_ready(logger=log)
     message = generate_message(
         config,
         reading_prompt(activity),
@@ -540,15 +630,17 @@ def handle_sync_report(config, force=False, no_send=False):
     if no_send:
         print(message)
         return
-    send_message(
+    deliver_message(
         config,
         message,
+        subject="读写札记 · 今日阅读汇报",
         idempotency_key=(
             None if force else "reading-report:{}".format(day)
         ),
+        state_key="readingReportDate",
+        day=day,
     )
-    mark_delivered(config, "readingReportDate", day)
-    log("reading report delivered for {}".format(day))
+    log("reading report email delivered for {}; Weixin best-effort attempted".format(day))
 
 
 def handle_evening(config, force=False, no_send=False):
@@ -570,8 +662,6 @@ def handle_evening(config, force=False, no_send=False):
             "counts": {},
         },
     )
-    if not no_send:
-        ensure_hermes_delivery_ready(logger=log)
     message = generate_message(
         config,
         evening_prompt(activity),
@@ -580,15 +670,17 @@ def handle_evening(config, force=False, no_send=False):
     if no_send:
         print(message)
         return
-    send_message(
+    deliver_message(
         config,
         message,
+        subject="读写札记 · 今晚的阅读与书单",
         idempotency_key=(
             None if force else "evening-reading:{}".format(day)
         ),
+        state_key="eveningMessageDate",
+        day=day,
     )
-    mark_delivered(config, "eveningMessageDate", day)
-    log("evening message delivered for {}".format(day))
+    log("evening email delivered for {}; Weixin best-effort attempted".format(day))
 
 
 def parse_args():

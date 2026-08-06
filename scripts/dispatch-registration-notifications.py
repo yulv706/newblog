@@ -11,6 +11,7 @@ import sys
 import time
 
 from hermes_delivery import send_hermes_message
+from email_delivery import send_email
 
 
 RUNNING = True
@@ -39,6 +40,9 @@ class RegistrationNotifier(object):
         self.db_path = os.environ.get("NEWBLOG_DB_PATH", "").strip()
         self.container = os.environ.get("HERMES_CONTAINER", "hermes-agent").strip()
         self.target = os.environ.get("HERMES_WEIXIN_TARGET", "").strip()
+        self.email_env_file = os.environ.get(
+            "PROACTIVE_EMAIL_ENV_FILE", ""
+        ).strip()
         self.poll_seconds = max(
             2, int(os.environ.get("NOTIFIER_POLL_SECONDS", "5"))
         )
@@ -54,11 +58,18 @@ class RegistrationNotifier(object):
         self.send_retry_seconds = max(
             1, int(os.environ.get("HERMES_SEND_RETRY_SECONDS", "35"))
         )
+        self.email_timeout = max(
+            10, int(os.environ.get("PROACTIVE_EMAIL_TIMEOUT_SECONDS", "30"))
+        )
+        self.email_attempts = max(
+            1, int(os.environ.get("PROACTIVE_EMAIL_MAX_ATTEMPTS", "3"))
+        )
+        self.email_retry_seconds = max(
+            1, int(os.environ.get("PROACTIVE_EMAIL_RETRY_SECONDS", "20"))
+        )
 
         if not self.db_path:
             raise RuntimeError("NEWBLOG_DB_PATH is required")
-        if not self.target.startswith("weixin:"):
-            raise RuntimeError("HERMES_WEIXIN_TARGET must be a Weixin target")
 
     def connect(self):
         connection = sqlite3.connect(self.db_path, timeout=10)
@@ -173,17 +184,38 @@ class RegistrationNotifier(object):
             "用户 ID：{user_id}\n\n"
             "你可以回复我查询用户列表，或在明确确认后调整该用户的角色与状态。"
         ).format(**row)
-        return send_hermes_message(
-            self.container,
-            self.target,
+        idempotency_key = "registration:{}".format(row["id"])
+        send_email(
+            "读写札记 · 新用户注册",
             message,
-            subject="博客新用户注册",
-            timeout=self.command_timeout,
-            max_attempts=self.send_attempts,
-            min_retry_seconds=self.send_retry_seconds,
+            idempotency_key=idempotency_key,
+            env_file=self.email_env_file or None,
+            timeout=self.email_timeout,
+            max_attempts=self.email_attempts,
+            retry_seconds=self.email_retry_seconds,
             logger=log,
-            idempotency_key="registration:{}".format(row["id"]),
         )
+        if not self.target.startswith("weixin:"):
+            log("registration Weixin delivery skipped; email is primary")
+            return
+        try:
+            send_hermes_message(
+                self.container,
+                self.target,
+                message,
+                subject="博客新用户注册",
+                timeout=self.command_timeout,
+                max_attempts=self.send_attempts,
+                min_retry_seconds=self.send_retry_seconds,
+                logger=log,
+                idempotency_key=idempotency_key,
+            )
+        except Exception as exc:
+            log(
+                "registration Weixin best-effort delivery failed; email was sent: {}".format(
+                    str(exc)[:300]
+                )
+            )
 
     def run(self):
         connection = self.connect()

@@ -347,7 +347,7 @@ class ProactivePushHealthTests(unittest.TestCase):
 
     @mock.patch.object(server_health_monitor.time, "time", return_value=1000)
     @mock.patch.object(server_health_monitor, "send_alert")
-    def test_transport_checks_never_alert_through_the_broken_transport(
+    def test_transport_checks_alert_by_email_even_when_weixin_is_broken(
         self, send_alert, _time
     ):
         check = server_health_monitor.make_check(
@@ -372,9 +372,10 @@ class ProactivePushHealthTests(unittest.TestCase):
             state = json.loads(pathlib.Path(config.alert_state_path).read_text("utf-8"))
             stored = state["checks"]["proactive_push"]
             self.assertEqual(stored["status"], "critical")
-            self.assertEqual(stored["lastAttemptEpoch"], 0)
+            self.assertEqual(stored["lastAttemptEpoch"], 1000)
             self.assertEqual(stored["lastDeliveryError"], "")
-            send_alert.assert_not_called()
+            send_alert.assert_called_once()
+            self.assertFalse(send_alert.call_args.kwargs["allow_weixin"])
 
     @mock.patch.object(server_health_monitor.time, "time", return_value=1000)
     @mock.patch.object(server_health_monitor, "send_alert")

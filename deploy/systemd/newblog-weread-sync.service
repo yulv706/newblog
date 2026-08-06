@@ -1,5 +1,5 @@
 [Unit]
-Description=Synchronize WeRead and send the daily reading briefing
+Description=Synchronize WeRead and send the daily email-primary reading briefing
 Wants=docker.service network-online.target
 After=docker.service network-online.target
 StartLimitIntervalSec=45min

@@ -164,7 +164,10 @@ describe("server health monitor deployment", () => {
     expect(delivery).toContain("requiresContextRefresh");
     expect(delivery).toContain("ensure_hermes_delivery_ready");
     expect(script).toContain("deliveryContextRefreshRequired");
-    expect(script).toContain("请先在微信中向 Hermes 发送一条消息以刷新会话");
+    expect(script).toContain("微信尽力推送会话待刷新");
+    expect(script).toContain("emailPrimary");
+    expect(script).toContain("send_email");
+    expect(script).toContain("allow_weixin");
     expect(delivery).not.toContain('"hermes",\n        "send"');
     expect(delivery).toContain("retrying in {}s");
     expect(delivery).toContain("time.sleep(delay)");
@@ -177,8 +180,9 @@ describe("server health monitor deployment", () => {
     expect(readingBriefing).toContain('"evening-reading:{}".format(day)');
     expect(registrationNotifier).toContain("from hermes_delivery import send_hermes_message");
     expect(registrationNotifier).toContain(
-      'idempotency_key="registration:{}".format(row["id"])',
+      'idempotency_key = "registration:{}".format(row["id"])',
     );
+    expect(registrationNotifier).toContain("send_email(");
   });
 
   it("shows the Steam archive as a first-class monitored integration", () => {

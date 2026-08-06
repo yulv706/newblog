@@ -22,6 +22,7 @@ import urllib.error
 import urllib.request
 
 from hermes_delivery import delivery_gate_status, send_hermes_message
+from email_delivery import send_email
 
 
 STATUS_RANK = {
@@ -189,6 +190,19 @@ class MonitorConfig(object):
             "HERMES_CONTAINER", "hermes-agent"
         ).strip()
         self.weixin_target = os.environ.get("HERMES_WEIXIN_TARGET", "").strip()
+        self.email_env_file = os.environ.get(
+            "PROACTIVE_EMAIL_ENV_FILE",
+            os.path.join(self.repo_root, "deploy", ".env.production"),
+        ).strip()
+        self.email_timeout = max(
+            10, int(os.environ.get("PROACTIVE_EMAIL_TIMEOUT_SECONDS", "30"))
+        )
+        self.email_attempts = max(
+            1, int(os.environ.get("PROACTIVE_EMAIL_MAX_ATTEMPTS", "3"))
+        )
+        self.email_retry_seconds = max(
+            1, int(os.environ.get("PROACTIVE_EMAIL_RETRY_SECONDS", "20"))
+        )
         self.repeat_alert_seconds = max(
             3600, int(os.environ.get("HEALTH_ALERT_REPEAT_SECONDS", "21600"))
         )
@@ -239,10 +253,6 @@ class MonitorConfig(object):
         self.send_retry_seconds = max(
             1, int(os.environ.get("HERMES_SEND_RETRY_SECONDS", "35"))
         )
-
-        if not self.weixin_target.startswith("weixin:"):
-            raise RuntimeError("HERMES_WEIXIN_TARGET must be configured")
-
 
 def check_container(name, require_health=False):
     try:
@@ -384,11 +394,24 @@ def smtp_check(config):
             metrics={"cached": True},
         )
 
-    env = parse_env_file(config.deploy_env_path)
+    env = parse_env_file(config.email_env_file)
+    for key in (
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_SECURE",
+        "SMTP_REQUIRE_TLS",
+        "SMTP_USER",
+        "SMTP_PASSWORD",
+        "SMTP_FROM",
+        "PROACTIVE_EMAIL_TO",
+    ):
+        if key in os.environ:
+            env[key] = os.environ.get(key, "")
     host = env.get("SMTP_HOST", "").strip()
     user = env.get("SMTP_USER", "").strip()
     password = env.get("SMTP_PASSWORD", "").strip()
     from_address = env.get("SMTP_FROM", "").strip()
+    recipient = env.get("PROACTIVE_EMAIL_TO", "").strip()
     try:
         port = int(env.get("SMTP_PORT", "587"))
     except ValueError:
@@ -401,7 +424,13 @@ def smtp_check(config):
         "on",
     )
 
-    if not host or not from_address or port <= 0 or bool(user) != bool(password):
+    if (
+        not host
+        or not from_address
+        or not recipient
+        or port <= 0
+        or bool(user) != bool(password)
+    ):
         status = "critical"
         summary = "SMTP 配置不完整"
     else:
@@ -975,62 +1004,74 @@ def check_proactive_push(config):
     delivery_gate_wait_seconds = max(
         0, int(delivery_gate_next_epoch - time.time())
     )
+    report_fresh = delivery_is_fresh(report_date, expected_report_date)
+    evening_fresh = delivery_is_fresh(evening_date, expected_evening_date)
     problems = []
     if not report_timer or not evening_timer:
         problems.append("一个或多个主动推送定时器未运行")
-    if unit_deferred(report_service):
-        problems.append("最近一次 18:00 阅读汇报已安全延期，等待微信会话刷新")
+    if unit_deferred(report_service) and not report_fresh:
+        problems.append("最近一次 18:00 阅读汇报已延期，邮件主通道尚未完成")
     elif unit_failed(report_service):
         problems.append(
             "最近一次 18:00 阅读汇报执行失败（{}）".format(
                 report_service.get("Result") or "unknown"
             )
         )
-    if unit_deferred(evening_service):
-        problems.append("最近一次 23:00 晚间消息已安全延期，等待微信会话刷新")
+    if unit_deferred(evening_service) and not evening_fresh:
+        problems.append("最近一次 23:00 晚间消息已延期，邮件主通道尚未完成")
     elif unit_failed(evening_service):
         problems.append(
             "最近一次 23:00 晚间消息执行失败（{}）".format(
                 evening_service.get("Result") or "unknown"
             )
         )
-    if not delivery_is_fresh(report_date, expected_report_date):
+    if not report_fresh:
         problems.append(
             "阅读汇报未送达应有日期 {}（最近 {}）".format(
                 expected_report_date, report_date or "无"
             )
         )
-    if not delivery_is_fresh(evening_date, expected_evening_date):
+    if not evening_fresh:
         problems.append(
             "晚间消息未送达应有日期 {}（最近 {}）".format(
                 expected_evening_date, evening_date or "无"
             )
         )
+    weixin_warnings = []
     if context_refresh_required:
-        problems.append(
-            "微信主动发送会话已失效，请先在微信中向 Hermes 发送一条消息以刷新会话"
+        weixin_warnings.append(
+            "微信尽力推送会话待刷新，请先在微信中向 Hermes 发送一条消息"
         )
     elif delivery_gate_cooling_down and delivery_gate.get("rateLimitStrikes"):
-        problems.append(
+        weixin_warnings.append(
             "微信发送正在保护性退避，预计 {} 秒后恢复尝试".format(
                 delivery_gate_wait_seconds
             )
         )
+    for prefix in ("readingReport", "eveningMessage"):
+        if delivery.get("{}WeixinStatus".format(prefix)) == "failed":
+            weixin_warnings.append(
+                "{}微信尽力推送失败：{}".format(
+                    "18:00 阅读汇报" if prefix == "readingReport" else "23:00 晚间消息",
+                    compact(delivery.get("{}WeixinError".format(prefix), ""), 180),
+                )
+            )
+    problems.extend(weixin_warnings)
 
     if problems:
         delivery_missing = (
-            not delivery_is_fresh(report_date, expected_report_date)
-            or not delivery_is_fresh(evening_date, expected_evening_date)
+            not report_fresh
+            or not evening_fresh
             or unit_failed(report_service)
             or unit_failed(evening_service)
-            or unit_deferred(report_service)
-            or unit_deferred(evening_service)
+            or (unit_deferred(report_service) and not report_fresh)
+            or (unit_deferred(evening_service) and not evening_fresh)
         )
         status = "critical" if delivery_missing else "warning"
         summary = "；".join(problems)
     else:
         status = "healthy"
-        summary = "18:00 与 23:00 主动推送均已按期送达"
+        summary = "邮件主通道已按期送达；微信为尽力推送"
     return make_check(
         "proactive_push",
         "automation",
@@ -1042,6 +1083,12 @@ def check_proactive_push(config):
             "eveningTimerActive": evening_timer,
             "lastReadingReportDate": report_date,
             "lastEveningMessageDate": evening_date,
+            "lastReadingReportEmailAt": delivery.get("readingReportEmailAt"),
+            "lastEveningMessageEmailAt": delivery.get("eveningMessageEmailAt"),
+            "readingReportWeixinStatus": delivery.get("readingReportWeixinStatus"),
+            "eveningMessageWeixinStatus": delivery.get("eveningMessageWeixinStatus"),
+            "emailPrimary": True,
+            "emailEnvFile": config.email_env_file,
             "expectedReadingReportDate": expected_report_date,
             "expectedEveningMessageDate": expected_evening_date,
             "readingServiceResult": report_service.get("Result"),
@@ -1316,16 +1363,43 @@ def overall_status(checks):
     return "healthy"
 
 
-def send_alert(config, message):
-    return send_hermes_message(
-        config.hermes_container,
-        config.weixin_target,
-        message,
-        timeout=60,
-        max_attempts=config.send_attempts,
-        min_retry_seconds=config.send_retry_seconds,
-        logger=log,
-    )
+def send_alert(config, message, allow_weixin=True):
+    email_error = None
+    try:
+        send_email(
+            "读写札记 · 服务状态告警",
+            message,
+            env_file=config.email_env_file,
+            timeout=config.email_timeout,
+            max_attempts=config.email_attempts,
+            retry_seconds=config.email_retry_seconds,
+            logger=log,
+        )
+    except Exception as exc:
+        email_error = exc
+        log("health alert email failed: {}".format(compact(exc, 300)))
+
+    weixin_error = None
+    if allow_weixin and config.weixin_target.startswith("weixin:"):
+        try:
+            send_hermes_message(
+                config.hermes_container,
+                config.weixin_target,
+                message,
+                timeout=60,
+                max_attempts=config.send_attempts,
+                min_retry_seconds=config.send_retry_seconds,
+                logger=log,
+            )
+        except Exception as exc:
+            weixin_error = exc
+            log("health alert Weixin best-effort delivery failed: {}".format(compact(exc, 300)))
+
+    if email_error is not None:
+        raise email_error
+    if weixin_error is not None and not allow_weixin:
+        raise weixin_error
+    return True
 
 
 def alert_message(problems, recoveries):
@@ -1382,9 +1456,7 @@ def process_alerts(config, checks):
             and bool(last_alert or last_attempt)
             and now_epoch - max(last_alert, last_attempt) >= retry_interval
         )
-        can_use_hermes = check_id not in NON_HERMES_ALERTABLE_CHECKS
-
-        if can_use_hermes and confirmed and (
+        if confirmed and (
             (not last_alert and not last_attempt)
             or (
                 STATUS_RANK[current_status] > STATUS_RANK.get(previous_status, 0)
@@ -1394,8 +1466,7 @@ def process_alerts(config, checks):
         ):
             problems.append(check)
         elif (
-            can_use_hermes
-            and config.send_recovery_alerts
+            config.send_recovery_alerts
             and was_problem
             and current_status == "healthy"
             and bool(last_alert)
@@ -1408,7 +1479,11 @@ def process_alerts(config, checks):
     if problems or recoveries:
         message = alert_message(problems, recoveries)
         try:
-            send_alert(config, message)
+            allow_weixin = any(
+                item["id"] not in NON_HERMES_ALERTABLE_CHECKS
+                for item in problems + recoveries
+            )
+            send_alert(config, message, allow_weixin=allow_weixin)
             alerted_ids = {item["id"] for item in problems}
         except Exception as exc:
             delivery_error = compact(exc)

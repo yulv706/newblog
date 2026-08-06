@@ -1,5 +1,5 @@
 [Unit]
-Description=Monitor newblog services and send state-change alerts through Hermes
+Description=Monitor newblog services and send email-primary state alerts
 Wants=docker.service network-online.target
 After=docker.service network-online.target
 

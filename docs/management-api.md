@@ -89,8 +89,9 @@ New user creation inserts a notification into
 `user_registration_notifications` in the same transaction as the user record. The
 host dispatcher at
 [`scripts/dispatch-registration-notifications.py`](../scripts/dispatch-registration-notifications.py)
-claims each item and invokes `hermes send` for the configured Weixin DM target. A
-Hermes outage does not fail registration; delivery is retried with bounded
+claims each item and sends the email notification first, then invokes the
+configured Weixin DM target as a best-effort companion. A Weixin outage does
+not fail registration delivery; email failures are retried with bounded
 exponential backoff.
 
 The production service uses
@@ -101,6 +102,11 @@ and a root-readable `/etc/newblog-registration-notifier.env`:
 NEWBLOG_DB_PATH=/root/workspace/newblog/data/blog.db
 HERMES_CONTAINER=hermes-agent
 HERMES_WEIXIN_TARGET=weixin:<configured-dm-target>
+PROACTIVE_EMAIL_TO=owner@example.com
+PROACTIVE_EMAIL_ENV_FILE=/root/workspace/newblog/deploy/.env.production
+PROACTIVE_EMAIL_TIMEOUT_SECONDS=30
+PROACTIVE_EMAIL_MAX_ATTEMPTS=3
+PROACTIVE_EMAIL_RETRY_SECONDS=20
 NOTIFIER_POLL_SECONDS=5
 NOTIFIER_CLAIM_TIMEOUT_SECONDS=300
 NOTIFIER_COMMAND_TIMEOUT_SECONDS=45
@@ -118,9 +124,10 @@ socket.
 private snapshot of cumulative WeRead progress, reading time, and note IDs. At
 18:00 Asia/Shanghai it runs the normal WeRead synchronization, compares the new
 snapshot with the previous successful one, and asks Hermes for a short,
-fact-bound Weixin summary. With no detected reading time, progress, status, or
-note changes, the summary becomes a gentle reading reminder. A deterministic
-fallback is still delivered if model generation fails.
+fact-bound summary by email, then attempts the same message through Weixin.
+With no detected reading time, progress, status, or note changes, the summary
+becomes a gentle reading reminder. A deterministic fallback is still delivered
+if model generation fails.
 
 At 23:00 Asia/Shanghai a second timer asks Hermes for a short reflection or book
 recommendation informed by that day's activity. Delivery dates are persisted so
@@ -132,13 +139,22 @@ Production uses these units:
 - `newblog-steam-sync.service` and `newblog-steam-sync.timer`
 - `newblog-evening-reading.service` and `newblog-evening-reading.timer`
 
-Both services read the root-only `/etc/newblog-reading-briefing.env`:
+Both services read the root-only `/etc/newblog-reading-briefing.env`. Email is
+the reliable primary channel and must succeed before a delivery date is
+recorded. Weixin is attempted afterward as a best-effort channel; a Weixin
+rate limit or stale session does not fail the sync job or prevent the email
+from being marked delivered:
 
 ```ini
 NEWBLOG_DB_PATH=/root/workspace/newblog/data/blog.db
 HERMES_CONTAINER=hermes-agent
 HERMES_WEIXIN_TARGET=weixin:<configured-dm-target>
 READING_BRIEFING_STATE_DIR=/var/lib/newblog-reading-briefing
+PROACTIVE_EMAIL_TO=owner@example.com
+PROACTIVE_EMAIL_ENV_FILE=/root/workspace/newblog/deploy/.env.production
+PROACTIVE_EMAIL_TIMEOUT_SECONDS=30
+PROACTIVE_EMAIL_MAX_ATTEMPTS=3
+PROACTIVE_EMAIL_RETRY_SECONDS=20
 READING_BRIEFING_SYNC_COMMAND=/root/workspace/newblog/deploy/sync-weread.sh
 READING_BRIEFING_SYNC_TIMEOUT_SECONDS=1800
 READING_BRIEFING_MODEL_TIMEOUT_SECONDS=240
@@ -157,6 +173,6 @@ requests without blocking the bookshelf or reading report. A failed refresh
 keeps the last successful game snapshot available.
 
 All direct Weixin deliveries retain Hermes' structured adapter errors and retry
-a bounded number of times. Host health alerts wait 30 minutes after a delivery
-failure before trying again, preventing a five-minute monitor loop from
-continuously extending an upstream Weixin rate limit.
+a bounded number of times. Host health alerts are sent by email first and may
+also be attempted through Weixin. Alert state remains transition-based and
+retries a failed email delivery after the configured backoff.
