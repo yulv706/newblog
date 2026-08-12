@@ -10,6 +10,7 @@ import { sendAuthenticationCodeEmail } from "@/lib/email";
 import type { AppLocale } from "@/lib/i18n/config";
 import {
   getDefaultDisplayName,
+  isConfiguredInitialAdminEmail,
   isValidUserEmail,
   normalizeUserEmail,
   sanitizeUserDisplayName,
@@ -287,7 +288,8 @@ export function verifyEmailChallenge(
     }
 
     const isNewUser = !existing;
-    const user =
+    const shouldBeBootstrapAdmin = isConfiguredInitialAdminEmail(challenge.email);
+    let user =
       existing ??
       transaction
         .insert(users)
@@ -296,7 +298,7 @@ export function verifyEmailChallenge(
           displayName:
             sanitizeUserDisplayName(challenge.displayName ?? "") ||
             getDefaultDisplayName(challenge.email),
-          role: "reader",
+          role: shouldBeBootstrapAdmin ? "admin" : "reader",
           status: "active",
           emailVerifiedAt: nowIso,
           lastLoginAt: nowIso,
@@ -311,11 +313,13 @@ export function verifyEmailChallenge(
     }
 
     if (!isNewUser) {
+      const role = shouldBeBootstrapAdmin ? "admin" : user.role;
       transaction
         .update(users)
-        .set({ lastLoginAt: nowIso, updatedAt: nowIso })
+        .set({ role, lastLoginAt: nowIso, updatedAt: nowIso })
         .where(eq(users.id, user.id))
         .run();
+      user = { ...user, role };
     }
 
     if (isNewUser) {

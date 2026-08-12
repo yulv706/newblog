@@ -20,7 +20,7 @@
 
 会持久化的运维状态：
 
-- `./data` —— SQLite 数据库，包括已保存的管理员密码哈希
+- `./data` —— SQLite 数据库，包括用户、内容、快照和审计记录
 - `./public/uploads` —— 通过 `/uploads/...` 提供访问的上传媒体文件
 
 可丢弃的构件：
@@ -56,6 +56,7 @@ cp deploy/.env.production.example deploy/.env.production
 | ----------------------------- | ------------ | ------------------------------ | ------------------------------------------------------------- |
 | `AUTH_SECRET`                 | 是           | 会话签名密钥                   | 不能是占位值，且至少 32 个字符                                |
 | `NEXT_PUBLIC_SITE_URL`        | 是           | 站点公开访问地址               | 必须是没有路径的绝对 `http(s)` 来源                           |
+| `INITIAL_ADMIN_EMAIL`         | 首次部署建议 | 首个管理员邮箱                 | 首次验证成功后请删除该变量并重启                               |
 | `SMTP_HOST`                   | 注册功能必填 | 验证码邮件服务器               | 例如邮箱服务商提供的 SMTP 主机                                |
 | `SMTP_PORT`                   | 注册功能必填 | SMTP 端口                      | 通常为 `465` 或 `587`                                         |
 | `SMTP_SECURE`                 | 注册功能必填 | 是否从连接开始使用 TLS         | 端口 `465` 通常设为 `true`                                    |
@@ -79,6 +80,14 @@ cp deploy/.env.production.example deploy/.env.production
 - 拒绝占位或过短的 `AUTH_SECRET`
 - 拒绝格式错误的 `NEXT_PUBLIC_SITE_URL`
 - 拒绝非法或特权 `NGINX_PORT`
+
+### 首次创建管理员
+
+全新数据库没有默认管理员，也不会使用用户名或密码登录。首次部署时，将
+`INITIAL_ADMIN_EMAIL` 设置为你拥有的邮箱地址。完成该邮箱的验证码登录后，系统会
+将对应账户设为管理员。确认可以进入 `/admin` 后，立即从
+`deploy/.env.production` 删除 `INITIAL_ADMIN_EMAIL` 并重启应用；这个变量只用于
+一次性引导，不应长期保留。
 
 ## 邮箱注册与本地验证码收件箱
 

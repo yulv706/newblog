@@ -7,6 +7,15 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.7.3] - 2026-08-12
+
+### Added
+
+- Adds a documented one-time `INITIAL_ADMIN_EMAIL` bootstrap path for fresh
+  passwordless deployments.
+- Adds a polished open-source README, English companion guide, repository CI,
+  contribution guidance, issue templates, and dependency update configuration.
+
 ## [1.7.2] - 2026-08-12
 
 ### Fixed

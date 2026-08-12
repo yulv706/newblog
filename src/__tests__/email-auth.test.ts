@@ -19,6 +19,7 @@ import {
 } from "@/lib/email-auth";
 
 describe("passwordless email authentication", () => {
+  const originalInitialAdminEmail = process.env.INITIAL_ADMIN_EMAIL;
   let tempDir = "";
   let dbPath = "";
   let sqlite: InstanceType<typeof Database>;
@@ -38,12 +39,18 @@ describe("passwordless email authentication", () => {
 
   beforeEach(() => {
     process.env.AUTH_SECRET = "email-auth-test-secret";
+    delete process.env.INITIAL_ADMIN_EMAIL;
     testDb.delete(emailAuthChallenges).run();
     testDb.delete(userRegistrationNotifications).run();
     testDb.delete(users).run();
   });
 
   afterAll(() => {
+    if (originalInitialAdminEmail === undefined) {
+      delete process.env.INITIAL_ADMIN_EMAIL;
+    } else {
+      process.env.INITIAL_ADMIN_EMAIL = originalInitialAdminEmail;
+    }
     sqlite.close();
     for (const suffix of ["", "-wal", "-shm"]) {
       fs.rmSync(`${dbPath}${suffix}`, { force: true });
@@ -164,6 +171,84 @@ describe("passwordless email authentication", () => {
 
     expect(verified).toMatchObject({ ok: true, isNewUser: false });
     expect(testDb.select().from(userRegistrationNotifications).all()).toHaveLength(0);
+  });
+
+  it("bootstraps the configured owner as an administrator", async () => {
+    process.env.INITIAL_ADMIN_EMAIL = "Owner@Example.com";
+    const now = new Date("2026-07-23T04:00:00.000Z");
+    const issued = await issueEmailChallenge(
+      {
+        email: "owner@example.com",
+        ipAddress: "127.0.0.1",
+        locale: "en",
+        now,
+        code: "123456",
+      },
+      testDb as never,
+      vi.fn().mockResolvedValue(undefined)
+    );
+    if (!issued.ok) {
+      throw new Error("Expected challenge to be issued");
+    }
+
+    const verified = verifyEmailChallenge(
+      {
+        challengeId: issued.challengeId,
+        code: "123456",
+        now: new Date(now.getTime() + 30_000),
+      },
+      testDb as never
+    );
+
+    expect(verified).toMatchObject({
+      ok: true,
+      isNewUser: true,
+      user: { email: "owner@example.com", role: "admin" },
+    });
+  });
+
+  it("can promote an existing bootstrap address without changing other users", async () => {
+    const now = new Date("2026-07-23T04:00:00.000Z");
+    testDb
+      .insert(users)
+      .values({
+        email: "owner@example.com",
+        displayName: "Owner",
+        role: "reader",
+        status: "active",
+        emailVerifiedAt: now.toISOString(),
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      })
+      .run();
+    process.env.INITIAL_ADMIN_EMAIL = "owner@example.com";
+
+    const issued = await issueEmailChallenge(
+      {
+        email: "owner@example.com",
+        ipAddress: "127.0.0.1",
+        locale: "en",
+        now,
+        code: "123456",
+      },
+      testDb as never,
+      vi.fn().mockResolvedValue(undefined)
+    );
+    if (!issued.ok) {
+      throw new Error("Expected challenge to be issued");
+    }
+
+    const verified = verifyEmailChallenge(
+      {
+        challengeId: issued.challengeId,
+        code: "123456",
+        now: new Date(now.getTime() + 30_000),
+      },
+      testDb as never
+    );
+
+    expect(verified).toMatchObject({ ok: true, user: { role: "admin" } });
+    expect(testDb.select().from(users).all()).toHaveLength(1);
   });
 
   it("enforces resend cooldowns without sending another message", async () => {

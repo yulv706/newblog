@@ -31,6 +31,19 @@ export function isValidUserEmail(value: string) {
   return email.length <= USER_EMAIL_MAX_LENGTH && EMAIL_PATTERN.test(email);
 }
 
+/**
+ * The bootstrap address is intentionally environment-only. It is used during
+ * first deployment and should be removed after the owner has verified once.
+ */
+export function isConfiguredInitialAdminEmail(email: string) {
+  const configured = normalizeUserEmail(process.env.INITIAL_ADMIN_EMAIL ?? "");
+  return Boolean(
+    configured &&
+      isValidUserEmail(configured) &&
+      configured === normalizeUserEmail(email)
+  );
+}
+
 export function sanitizeUserDisplayName(value: string) {
   return value
     .replace(/[\u0000-\u001f\u007f]/g, "")

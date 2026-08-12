@@ -20,7 +20,7 @@ They all use the same runtime environment file: `deploy/.env.production`.
 
 Persisted operator state:
 
-- `./data` — SQLite database, including the stored admin password hash
+- `./data` — SQLite database, including users, content, snapshots, and audit records
 - `./public/uploads` — uploaded media served at `/uploads/...`
 
 Disposable artifacts:
@@ -56,6 +56,7 @@ Set these values:
 | ----------------------------- | ---------------- | --------------------------------- | ------------------------------------------------------------------------- |
 | `AUTH_SECRET`                 | Yes              | Session signing secret            | Must be non-placeholder and at least 32 chars                             |
 | `NEXT_PUBLIC_SITE_URL`        | Yes              | Public site origin                | Must be an absolute `http(s)` origin with no path                         |
+| `INITIAL_ADMIN_EMAIL`         | First deploy    | One-time owner bootstrap          | Remove it and restart after the first verified owner login               |
 | `SMTP_HOST`                   | For registration | Verification mail server          | Use the host provided by the mail provider                                |
 | `SMTP_PORT`                   | For registration | SMTP port                         | Normally `465` or `587`                                                   |
 | `SMTP_SECURE`                 | For registration | TLS from connection start         | Normally `true` on port `465`                                             |
@@ -80,17 +81,42 @@ Production safety constraints enforced by `./deploy/check.sh`:
 - malformed `NEXT_PUBLIC_SITE_URL` values are rejected
 - invalid or privileged `NGINX_PORT` values are rejected
 
+### First administrator
+
+Fresh databases do not contain a default administrator and the first registered
+reader is not promoted implicitly. Before the owner's first verification, set
+the exact owner address in `deploy/.env.production`:
+
+```dotenv
+INITIAL_ADMIN_EMAIL=you@example.com
+```
+
+Complete one passwordless email-code login with that address and verify that
+`/admin` is available. Then remove the variable and restart the app:
+
+```bash
+sed -i '/^INITIAL_ADMIN_EMAIL=/d' deploy/.env.production
+./deploy/update.sh
+```
+
+This variable is a bootstrap switch, not a permanent administrator allowlist.
+Keep it unset during normal operation.
+
 ## Reader email registration
 
 Reader accounts use a unified passwordless flow. A first successful email code
 verification creates the account; later verifications sign in to it. Codes expire
 after ten minutes and only their hashes are persisted.
 
-For local end-to-end testing, point SMTP at `mailpit:1025`, set
+For local end-to-end testing, point the host-run development server at
+`127.0.0.1:1025`, set
 `SMTP_SECURE=false` and `SMTP_REQUIRE_TLS=false`, leave SMTP credentials empty,
-and start the local inbox:
+and start the local inbox. The Compose file references
+`deploy/.env.production` even when only the Mailpit profile is selected, so
+create that file before starting it:
 
 ```bash
+cp deploy/.env.production.example deploy/.env.production
 docker compose --env-file deploy/.env.production --profile local-mail up -d
 ```
 
