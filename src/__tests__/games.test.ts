@@ -85,7 +85,7 @@ describe("Steam game archive", () => {
     expect(scheduledSteamSyncSource).toContain("STEAM_SYNC_TIMEOUT_SECONDS");
     expect(steamTimerSource).toContain("OnCalendar=*-*-* 18:05:00 Asia/Shanghai");
     expect(steamServiceSource).toContain("Restart=on-failure");
-    expect(steamServiceSource).toContain("RestartSec=10min");
+    expect(steamServiceSource).toContain("RestartSec=60s");
   });
 
   it("retries transient Steam failures and preserves the underlying network cause", async () => {
@@ -196,6 +196,32 @@ describe("Steam game archive", () => {
     expect(attemptedAddresses).toEqual(["23.77.12.206", "173.222.146.99"]);
     expect(warning).toHaveBeenCalledWith(expect.stringContaining("23.77.12.206"));
     warning.mockRestore();
+  });
+
+  it("falls back to system DNS after configured edge addresses fail", async () => {
+    const attemptedAddresses: Array<string | null> = [];
+    const requestImpl = vi.fn(async (_url: URL, _init: RequestInit, address: string | null) => {
+      attemptedAddresses.push(address);
+      if (address !== null) {
+        throw Object.assign(new Error("connect timeout"), { code: "ETIMEDOUT" });
+      }
+      return Response.json({ response: { ok: true } });
+    });
+
+    await callSteamApi(
+      "/IPlayerService/GetOwnedGames/v0001/",
+      { key: "secret", steamid: "76561198000000000" },
+      {
+        fetchImpl: fetch,
+        requestImpl,
+        resolveAddresses: ["23.77.12.206", "173.222.146.99"],
+        maxAttempts: 3,
+        retryDelayMs: 0,
+        sleepImpl: async () => undefined,
+      }
+    );
+
+    expect(attemptedAddresses).toEqual(["23.77.12.206", "173.222.146.99", null]);
   });
 
   it("wires the public archive, detail dialog, filters, and pagination", () => {

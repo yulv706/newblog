@@ -2,10 +2,8 @@ FROM node:20-bookworm-slim AS base
 
 WORKDIR /app
 
-RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
-    sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list 2>/dev/null; \
-    apt-get update \
-  && apt-get install -y --no-install-recommends python3 make g++ \
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ curl \
   && rm -rf /var/lib/apt/lists/*
 
 FROM base AS builder
@@ -26,9 +24,6 @@ ENV PORT=3000
 COPY package.json package-lock.json ./
 RUN npm config set registry https://registry.npmmirror.com
 RUN npm ci --omit=dev && npm cache clean --force
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl \
-  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public

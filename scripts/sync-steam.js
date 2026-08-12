@@ -73,6 +73,17 @@ function getSteamResolveAddresses(value = process.env.STEAM_API_RESOLVE_IPS) {
     );
 }
 
+function getSteamRoute(addresses, attempt, maxAttempts) {
+  if (addresses.length === 0) {
+    return null;
+  }
+
+  // Reserve the final retry for normal DNS so an old CDN edge list cannot
+  // prevent the API from recovering within the same scheduled run.
+  const fixedRouteAttempts = Math.min(addresses.length, Math.max(0, maxAttempts - 1));
+  return attempt <= fixedRouteAttempts ? addresses[attempt - 1] : null;
+}
+
 function fetchSteamApiViaAddress(url, init, address) {
   return new Promise((resolve, reject) => {
     const request = https.get(
@@ -157,10 +168,7 @@ async function callSteamApi(pathname, params, options = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    const resolveAddress =
-      resolveAddresses.length > 0
-        ? resolveAddresses[(attempt - 1) % resolveAddresses.length]
-        : null;
+    const resolveAddress = getSteamRoute(resolveAddresses, attempt, maxAttempts);
 
     try {
       const response = await requestImpl(
@@ -194,12 +202,20 @@ async function callSteamApi(pathname, params, options = {}) {
 
       if (attempt >= maxAttempts || !isRetryableSteamError(requestError)) {
         const attemptSummary = maxAttempts > 1 ? ` after ${attempt} attempt(s)` : "";
-        const routeSummary = resolveAddress ? ` via ${resolveAddress}` : "";
+        const routeSummary = resolveAddress
+          ? ` via ${resolveAddress}`
+          : resolveAddresses.length > 0
+            ? " via system DNS"
+            : "";
         throw new Error(`Steam API ${pathname} failed${attemptSummary}${routeSummary}: ${message}`);
       }
 
       const delayMs = Math.min(retryDelayMs * 2 ** (attempt - 1), 5_000);
-      const routeSummary = resolveAddress ? ` via ${resolveAddress}` : "";
+      const routeSummary = resolveAddress
+        ? ` via ${resolveAddress}`
+        : resolveAddresses.length > 0
+          ? " via system DNS"
+          : "";
       console.warn(
         `Steam API ${pathname} attempt ${attempt}/${maxAttempts}${routeSummary} failed: ${message}. ` +
           `Retrying in ${delayMs}ms.`

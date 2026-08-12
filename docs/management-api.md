@@ -81,7 +81,7 @@ mcp_servers:
 
 Add `mcp-blog` to `platform_toolsets.weixin`. Keep terminal, browser, code execution, arbitrary filesystem, and Docker socket access disabled. Attach the Hermes container to the external `newblog_default` network in addition to its own network.
 
-The companion skill is [`integrations/hermes/blog-manager-skill/SKILL.md`](../integrations/hermes/blog-manager-skill/SKILL.md).
+The companion skill is [`integrations/hermes/SKILL.md`](../integrations/hermes/SKILL.md).
 
 ## Registration notifications
 

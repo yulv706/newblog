@@ -403,6 +403,7 @@ class ProactivePushHealthTests(unittest.TestCase):
                 pathlib.Path(config.alert_state_path).read_text("utf-8")
             )["checks"]["steam_games"]
             self.assertEqual(stored["problemSinceEpoch"], 1000)
+            self.assertEqual(stored["problemObservations"], 1)
             send_alert.assert_not_called()
 
 

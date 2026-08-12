@@ -21,6 +21,7 @@ API_URL = os.environ.get(
     "http://blog-app:3000/api/management/v1",
 ).rstrip("/")
 API_TOKEN = os.environ.get("BLOG_MANAGEMENT_API_TOKEN", "").strip()
+PRIVATE_NOTES_API_TOKEN = os.environ.get("BLOG_PRIVATE_NOTES_API_TOKEN", "").strip()
 API_ACTOR = os.environ.get("BLOG_MANAGEMENT_API_ACTOR", "hermes-weixin").strip()
 MEDIA_ROOT = Path(os.environ.get("BLOG_MANAGEMENT_MEDIA_ROOT", "/opt/data")).resolve()
 
@@ -30,16 +31,23 @@ mcp = FastMCP(
     instructions=(
         "Manage the owner's personal blog through typed, audited operations. "
         "Read a resource before updating it and pass expected_updated_at when available. "
-        "Only delete when the user explicitly requested deletion."
+        "Only delete when the user explicitly requested deletion. "
+        "Private notes use a separate administrator-only credential and must never be summarized to other users."
     ),
 )
 
 
-def _headers(extra: dict[str, str] | None = None) -> dict[str, str]:
-    if len(API_TOKEN) < 32:
-        raise RuntimeError("BLOG_MANAGEMENT_API_TOKEN is missing or invalid")
+def _headers(
+    extra: dict[str, str] | None = None,
+    *,
+    private_notes: bool = False,
+) -> dict[str, str]:
+    token = PRIVATE_NOTES_API_TOKEN if private_notes else API_TOKEN
+    token_name = "BLOG_PRIVATE_NOTES_API_TOKEN" if private_notes else "BLOG_MANAGEMENT_API_TOKEN"
+    if len(token) < 32:
+        raise RuntimeError(f"{token_name} is missing or invalid")
     headers = {
-        "Authorization": f"Bearer {API_TOKEN}",
+        "Authorization": f"Bearer {token}",
         "X-Management-Actor": API_ACTOR or "hermes-weixin",
         "X-Request-ID": str(uuid.uuid4()),
         "Accept": "application/json",
@@ -58,9 +66,10 @@ def _request(
     headers: dict[str, str] | None = None,
     files: dict[str, Any] | None = None,
     timeout: int = 45,
+    private_notes: bool = False,
 ) -> Any:
     method = method.upper()
-    request_headers = _headers(headers)
+    request_headers = _headers(headers, private_notes=private_notes)
     if method in {"POST", "PUT", "PATCH", "DELETE"} and files is None:
         request_headers.setdefault("Idempotency-Key", str(uuid.uuid4()))
 
@@ -101,6 +110,26 @@ def _request(
         message = error.get("message", f"HTTP {response.status_code}")
         raise RuntimeError(f"Blog API {code}: {message}")
     return result.get("data")
+
+
+def _private_request(
+    method: str,
+    path: str,
+    *,
+    payload: dict[str, Any] | None = None,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+    timeout: int = 45,
+) -> Any:
+    return _request(
+        method,
+        f"private-notes/{path.lstrip('/')}",
+        payload=payload,
+        params=params,
+        headers=headers,
+        timeout=timeout,
+        private_notes=True,
+    )
 
 
 def _path_segment(value: str) -> str:
@@ -449,6 +478,116 @@ def blog_update_user(
                 "role": role,
             }
         ),
+    )
+
+
+@mcp.tool()
+def blog_list_private_notes(
+    page: int = 1,
+    limit: int = 20,
+    view: Literal["all", "thought", "goal", "completed"] = "all",
+    query: str = "",
+) -> dict[str, Any]:
+    """List the owner's administrator-only private notes without exposing them to public readers."""
+    params: dict[str, Any] = {"page": page, "limit": limit, "view": view}
+    if query:
+        params["query"] = query
+    return _private_request("GET", "", params=params)
+
+
+@mcp.tool()
+def blog_get_private_note(note_id: int) -> dict[str, Any]:
+    """Read one private thought or goal before editing it."""
+    return _private_request("GET", str(note_id))
+
+
+@mcp.tool()
+def blog_create_private_note(
+    title: str,
+    content: str,
+    kind: Literal["thought", "goal"] = "thought",
+    priority: Literal["low", "medium", "high"] = "medium",
+    status: Literal["active", "completed", "archived"] = "active",
+    progress: int = 0,
+    target_date: str = "",
+    tags: list[str] | None = None,
+) -> dict[str, Any]:
+    """Create an administrator-only private thought or goal. Use Markdown in content when useful."""
+    return _private_request(
+        "POST",
+        "",
+        payload=_compact(
+            {
+                "title": title,
+                "content": content,
+                "kind": kind,
+                "priority": priority,
+                "status": status,
+                "progress": progress,
+                "targetDate": target_date or None,
+                "tags": tags,
+            }
+        ),
+    )
+
+
+@mcp.tool()
+def blog_update_private_note(
+    note_id: int,
+    expected_updated_at: str = "",
+    title: str | None = None,
+    content: str | None = None,
+    kind: Literal["thought", "goal"] | None = None,
+    priority: Literal["low", "medium", "high"] | None = None,
+    status: Literal["active", "completed", "archived"] | None = None,
+    progress: int | None = None,
+    target_date: str | None = None,
+    tags: list[str] | None = None,
+) -> dict[str, Any]:
+    """Update a private note after reading it; expected_updated_at prevents overwriting newer edits."""
+    return _private_request(
+        "PATCH",
+        str(note_id),
+        payload=_compact(
+            {
+                "expectedUpdatedAt": expected_updated_at or None,
+                "title": title,
+                "content": content,
+                "kind": kind,
+                "priority": priority,
+                "status": status,
+                "progress": progress,
+                "targetDate": target_date,
+                "tags": tags,
+            }
+        ),
+    )
+
+
+@mcp.tool()
+def blog_set_private_note_status(
+    note_id: int,
+    status: Literal["active", "completed", "archived"],
+    expected_updated_at: str = "",
+) -> dict[str, Any]:
+    """Complete, reopen, or archive a private note after reading its current version."""
+    return _private_request(
+        "PATCH",
+        f"{note_id}/status",
+        payload=_compact({"status": status, "expectedUpdatedAt": expected_updated_at or None}),
+    )
+
+
+@mcp.tool()
+def blog_delete_private_note(note_id: int, confirm: bool = False) -> dict[str, Any]:
+    """Permanently delete a private note only after the user explicitly confirms deletion."""
+    if not confirm:
+        raise RuntimeError("Deletion requires confirm=true")
+    return _private_request(
+        "DELETE",
+        str(note_id),
+        payload={},
+        headers={"X-Management-Confirm": f"delete:private-note:{note_id}"},
     )
 
 

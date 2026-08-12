@@ -13,12 +13,18 @@ import {
 } from "@/lib/management/core";
 
 const originalToken = process.env.BLOG_MANAGEMENT_API_TOKEN;
+const originalPrivateToken = process.env.BLOG_PRIVATE_NOTES_API_TOKEN;
 
 afterEach(() => {
   if (originalToken === undefined) {
     delete process.env.BLOG_MANAGEMENT_API_TOKEN;
   } else {
     process.env.BLOG_MANAGEMENT_API_TOKEN = originalToken;
+  }
+  if (originalPrivateToken === undefined) {
+    delete process.env.BLOG_PRIVATE_NOTES_API_TOKEN;
+  } else {
+    process.env.BLOG_PRIVATE_NOTES_API_TOKEN = originalPrivateToken;
   }
 });
 
@@ -54,6 +60,31 @@ describe("management API security contract", () => {
         })
       )
     ).toThrowError(expect.objectContaining({ status: 401 }));
+  });
+
+  it("keeps private-note authentication on a separate token scope", () => {
+    const generalToken = "g".repeat(64);
+    const privateToken = "p".repeat(64);
+    process.env.BLOG_MANAGEMENT_API_TOKEN = generalToken;
+    process.env.BLOG_PRIVATE_NOTES_API_TOKEN = privateToken;
+
+    expect(() =>
+      authenticateManagementRequest(
+        new Request("http://blog-app/api/management/v1/private-notes", {
+          headers: { Authorization: `Bearer ${generalToken}` },
+        }),
+        { tokenEnv: "BLOG_PRIVATE_NOTES_API_TOKEN" }
+      )
+    ).toThrowError(expect.objectContaining({ status: 401 }));
+
+    expect(
+      authenticateManagementRequest(
+        new Request("http://blog-app/api/management/v1/private-notes", {
+          headers: { Authorization: `Bearer ${privateToken}` },
+        }),
+        { tokenEnv: "BLOG_PRIVATE_NOTES_API_TOKEN" }
+      ).actor
+    ).toBe("hermes");
   });
 
   it("requires an exact, resource-scoped deletion confirmation", () => {
@@ -119,7 +150,9 @@ describe("management deployment boundary", () => {
     expect(nginx.match(/location \^~ \/api\/management\//g)).toHaveLength(2);
     expect(bridge).toContain("FastMCP");
     expect(bridge).toContain("BLOG_MANAGEMENT_API_TOKEN");
+    expect(bridge).toContain("BLOG_PRIVATE_NOTES_API_TOKEN");
     expect(bridge).toContain("blog_list_users");
+    expect(bridge).toContain("blog_list_private_notes");
     expect(bridge).toContain("confirm_access_change");
     expect(bridge).not.toContain("docker.sock");
     expect(bridge).not.toContain("subprocess");

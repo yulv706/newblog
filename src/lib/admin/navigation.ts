@@ -8,6 +8,7 @@ export const ADMIN_SIDEBAR_LINKS = [
   { href: "/admin/books", label: "Books" },
   { href: "/admin/games", label: "Games" },
   { href: "/admin/about", label: "About" },
+  { href: "/admin/private", label: "Private" },
   { href: "/admin/system", label: "System" },
 ] as const;
 

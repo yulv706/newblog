@@ -38,20 +38,34 @@ function sanitizeRequestId(value: string | null) {
   return /^[a-zA-Z0-9._:-]+$/.test(normalized) ? normalized : randomUUID();
 }
 
-export function authenticateManagementRequest(request: Request): ManagementPrincipal {
-  const expectedToken = process.env.BLOG_MANAGEMENT_API_TOKEN?.trim() ?? "";
+export type ManagementAuthOptions = {
+  tokenEnv?: string;
+  unavailableCode?: string;
+  unauthorizedMessage?: string;
+};
+
+export function authenticateManagementRequest(
+  request: Request,
+  options: ManagementAuthOptions = {}
+): ManagementPrincipal {
+  const tokenEnv = options.tokenEnv ?? "BLOG_MANAGEMENT_API_TOKEN";
+  const expectedToken = process.env[tokenEnv]?.trim() ?? "";
   if (expectedToken.length < 32) {
     throw new ManagementApiError(
       503,
-      "management_api_unavailable",
-      "The management API is not configured."
+      options.unavailableCode ?? "management_api_unavailable",
+      "The requested management capability is not configured."
     );
   }
 
   const authorization = request.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(authorization);
   if (!match || !tokensMatch(match[1], expectedToken)) {
-    throw new ManagementApiError(401, "unauthorized", "A valid bearer token is required.");
+    throw new ManagementApiError(
+      401,
+      "unauthorized",
+      options.unauthorizedMessage ?? "A valid bearer token is required."
+    );
   }
 
   return {

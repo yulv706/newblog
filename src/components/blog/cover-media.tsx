@@ -9,6 +9,10 @@ function isRemoteUrl(src: string) {
   return /^https?:\/\//i.test(src);
 }
 
+function isManagedUploadUrl(src: string) {
+  return src.startsWith("/uploads/");
+}
+
 function getRenderableImageSrc(src: string | null) {
   const normalized = src?.trim();
   if (!normalized) {
@@ -102,6 +106,7 @@ export function CoverMedia({
   const [hasError, setHasError] = useState(false);
   const renderableSrc = getRenderableImageSrc(src);
   const isRemote = renderableSrc ? isRemoteUrl(renderableSrc) : false;
+  const isManagedUpload = renderableSrc ? isManagedUploadUrl(renderableSrc) : false;
 
   if (!renderableSrc || hasError) {
     return (
@@ -122,7 +127,7 @@ export function CoverMedia({
         loading={loading === "eager" ? undefined : "lazy"}
         priority={loading === "eager"}
         fill
-        unoptimized={isRemote}
+        unoptimized={isRemote || isManagedUpload}
         sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 800px"
         onError={() => setHasError(true)}
       />

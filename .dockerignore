@@ -1,4 +1,7 @@
 .git
+.factory
+.agents
+.codex
 .next
 node_modules
 npm-debug.log*
@@ -10,5 +13,9 @@ npm-debug.log*
 
 public/uploads/images/*
 !public/uploads/images/.gitkeep
+
+work/
+SERVER_OPERATIONS.md
+server-operations.md
 
 .factory/research/

@@ -9,6 +9,7 @@ import { getDailyCopy } from "@/lib/daily-copy";
 import { getAccountCopy } from "@/lib/account-copy";
 import { getSystemHealthCopy } from "@/lib/system-health-copy";
 import { getGamesCopy } from "@/lib/games-copy";
+import { getPrivateNotesCopy } from "@/lib/private-notes-copy";
 import { cn } from "@/lib/utils";
 
 export function AdminSidebarNav() {
@@ -27,6 +28,7 @@ export function AdminSidebarNav() {
     Books: sidebarDictionary.books.title,
     Games: getGamesCopy(locale).admin.title,
     About: sidebarDictionary.about.title,
+    Private: getPrivateNotesCopy(locale).sidebarLabel,
     System: getSystemHealthCopy(locale).title,
   } as const;
 

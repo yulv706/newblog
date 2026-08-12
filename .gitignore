@@ -18,9 +18,28 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files and local credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
 .env*.local
 /deploy/.env.production
+
+# local operator notes and personal working material
+/work/
+/SERVER_OPERATIONS.md
+/server-operations.md
+
+# certificates and private keys
+/certs/*
+!/certs/.gitignore
+*.key
+*.crt
+*.cer
+*.csr
+*.p12
+*.pfx
 
 # vercel
 .vercel
@@ -47,5 +66,6 @@ next-env.d.ts
 __pycache__/
 *.py[cod]
 
-# factory research
+# agent-only project scaffolding and research
+/.factory/
 .factory/research/

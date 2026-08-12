@@ -26,7 +26,7 @@ class EmailDeliveryTests(unittest.TestCase):
                         "SMTP_PASSWORD=secret-value",
                         'SMTP_FROM="读写札记 <sender@example.test>"',
                         "SMTP_REPLY_TO=sender@example.test",
-                        "PROACTIVE_EMAIL_TO=2949593180@qq.com",
+                        "PROACTIVE_EMAIL_TO=owner@example.test",
                     ]
                 ),
                 encoding="utf-8",
@@ -68,7 +68,7 @@ class EmailDeliveryTests(unittest.TestCase):
                 "SMTP_PORT=465\n"
                 "SMTP_SECURE=true\n"
                 "SMTP_FROM=sender@example.test\n"
-                "PROACTIVE_EMAIL_TO=2949593180@qq.com\n",
+                "PROACTIVE_EMAIL_TO=owner@example.test\n",
                 encoding="utf-8",
             )
             attempts = email_delivery.send_email(

@@ -39,6 +39,14 @@ import {
   updateManagedPost,
 } from "@/lib/management/content";
 import {
+  createManagedPrivateNote,
+  deleteManagedPrivateNote,
+  getManagedPrivateNote,
+  listManagedPrivateNotes,
+  updateManagedPrivateNote,
+  updateManagedPrivateNoteStatus,
+} from "@/lib/management/private-notes";
+import {
   MANAGEMENT_MEDIA_BODY_LIMIT,
   ManagementApiError,
   authenticateManagementRequest,
@@ -196,6 +204,59 @@ async function dispatch(
         action: "create",
         resourceType: "daily",
         resourceId: entry.id,
+        summary: mutationSummary(body),
+      },
+    };
+  }
+
+  if (method === "GET" && resource === "private-notes" && !id) {
+    return { data: await listManagedPrivateNotes(url) };
+  }
+  if (method === "POST" && resource === "private-notes" && !id) {
+    const entry = await createManagedPrivateNote(body);
+    return {
+      data: entry,
+      status: 201,
+      audit: {
+        action: "create",
+        resourceType: "private-note",
+        resourceId: entry.id,
+        summary: mutationSummary(body),
+      },
+    };
+  }
+  if (resource === "private-notes" && id && !child) {
+    const entryId = getPositiveInteger(id, "private note id");
+    if (method === "GET") return { data: await getManagedPrivateNote(entryId) };
+    if (method === "PATCH") {
+      const entry = await updateManagedPrivateNote(entryId, body);
+      return {
+        data: entry,
+        audit: {
+          action: "update",
+          resourceType: "private-note",
+          resourceId: entryId,
+          summary: mutationSummary(body),
+        },
+      };
+    }
+    if (method === "DELETE") {
+      requireDeleteConfirmation(request, "private-note", entryId);
+      return {
+        data: await deleteManagedPrivateNote(entryId),
+        audit: { action: "delete", resourceType: "private-note", resourceId: entryId },
+      };
+    }
+  }
+  if (resource === "private-notes" && id && child === "status" && !childId && method === "PATCH") {
+    const entryId = getPositiveInteger(id, "private note id");
+    const entry = await updateManagedPrivateNoteStatus(entryId, body);
+    return {
+      data: entry,
+      audit: {
+        action: "status",
+        resourceType: "private-note",
+        resourceId: entryId,
         summary: mutationSummary(body),
       },
     };
@@ -405,10 +466,20 @@ async function handle(request: Request, context: RouteContext) {
   let audit: DispatchResult["audit"];
 
   try {
-    principal = authenticateManagementRequest(request);
+    path = (await context.params).path ?? [];
+    const isPrivateNotesRequest = path[0] === "private-notes";
+    principal = authenticateManagementRequest(
+      request,
+      isPrivateNotesRequest
+        ? {
+            tokenEnv: "BLOG_PRIVATE_NOTES_API_TOKEN",
+            unavailableCode: "private_notes_api_unavailable",
+            unauthorizedMessage: "A valid private-notes bearer token is required.",
+          }
+        : undefined
+    );
     requestId = principal.requestId;
     enforceManagementRateLimit(principal.actor);
-    path = (await context.params).path ?? [];
 
     const isMedia = method === "POST" && path[0] === "media";
     const parsed = mutation && !isMedia ? await readManagementJson(request) : { raw: "", value: {} };

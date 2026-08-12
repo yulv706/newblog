@@ -375,3 +375,36 @@ export const managementApiRequests = sqliteTable(
   },
   (table) => [index("management_api_requests_created_at_idx").on(table.createdAt)]
 );
+
+export const privateEntries = sqliteTable(
+  "private_entries",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    kind: text("kind", { enum: ["thought", "goal"] })
+      .notNull()
+      .default("thought"),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    status: text("status", { enum: ["active", "completed", "archived"] })
+      .notNull()
+      .default("active"),
+    priority: text("priority", { enum: ["low", "medium", "high"] })
+      .notNull()
+      .default("medium"),
+    progress: integer("progress").notNull().default(0),
+    targetDate: text("target_date"),
+    tags: text("tags").notNull().default("[]"),
+    completedAt: text("completed_at"),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text("updated_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    index("private_entries_timeline_idx").on(table.status, table.updatedAt),
+    index("private_entries_kind_idx").on(table.kind, table.status),
+    index("private_entries_target_date_idx").on(table.targetDate),
+  ]
+);

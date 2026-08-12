@@ -1431,11 +1431,13 @@ def process_alerts(config, checks):
         current_status = check["status"]
         previous = previous_checks.get(check_id) or {}
         previous_status = previous.get("status", "unknown")
+        problem_observations = int(previous.get("problemObservations") or 0)
         last_alert = float(previous.get("lastAlertEpoch") or 0)
         last_attempt = float(previous.get("lastAttemptEpoch") or 0)
         last_delivery_error = previous.get("lastDeliveryError")
         is_problem = current_status in ("warning", "critical")
         was_problem = previous_status in ("warning", "critical")
+        problem_observations = problem_observations + 1 if is_problem else 0
         problem_since = float(previous.get("problemSinceEpoch") or 0)
         if is_problem and not was_problem:
             problem_since = now_epoch
@@ -1444,7 +1446,14 @@ def process_alerts(config, checks):
             if current_status == "critical"
             else config.warning_confirm_seconds
         )
-        confirmed = is_problem and now_epoch - problem_since >= confirm_seconds
+        required_observations = (
+            2 if check_id == "steam_games" and current_status == "warning" else 1
+        )
+        confirmed = (
+            is_problem
+            and now_epoch - problem_since >= confirm_seconds
+            and problem_observations >= required_observations
+        )
         retry_interval = (
             config.alert_failure_retry_seconds
             if last_delivery_error
@@ -1529,6 +1538,7 @@ def process_alerts(config, checks):
             "problemSinceEpoch": (
                 problem_since if check["status"] in ("warning", "critical") else 0
             ),
+            "problemObservations": problem_observations,
         }
     atomic_write_json(
         config.alert_state_path,

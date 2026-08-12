@@ -7,6 +7,21 @@ project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-08-12
+
+### Fixed
+
+- Make Steam synchronization prefer system DNS, reserve a DNS fallback after configured edge retries, and require consecutive Steam health observations before warning emails.
+
+### Added
+
+- Adds an administrator-only private notes workspace for personal thoughts,
+  goals, plans, tags, progress, due dates, completion, archiving, and search.
+- Keeps private entries out of public navigation, search, RSS, sitemap, and
+  non-admin route responses.
+- Adds Hermes private-note tools for administrator-only listing, writing,
+  editing, completion, archiving, and deletion through a separate API token.
+
 ### Changed
 
 - Routes scheduled reading briefings, registration notifications, and server

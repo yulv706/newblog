@@ -93,6 +93,7 @@ describe("database", () => {
     expect(tableNames).toContain("reading_books");
     expect(tableNames).toContain("reading_notes");
     expect(tableNames).toContain("reading_sync_state");
+    expect(tableNames).toContain("private_entries");
     expect(testDbPath).not.toBe(path.join(process.cwd(), "data", "blog.db"));
   });
 

@@ -2,6 +2,10 @@
 
 This directory contains the audited MCP bridge and operating skill used by Hermes Agent.
 
+The bridge has two credential scopes: the general management token for public blog
+administration and a separate private-notes token for the owner's private workspace.
+Never reuse or disclose the private-notes token.
+
 Server layout:
 
 ```text

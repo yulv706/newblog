@@ -56,6 +56,7 @@ export async function getManagementStatus() {
       "comments:moderate-delete",
       "users:read-update-access",
       "books:read-write-sync-notes",
+      "private-notes:admin-only-read-write",
       "backups:create-list",
       "audit:read",
     ],

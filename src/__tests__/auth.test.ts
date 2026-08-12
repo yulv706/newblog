@@ -178,6 +178,22 @@ describe("admin middleware protection", () => {
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toContain("/account/login");
   });
+
+  it("returns a generic not-found response for anonymous private workspace requests", async () => {
+    const response = await middleware(createRequest("/admin/private"));
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toBe("Not Found");
+  });
+
+  it("allows a cryptographically valid admin session to reach the private workspace", async () => {
+    const token = await signAdminSessionToken(12);
+    const response = await middleware(
+      createRequest("/admin/private", `${AUTH_COOKIE_NAME}=${token}`)
+    );
+
+    expect(response.status).toBe(200);
+  });
 });
 
 describe("daily user middleware protection", () => {

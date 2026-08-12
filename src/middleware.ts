@@ -26,6 +26,8 @@ function getUnauthorizedApiResponse() {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isDailyRoute = pathname === "/daily" || pathname.startsWith("/daily/");
+  const isPrivateAdminRoute =
+    pathname === "/admin/private" || pathname.startsWith("/admin/private/");
   const isLoginRoute = pathname.startsWith("/admin/login");
   const isAdminApiRoute = pathname.startsWith("/api/admin");
 
@@ -37,6 +39,17 @@ export async function middleware(request: NextRequest) {
     }
 
     return getUserLoginRedirectResponse(request);
+  }
+
+  if (isPrivateAdminRoute) {
+    const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+    const payload = token ? await verifySessionToken(token) : null;
+    if (!payload) {
+      return new NextResponse("Not Found", {
+        status: 404,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
   }
 
   if (isLoginRoute) {
